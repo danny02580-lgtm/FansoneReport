@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <title>月度訂閱 & 單片購買報表</title>
+  <style>
+    * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; }
+    body { margin: 0; padding: 24px; background: #020617; color: #e5e7eb; }
+    h1 { margin: 0 0 16px; font-size: 24px; }
+    .subtitle { margin-bottom: 24px; color: #9ca3af; font-size: 14px; }
+    .layout {
+      max-width: 1100px;
+      margin: 0 auto 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      align-items: stretch;
+    }
+    .card {
+      background: #020617;
+      border-radius: 12px;
+      padding: 16px 20px;
+      box-shadow: 0 0 0 1px rgba(148,163,184,0.25), 0 18px 45px rgba(15,23,42,0.8);
+    }
+    .card h2 { margin: 0 0 12px; font-size: 18px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    thead { background: #0f172a; }
+    th, td { padding: 6px 8px; text-align: right; white-space: nowrap; }
+    th { color: #e5e7eb; }
+    td { color: #d1d5db; }
+    th:first-child, td:first-child { text-align: left; }
+    tr:nth-child(even) td { background: #020617; }
+    tr:nth-child(odd) td { background: #020617; }
+    .tag { padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+    .tag-sp { background: rgba(250, 204, 21, 0.12); color: #facc15; }
+    .tag-total { background: rgba(248, 113, 113, 0.18); color: #fca5a5; }
+    .kpi-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; font-size: 13px; }
+    .kpi-label { color: #9ca3af; margin-right: 4px; }
+    .kpi-value { font-weight: 600; margin-right: 12px; }
+    .muted { color: #6b7280; font-size: 12px; }
+
+    .chart-section { margin-top: 8px; }
+    .chart-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      gap: 12px;
+    }
+    .chart-header h2 { font-size: 18px; margin: 0; }
+    .chart-controls {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      justify-content: flex-end;
+    }
+    .group-toggle {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      color: #e5e7eb;
+    }
+    .group-toggle input {
+      accent-color: #22c55e;
+    }
+    canvas {
+      background: #020617;
+      border-radius: 12px;
+      box-shadow: 0 0 0 1px rgba(30,64,175,0.6);
+      padding: 8px;
+    }
+  </style>
+</head>
+<body>
+  <h1>月度訂閱 & 單片購買報表（6–11 月）</h1>
+  <div class="subtitle">
+    「營收金額」僅代表訂閱營收，<b>單片購買為額外補充資訊，不併入營收與 ARPU。</b> 深色模式＋單一圖表，以選取窗格控制顯示內容。
+  </div>
+
+  <div class="layout">
+    <div class="card">
+      <h2>月度概況總表</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>月份</th>
+            <th>訂閱人數</th>
+            <th>單月%</th>
+            <th>三月%</th>
+            <th>六月%</th>
+            <th>訂閱數成長率%</th>
+            <th>新客</th>
+            <th>舊客</th>
+            <th>新客比例%</th>
+            <th>舊客比例%</th>
+            <th>營收金額</th>
+            <th>營收成長率%</th>
+            <th>單片購買</th>
+            <th>ARPU</th>
+            <th>長期方案佔比%</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>6 月</td><td>49</td><td>89.80%</td><td>0%</td><td>10.20%</td>
+            <td>—</td><td>49</td><td>0</td><td>100%</td><td>0%</td>
+            <td>10,887</td><td>—</td><td>$ 1,067</td><td>222.2</td><td>10.20%</td>
+          </tr>
+          <tr>
+            <td>7 月</td><td>103</td><td>89.30%</td><td>5.80%</td><td>4.90%</td>
+            <td>110.20%</td><td>94</td><td>9</td><td>91.30%</td><td>8.70%</td>
+            <td>22,126</td><td>103.20%</td><td>$ 2,087</td><td>214.8</td><td>10.70%</td>
+          </tr>
+          <tr>
+            <td>8 月</td><td>120</td><td>90%</td><td>1.70%</td><td>8.30%</td>
+            <td>16.50%</td><td>88</td><td>32</td><td>73.30%</td><td>26.70%</td>
+            <td>27,867</td><td>25.90%</td><td>$ 3,137</td><td>232.2</td><td>10%</td>
+          </tr>
+          <tr>
+            <td>9 月</td><td>113</td><td>77.90%</td><td>6.20%</td><td>15.90%</td>
+            <td>-5.80%</td><td>75</td><td>38</td><td>66.40%</td><td>33.60%</td>
+            <td>31,699</td><td>13.80%</td><td>$ 2,357</td><td>280.5</td><td>22.10%</td>
+          </tr>
+          <tr>
+            <td>10 月</td><td>98</td><td>93.90%</td><td>6.10%</td><td>0%</td>
+            <td>-13.30%</td><td>57</td><td>41</td><td>58.20%</td><td>41.80%</td>
+            <td>37,209</td><td>17.40%</td><td>$ 12,256</td><td>379.7</td><td>6.10%</td>
+          </tr>
+          <tr>
+            <td>11 月</td><td>157</td><td>84.71%</td><td>15.29%</td><td>0%</td>
+            <td>60.20%</td><td>80</td><td>77</td><td>50.96%</td><td>49.04%</td>
+            <td>49,598</td><td>33.32%</td><td>$ 6,664</td><td>317.0</td><td>15.29%</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card chart-section">
+      <div class="chart-header">
+        <h2>互動圖表（勾選要看的維度）</h2>
+        <div class="chart-controls">
+          <label class="group-toggle">
+            <input type="checkbox" id="toggle-subs" checked />
+            <span>訂閱人數＋新舊客</span>
+          </label>
+          <label class="group-toggle">
+            <input type="checkbox" id="toggle-plans" checked />
+            <span>方案比例（1 / 3 / 6 月）</span>
+          </label>
+          <label class="group-toggle">
+            <input type="checkbox" id="toggle-revenue" checked />
+            <span>營收</span>
+          </label>
+          <label class="group-toggle">
+            <input type="checkbox" id="toggle-single" checked />
+            <span>單片購買</span>
+          </label>
+          <label class="group-toggle">
+            <input type="checkbox" id="toggle-arpu" checked />
+            <span>ARPU</span>
+          </label>
+        </div>
+      </div>
+      <canvas id="mainChart" height="180"></canvas>
+    </div>
+
+    <div class="card">
+      <h2>單片購買摘要</h2>
+
+      <div class="kpi-row">
+        <span class="kpi-label">6–11 月單片總營收：</span>
+        <span class="kpi-value tag tag-sp">27,568 元</span>
+      </div>
+      <div class="kpi-row">
+        <span class="kpi-label">6–11 月單片總訂單數：</span>
+        <span class="kpi-value">209 筆</span>
+      </div>
+      <div class="kpi-row">
+        <span class="kpi-label">單片平均客單價：</span>
+        <span class="kpi-value">約 132 元 / 筆</span>
+      </div>
+      <div class="kpi-row">
+        <span class="kpi-label">單月營收高峰：</span>
+        <span class="kpi-value tag tag-total">10 月（12,256 元 / 87 筆）</span>
+      </div>
+
+      <p class="muted" style="margin-top: 10px; margin-bottom: 4px;">
+        最暢銷單片作品（依總營收）：
+      </p>
+      <table>
+        <thead><tr><th>作品名稱</th><th>單片總營收</th></tr></thead>
+        <tbody>
+          <tr><td>火車站廁所幫尻 兩隻手才握得住🥵</td><td>2,899</td></tr>
+          <tr><td>微醺的氣氛下 要不要來根棒棒糖🍭</td><td>2,100</td></tr>
+          <tr><td>台北研究生放學在幹嘛？吃雞雞！！</td><td>2,000</td></tr>
+          <tr><td>奶狗雪糕噴射 被尻射還繼續吃🥵</td><td>1,232</td></tr>
+          <tr><td>大屌弟弟 停車場大噴射 噴得整台車都是洨💦</td><td>1,201</td></tr>
+        </tbody>
+      </table>
+      <p class="muted">
+        以上金額皆為實際到手收入（已扣除平台手續費）。
+      </p>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    const labels = ["Jun", "Jul", "Aug", "Sep", "Oct", "Nov"];
+
+    // 數據
+    const subs = [49, 103, 120, 113, 98, 157];
+    const newUsers = [49, 94, 88, 75, 57, 80];
+    const oldUsers = [0, 9, 32, 38, 41, 77];
+
+    const subRevenue = [10887, 22126, 27867, 31699, 37209, 49598];
+    const singleRevenue = [1067, 2087, 3137, 2357, 12256, 6664];
+
+    const arpu = [222.2, 214.8, 232.2, 280.5, 379.7, 317.0];
+
+    const singleRate = [89.8, 89.3, 90.0, 77.9, 93.9, 84.71];
+    const threeRate  = [0.0, 5.8, 1.7, 6.2, 6.1, 15.29];
+    const sixRate    = [10.2, 4.9, 8.3, 15.9, 0.0, 0.0];
+
+    const ctx = document.getElementById("mainChart").getContext("2d");
+
+    // 全部 datasets，一開始都建立好，加上 group 標籤
+    const allDatasets = [
+      // 訂閱 & 新舊客：改為柱狀堆疊
+      {
+        id: "subs_new",
+        group: "subs",
+        type: "bar",
+        label: "New Users",
+        data: newUsers,
+        backgroundColor: "rgba(56,189,248,0.85)",
+        borderRadius: 6,
+        stack: "subsStack",
+        yAxisID: "y"
+      },
+      {
+        id: "subs_old",
+        group: "subs",
+        type: "bar",
+        label: "Old Users",
+        data: oldUsers,
+        backgroundColor: "rgba(37,99,235,0.9)",
+        borderRadius: 6,
+        stack: "subsStack",
+        yAxisID: "y"
+      },
+
+      // 方案比例：用 100% 堆疊柱狀圖呈現
+      {
+        id: "plan_1m",
+        group: "plans",
+        type: "bar",
+        label: "1-Month %",
+        data: singleRate,
+        backgroundColor: "rgba(34,197,94,0.9)",
+        stack: "planStack",
+        yAxisID: "y"
+      },
+      {
+        id: "plan_3m",
+        group: "plans",
+        type: "bar",
+        label: "3-Month %",
+        data: threeRate,
+        backgroundColor: "rgba(168,85,247,0.9)",
+        stack: "planStack",
+        yAxisID: "y"
+      },
+      {
+        id: "plan_6m",
+        group: "plans",
+        type: "bar",
+        label: "6-Month %",
+        data: sixRate,
+        backgroundColor: "rgba(249,115,22,0.95)",
+        stack: "planStack",
+        yAxisID: "y"
+      },
+
+      // 營收：只顯示訂閱營收折線
+      {
+        id: "rev_main",
+        group: "revenue",
+        type: "line",
+        label: "Subscription Revenue",
+        data: subRevenue,
+        borderColor: "#f97373",
+        backgroundColor: "rgba(248,113,113,0.18)",
+        borderWidth: 3,
+        tension: 0.35,
+        pointRadius: 4,
+        pointHoverRadius: 5,
+        yAxisID: "y1"
+      },
+
+      // 單片購買：只顯示單片營收折線
+      {
+        id: "single_rev",
+        group: "single",
+        type: "line",
+        label: "Single-Purchase Revenue",
+        data: singleRevenue,
+        borderColor: "#eab308",
+        backgroundColor: "rgba(234,179,8,0.2)",
+        borderWidth: 2.5,
+        tension: 0.35,
+        pointRadius: 4,
+        pointHoverRadius: 5,
+        yAxisID: "y1"
+      },
+
+      // ARPU
+      {
+        id: "arpu_line",
+        group: "arpu",
+        type: "line",
+        label: "ARPU",
+        data: arpu,
+        borderColor: "#4f46e5",
+        backgroundColor: "rgba(79,70,229,0.25)",
+        borderWidth: 3,
+        tension: 0.35,
+        pointRadius: 4,
+        pointHoverRadius: 5,
+        yAxisID: "y"
+      }
+    ];
+
+    const chartConfig = {
+      type: "bar",
+      data: {
+        labels,
+        datasets: allDatasets.map(ds => ({ ...ds })) // clone
+      },
+      options: {
+        responsive: true,
+        interaction: {
+          mode: "nearest",
+          intersect: false
+        },
+        plugins: {
+          legend: {
+            labels: {
+              color: "#e5e7eb"
+            }
+          },
+          tooltip: {
+            enabled: true,
+            callbacks: {
+              label: function(ctx) {
+                const label = ctx.dataset.label || "";
+                const value = ctx.parsed.y;
+
+                if (label.includes("%")) {
+                  return label + ": " + value.toFixed(1) + " %";
+                }
+                if (label.toLowerCase().includes("revenue")) {
+                  return label + ": " + value.toLocaleString() + " NTD";
+                }
+                if (label === "ARPU") {
+                  return label + ": " + value.toFixed(1);
+                }
+                if (label.includes("Users")) {
+                  return label + ": " + value;
+                }
+                return label + ": " + value;
+              }
+            }
+          }
+        },
+        scales: {
+          y: {
+            position: "left",
+            title: { display: true, text: "Count / % / ARPU", color: "#9ca3af" },
+            grid: { color: "rgba(55,65,81,0.7)" },
+            ticks: {
+              color: "#9ca3af",
+              callback: function(value) { return value; }
+            },
+            stacked: false
+          },
+          y1: {
+            position: "right",
+            title: { display: true, text: "Revenue (NTD)", color: "#9ca3af" },
+            grid: { drawOnChartArea: false },
+            ticks: {
+              color: "#9ca3af",
+              callback: function(value) { return value.toLocaleString(); }
+            },
+            stacked: false
+          }
+        }
+      }
+    };
+
+    const mainChart = new Chart(ctx, chartConfig);
+
+    // group checkbox 控制
+    const groupCheckboxes = {
+      subs: document.getElementById("toggle-subs"),
+      plans: document.getElementById("toggle-plans"),
+      revenue: document.getElementById("toggle-revenue"),
+      single: document.getElementById("toggle-single"),
+      arpu: document.getElementById("toggle-arpu")
+    };
+
+    function updateVisibility() {
+      mainChart.data.datasets.forEach(ds => {
+        const group = ds.group;
+        const checkbox = groupCheckboxes[group];
+        if (!checkbox) return;
+        ds.hidden = !checkbox.checked;
+      });
+
+      // 根據當前顯示的 group 動態切換 y 軸是否堆疊
+      const plansOn = groupCheckboxes.plans.checked;
+      const subsOn = groupCheckboxes.subs.checked;
+
+      // 左側 y：如果只看方案比例，就當百分比堆疊
+      if (plansOn && !subsOn) {
+        mainChart.options.scales.y.stacked = true;
+      } else {
+        mainChart.options.scales.y.stacked = false;
+      }
+
+      mainChart.update();
+    }
+
+    Object.values(groupCheckboxes).forEach(cb => {
+      cb.addEventListener("change", updateVisibility);
+    });
+
+    // 初始套用一次
+    updateVisibility();
+  </script>
+</body>
+</html>
