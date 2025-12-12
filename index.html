@@ -930,5 +930,88 @@ main();
 })();
 </script>
 
+
+<script>
+// --- Prev override: locate Total Revenue column by header text ---
+(function(){
+  const prevEl = document.getElementById("prevTotalRevenue");
+  if(!prevEl) return;
+
+  function moneyFmt(n){
+    if(typeof window.money==="function") return window.money(n);
+    return "NT$ " + n.toLocaleString("en-US");
+  }
+
+  function parseMonthCell(text){
+    const t = (text||"").trim();
+    let m = t.match(/(\d{4})\D(\d{1,2})/);
+    if(m) return {y:parseInt(m[1],10), mo:parseInt(m[2],10)};
+    m = t.match(/^\s*(\d{1,2})\s*$/);
+    if(m) return {y:null, mo:parseInt(m[1],10)};
+    const nums = t.match(/(\d{1,2})/g);
+    if(nums && nums.length) return {y:null, mo:parseInt(nums[nums.length-1],10)};
+    return null;
+  }
+
+  function getTotalIndex(table){
+    const ths = Array.from(table.querySelectorAll("thead th")).map(th => (th.textContent||"").trim().toLowerCase());
+    // prefer "total" / "總營收"
+    let idx = ths.findIndex(t => t.includes("total") || t.includes("總") || t.includes("總營收") || t.includes("總收入"));
+    if(idx >= 0) return idx;
+    // fallback: find "subscription"+"single" then idx after them
+    const sub = ths.findIndex(t => t.includes("subscription"));
+    const single = ths.findIndex(t => t.includes("single"));
+    if(sub>=0 and single>=0) return Math.max(sub, single)+1;
+    return ths.length-2; // safer than last
+  }
+
+  function readPrev(){
+    const tbody = document.getElementById("tbodyMonthly");
+    const table = tbody ? tbody.closest("table") : null;
+    if(!tbody || !table){ return; }
+    const rows = Array.from(tbody.querySelectorAll("tr"));
+    if(rows.length < 2) return;
+
+    const totalIdx = getTotalIndex(table);
+
+    const parsed = rows.map(r=>{
+      const tds = r.querySelectorAll("td");
+      if(tds.length <= totalIdx) return null;
+      const mi = parseMonthCell(tds[0].textContent);
+      const val = parseInt((tds[totalIdx].textContent||"").replace(/[^0-9]/g,""),10);
+      if(!mi || isNaN(val)) return null;
+      return {y:mi.y, mo:mi.mo, total:val};
+    }).filter(Boolean);
+
+    if(parsed.length < 2) return;
+
+    parsed.sort((a,b)=>{
+      const ay = (a.y ?? 0), by = (b.y ?? 0);
+      if(ay !== by) return ay - by;
+      return a.mo - b.mo;
+    });
+
+    const latest = parsed[parsed.length-1];
+    let target = null;
+    if(latest.y != null){
+      const prevMo = latest.mo - 1;
+      const prevY = prevMo >= 1 ? latest.y : (latest.y - 1);
+      const wantMo = prevMo >= 1 ? prevMo : 12;
+      target = parsed.slice().reverse().find(p => p.y === prevY && p.mo === wantMo);
+    } else {
+      const wantMo = latest.mo - 1;
+      target = parsed.slice().reverse().find(p => p.mo === wantMo);
+    }
+    if(!target) target = parsed[parsed.length-2];
+
+    prevEl.textContent = "Prev " + moneyFmt(target.total);
+  }
+
+  // run late to override any earlier buggy prev fill
+  setTimeout(readPrev, 2600);
+  setTimeout(readPrev, 3600);
+})();
+</script>
+
 </body>
 </html>
