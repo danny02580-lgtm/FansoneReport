@@ -33,9 +33,12 @@
   }
   .title h1{margin:0; font-size:18px}
   .title .sub{margin-top:6px; font-size:12px; color:var(--muted); line-height:1.4}
-  .chips{display:flex; flex-wrap:wrap; gap:8px; justify-content:flex-end}
-  .chip{padding:8px 10px; border:1px solid var(--stroke); border-radius:999px; background:rgba(255,255,255,.04); font-size:12px; color:var(--muted); display:flex; gap:8px; align-items:center}
-  .chip b{color:var(--text); font-weight:700}
+  .chips{display:flex; flex-wrap:wrap; gap:10px; justify-content:flex-end; align-items:flex-start}
+  .chip{padding:10px 12px; border:1px solid var(--stroke); border-radius:999px; background:rgba(255,255,255,.04); font-size:12px; color:var(--muted); display:flex; gap:8px; align-items:center}
+  .chip b{color:var(--text); font-weight:800}
+  .chip.big{padding:12px 14px; border-radius:16px; min-width:220px; justify-content:space-between}
+  .chip.big span{font-size:12px}
+  .chip.big b{font-size:22px; letter-spacing:.2px}
 
   .grid{display:grid; grid-template-columns: 360px 1fr; gap:14px; margin-top:14px}
   @media (max-width: 980px){ .grid{grid-template-columns: 1fr} }
@@ -99,8 +102,7 @@
     </div>
     <div class="chips">
       <div class="chip"><span>Months</span> <b id="months">–</b></div>
-      <div class="chip"><span>Total subs</span> <b id="totalSubs">–</b></div>
-      <div class="chip"><span>Total revenue</span> <b id="totalRevenue">–</b></div>
+      <div class="chip big"><span>Total revenue</span> <b id="totalRevenue">–</b></div>
     </div>
   </div>
 
@@ -117,10 +119,6 @@
         <div class="hint" id="viewHint">選擇一個圖表類型後，下方勾選可再微調顯示內容。</div>
 
         <div class="checks" id="checks"></div>
-
-        <div class="hint" style="margin-top:10px">
-          ✅ Hover 任一點都會出數字；圖例也可點（單擊隱藏 / 雙擊只看那條）。
-        </div>
       </div>
     </div>
 
@@ -429,7 +427,6 @@ function buildTraces(view){
   const CTOT = css.getPropertyValue('--totalrev').trim();
   const CARPU = css.getPropertyValue('--arpu').trim();
 
-  // common x ticks
   const xaxis = {
     tickmode:"array",
     tickvals:x,
@@ -438,19 +435,34 @@ function buildTraces(view){
     zeroline:false,
     tickfont:{color:"rgba(229,231,235,.9)", size:12},
   };
-
   const yCommon = {
     gridcolor:"rgba(255,255,255,.10)",
     zeroline:false,
     tickfont:{color:"rgba(229,231,235,.9)", size:12},
   };
 
+  const labelFont = {color:"rgba(229,231,235,.95)", size:12};
+  const labelFontSmall = {color:"rgba(229,231,235,.95)", size:11};
+
   if(view==="subs"){
     return {
       traces: [
-        {name:"New users", type:"bar", x, y:newY, marker:{color:CNEW}, customdata:xText, hovertemplate:"%{customdata}<br>New: <b>%{y}</b><extra></extra>"},
-        {name:"Old users", type:"bar", x, y:oldY, marker:{color:COLD}, customdata:xText, hovertemplate:"%{customdata}<br>Old: <b>%{y}</b><extra></extra>"},
-        {name:"ARPU", type:"scatter", mode:"lines+markers", x, y:arpu, yaxis:"y2", line:{color:CARPU,width:3}, marker:{size:8,color:CARPU}, customdata:xText, hovertemplate:"%{customdata}<br>ARPU: <b>%{y}</b><extra></extra>"},
+        {
+          name:"New users", type:"bar", x, y:newY, marker:{color:CNEW},
+          text:newY.map(v=>String(v)), textposition:"inside", insidetextanchor:"middle", textfont:labelFontSmall,
+          customdata:xText, hovertemplate:"%{customdata}<br>New: <b>%{y}</b><extra></extra>"
+        },
+        {
+          name:"Old users", type:"bar", x, y:oldY, marker:{color:COLD},
+          text:oldY.map(v=>String(v)), textposition:"inside", insidetextanchor:"middle", textfont:labelFontSmall,
+          customdata:xText, hovertemplate:"%{customdata}<br>Old: <b>%{y}</b><extra></extra>"
+        },
+        {
+          name:"ARPU", type:"scatter", mode:"lines+markers+text", x, y:arpu, yaxis:"y2",
+          line:{color:CARPU,width:3}, marker:{size:8,color:CARPU},
+          text:arpu.map(v=> (v==null? "" : String(v))), textposition:"top center", textfont:labelFont,
+          customdata:xText, hovertemplate:"%{customdata}<br>ARPU: <b>%{y}</b><extra></extra>"
+        },
       ],
       layout: {
         barmode:"stack",
@@ -465,9 +477,15 @@ function buildTraces(view){
   if(view==="mix"){
     return {
       traces: [
-        {name:"1M", type:"bar", x, y:p1, marker:{color:"#22c55e"}, opacity:0.92, customdata:xText, hovertemplate:"%{customdata}<br>1M: <b>%{y:.1f}%</b><extra></extra>"},
-        {name:"3M", type:"bar", x, y:p3, marker:{color:"#60a5fa"}, opacity:0.92, customdata:xText, hovertemplate:"%{customdata}<br>3M: <b>%{y:.1f}%</b><extra></extra>"},
-        {name:"6M", type:"bar", x, y:p6, marker:{color:"#f97316"}, opacity:0.92, customdata:xText, hovertemplate:"%{customdata}<br>6M: <b>%{y:.1f}%</b><extra></extra>"},
+        {name:"1M", type:"bar", x, y:p1, marker:{color:"#22c55e"}, opacity:0.92,
+          text:p1.map(v=>v.toFixed(1)+"%"), textposition:"inside", textfont:labelFontSmall,
+          customdata:xText, hovertemplate:"%{customdata}<br>1M: <b>%{y:.1f}%</b><extra></extra>"},
+        {name:"3M", type:"bar", x, y:p3, marker:{color:"#60a5fa"}, opacity:0.92,
+          text:p3.map(v=>v.toFixed(1)+"%"), textposition:"inside", textfont:labelFontSmall,
+          customdata:xText, hovertemplate:"%{customdata}<br>3M: <b>%{y:.1f}%</b><extra></extra>"},
+        {name:"6M", type:"bar", x, y:p6, marker:{color:"#f97316"}, opacity:0.92,
+          text:p6.map(v=>v.toFixed(1)+"%"), textposition:"inside", textfont:labelFontSmall,
+          customdata:xText, hovertemplate:"%{customdata}<br>6M: <b>%{y:.1f}%</b><extra></extra>"},
       ],
       layout: {
         barmode:"stack",
@@ -482,7 +500,10 @@ function buildTraces(view){
   if(view==="single"){
     return {
       traces: [
-        {name:"Single revenue", type:"scatter", mode:"lines+markers", x, y:singleRev, line:{color:CSIN,width:3}, marker:{size:8,color:CSIN}, customdata:xText, hovertemplate:"%{customdata}<br>Single revenue: <b>%{y}</b><extra></extra>"},
+        {name:"Single revenue", type:"scatter", mode:"lines+markers+text", x, y:singleRev,
+          line:{color:CSIN,width:3}, marker:{size:8,color:CSIN},
+          text:singleRev.map(v=>String(v)), textposition:"top center", textfont:labelFont,
+          customdata:xText, hovertemplate:"%{customdata}<br>Single revenue: <b>%{y}</b><extra></extra>"},
       ],
       layout: {
         xaxis,
@@ -496,10 +517,22 @@ function buildTraces(view){
   // money default
   return {
     traces: [
-      {name:"Total revenue", type:"scatter", mode:"lines+markers", x, y:totalRev, line:{color:CTOT,width:3}, marker:{size:8,color:CTOT}, customdata:xText, hovertemplate:"%{customdata}<br>Total revenue: <b>%{y}</b><extra></extra>"},
-      {name:"Sub revenue", type:"scatter", mode:"lines+markers", x, y:subRev, line:{color:CREV,width:3}, marker:{size:8,color:CREV}, customdata:xText, hovertemplate:"%{customdata}<br>Sub revenue: <b>%{y}</b><extra></extra>"},
-      {name:"Single revenue", type:"scatter", mode:"lines+markers", x, y:singleRev, line:{color:CSIN,width:3,dash:"dot"}, marker:{size:8,color:CSIN}, customdata:xText, hovertemplate:"%{customdata}<br>Single revenue: <b>%{y}</b><extra></extra>"},
-      {name:"ARPU", type:"scatter", mode:"lines+markers", x, y:arpu, yaxis:"y2", line:{color:CARPU,width:3}, marker:{size:8,color:CARPU}, customdata:xText, hovertemplate:"%{customdata}<br>ARPU: <b>%{y}</b><extra></extra>"},
+      {name:"Total revenue", type:"scatter", mode:"lines+markers+text", x, y:totalRev,
+        line:{color:CTOT,width:3}, marker:{size:8,color:CTOT},
+        text:totalRev.map(v=>String(v)), textposition:"top center", textfont:labelFont,
+        customdata:xText, hovertemplate:"%{customdata}<br>Total revenue: <b>%{y}</b><extra></extra>"},
+      {name:"Sub revenue", type:"scatter", mode:"lines+markers+text", x, y:subRev,
+        line:{color:CREV,width:3}, marker:{size:8,color:CREV},
+        text:subRev.map(v=>String(v)), textposition:"top center", textfont:labelFont,
+        customdata:xText, hovertemplate:"%{customdata}<br>Sub revenue: <b>%{y}</b><extra></extra>"},
+      {name:"Single revenue", type:"scatter", mode:"lines+markers+text", x, y:singleRev,
+        line:{color:CSIN,width:3,dash:"dot"}, marker:{size:8,color:CSIN},
+        text:singleRev.map(v=>String(v)), textposition:"top center", textfont:labelFont,
+        customdata:xText, hovertemplate:"%{customdata}<br>Single revenue: <b>%{y}</b><extra></extra>"},
+      {name:"ARPU", type:"scatter", mode:"lines+markers+text", x, y:arpu, yaxis:"y2",
+        line:{color:CARPU,width:3}, marker:{size:8,color:CARPU},
+        text:arpu.map(v=> (v==null? "" : String(v))), textposition:"top center", textfont:labelFont,
+        customdata:xText, hovertemplate:"%{customdata}<br>ARPU: <b>%{y}</b><extra></extra>"},
     ],
     layout: {
       xaxis,
@@ -515,11 +548,12 @@ function layoutBase(){
   return {
     paper_bgcolor:"rgba(0,0,0,0)",
     plot_bgcolor:"rgba(255,255,255,0.02)",
-    margin:{l:56,r:60,t:18,b:46},
+    margin:{l:56,r:60,t:22,b:46},
     bargap:0.35,
     legend:{orientation:"h", x:0, y:1.12, font:{color:"rgba(229,231,235,.9)"}},
     hovermode:"x unified",
     hoverlabel:{bgcolor:"rgba(15,23,42,.95)", bordercolor:"rgba(255,255,255,.14)", font:{color:"#e5e7eb"}},
+    uniformtext: {mode:"hide", minsize:10},
   };
 }
 
@@ -528,41 +562,33 @@ function renderChart(view){
   const built = buildTraces(view);
   el("viewHint").textContent = built.hint;
 
-  // plot
   const layout = {...layoutBase(), ...built.layout};
   const config = {responsive:true, displaylogo:false, toImageButtonOptions:{format:"png", filename:"fansone_report", scale:2}};
   Plotly.react("chart", built.traces, layout, config).then(()=>{
-    // defaults checked
     const ids = (Array.isArray(built.defaults)? built.defaults : []);
     ids.forEach(id=> {
       const node = document.getElementById(id);
       if(node) node.checked = true;
     });
-    // if view has checks (money/subs), apply visibility by filtering traces
     applyVisibility(view, built.traces);
-    // listeners
     document.querySelectorAll("#checks input[type=checkbox]").forEach(cb=> cb.addEventListener("change", ()=>applyVisibility(view, built.traces)));
   });
 }
 
 function applyVisibility(view, traces){
-  // per-view mapping: which checkbox corresponds to which trace
   let vis = new Array(traces.length).fill(false);
   const on = (id)=> { const n=document.getElementById(id); return n && n.checked; };
 
   if(view==="money"){
-    // 0 total,1 sub,2 single,3 arpu
     if(on("r_total")) vis[0]=true;
     if(on("r_sub")) vis[1]=true;
     if(on("r_single")) vis[2]=true;
     if(on("r_arpu")) vis[3]=true;
   } else if(view==="subs"){
-    // 0 new bar, 1 old bar, 2 arpu line
     if(on("s_new")) vis[0]=true;
     if(on("s_old")) vis[1]=true;
     if(on("r_arpu")) vis[2]=true;
   } else if(view==="mix"){
-    // single checkbox toggles all
     const m = on("p_mix");
     vis = vis.map(()=>m);
   } else if(view==="single"){
@@ -591,17 +617,13 @@ async function main(){
     STATE.aggAsc = built.aggAsc;
     STATE.topSingles = built.topSingles;
 
-    // default newest->oldest
     applyOrder(true);
 
-    // KPIs
     el("months").textContent = String(STATE.aggAsc.length);
-    el("totalSubs").textContent = String(STATE.aggAsc.reduce((a,b)=>a+(b.subs||0),0));
     el("totalRevenue").textContent = money(Math.round(STATE.aggAsc.reduce((a,b)=>a+(b.totalRevenue||0),0)));
 
     renderTables(STATE.aggDesc, STATE.topSingles);
 
-    // first render
     renderChart("money");
     el("viewSelect").addEventListener("change", (e)=> renderChart(e.target.value));
 
