@@ -219,7 +219,7 @@
 
 
 <style id="customTooltipCardStyles">
-.js-plotly-plot .hoverlayer{display:none!important;}
+.js-plotly-plot .hoverlayer .hovertext{display:none!important;}
 #customTooltipCard{
   position:fixed; z-index:99999; display:none; pointer-events:none;
   padding:14px 16px; border-radius:18px;
@@ -1211,6 +1211,8 @@ main();
 <script id="customTooltipCardScriptV2">
 (function(){
   let lastMouse = {x: null, y: null};
+  let lock = {key:null, t:0};
+  const LOCK_MS = 140;
 
   function ensureCard(){
     let el=document.getElementById('customTooltipCard');
@@ -1276,6 +1278,10 @@ main();
       try{
         if(!e||!e.points||!e.points.length) return;
         const pt=e.points[0];
+        const now=Date.now();
+        const key=(pt.curveNumber!=null?pt.curveNumber:'')+':' + (pt.pointNumber!=null?pt.pointNumber:'');
+        if(lock.key && key!==lock.key && (now-lock.t)<LOCK_MS){ return; }
+        lock.key=key; lock.t=now;
         const xlab=pt.x;
         const name=(pt.fullData&&pt.fullData.name)||(pt.data&&pt.data.name)||'Value';
         const yval=pt.y;
@@ -1292,7 +1298,7 @@ main();
         place(cx,cy);
       }catch(err){}
     });
-    gd.on('plotly_unhover', function(){ card.style.display='none'; });
+    gd.on('plotly_unhover', function(){ card.style.display='none'; lock.key=null; lock.t=0; });
 
     window.addEventListener('scroll', ()=>{ card.style.display='none'; }, {passive:true});
     window.addEventListener('resize', ()=>{ card.style.display='none'; }, {passive:true});
@@ -1304,6 +1310,44 @@ main();
   const obs=new MutationObserver(()=>scan());
   obs.observe(document.documentElement,{childList:true,subtree:true});
   window.addEventListener('load', ()=>{ setTimeout(scan,200); setTimeout(scan,800); setTimeout(scan,1500); });
+})();
+</script>
+
+
+<script id="plotlyHoverEnforcer">
+(function(){
+  function fixLayout(gd){
+    if(!gd || !gd.classList || (!gd.classList.contains('js-plotly-plot') && !gd.classList.contains('plotly-graph-div'))) return;
+    if(!window.Plotly || !gd._fullLayout) return;
+
+    // Force single-point hover everywhere
+    const update = {
+      hovermode: 'closest',
+      hoverdistance: 8,
+      spikedistance: -1
+    };
+
+    // Disable spikes if present
+    try{
+      const axKeys = Object.keys(gd._fullLayout).filter(k=>/^xaxis\d*$|^yaxis\d*$/.test(k));
+      axKeys.forEach(k=>{
+        update[`${k}.showspikes`] = false;
+        update[`${k}.spikesnap`] = 'cursor';
+      });
+    }catch(e){}
+
+    // Apply without triggering full redraw loop
+    window.Plotly.relayout(gd, update).catch(()=>{});
+  }
+
+  function scan(){
+    document.querySelectorAll('.js-plotly-plot, .plotly-graph-div').forEach(fixLayout);
+  }
+
+  // Re-apply after plots render
+  const obs = new MutationObserver(()=>scan());
+  obs.observe(document.documentElement,{childList:true,subtree:true});
+  window.addEventListener('load', ()=>{ setTimeout(scan,300); setTimeout(scan,1000); setTimeout(scan,2000); });
 })();
 </script>
 
