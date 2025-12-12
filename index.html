@@ -44,14 +44,12 @@
   .kpi .kvalue{font-size:24px; font-weight:850; letter-spacing:.2px; color:var(--text)}
   .kpi.small{min-width:140px}
   .kpi.small .kvalue{font-size:24px}
-
   .grid{display:grid; grid-template-columns: 360px 1fr; gap:14px; margin-top:14px}
   @media (max-width: 980px){ .grid{grid-template-columns: 1fr} }
   .panel{border:1px solid var(--stroke); border-radius:16px; background:var(--panel); backdrop-filter: blur(10px); overflow:hidden}
   .hd{padding:12px; border-bottom:1px solid rgba(255,255,255,.10); display:flex; align-items:center; justify-content:space-between; gap:10px}
   .hd h2{margin:0; font-size:13px}
   .bd{padding:12px}
-
   .select{
     width:100%;
     padding:12px 12px;
@@ -63,7 +61,6 @@
     outline:none;
   }
   .hint{margin-top:8px; font-size:11px; color:var(--muted); line-height:1.45}
-
   .checks{display:grid; grid-template-columns: 1fr; gap:8px; margin-top:10px}
   .check{
     display:flex; gap:10px; align-items:center;
@@ -77,10 +74,8 @@
   .label{display:flex; flex-direction:column; gap:2px}
   .label b{font-size:12px; font-weight:750}
   .label span{font-size:11px; color:var(--muted)}
-
   #chart{width:100%; height:560px}
   @media (max-width: 980px){ #chart{height:520px} }
-
   .tablesGrid{display:grid; grid-template-columns: 1.3fr 1fr; gap:14px; margin-top:14px}
   @media (max-width: 980px){ .tablesGrid{grid-template-columns: 1fr} }
   table{width:100%; border-collapse:separate; border-spacing:0; font-size:12px}
@@ -91,7 +86,6 @@
   .sheetlink{color: var(--muted); border:1px solid var(--stroke); padding:7px 9px; border-radius:999px; background:rgba(255,255,255,.04)}
   .sheetlink:hover{color:var(--text)}
   .pill{padding:5px 8px; border:1px solid var(--stroke); border-radius:999px; font-size:11px; color:var(--muted); background:rgba(255,255,255,.03)}
-
 /* --- Mobile polish (no layout break) --- */
 @media (max-width: 860px){
   .wrap{padding:12px;}
@@ -112,8 +106,6 @@
   #chart{height:320px !important;}
   .btn, select, input[type="checkbox"]{touch-action:manipulation;}
 }
-
-
 /* === KPI premium cards (A) === */
 .kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:12px 0 14px;}
 .kpi{background:linear-gradient(135deg,rgba(255,255,255,.08),rgba(255,255,255,.03));border:1px solid rgba(255,255,255,.14);
@@ -121,8 +113,6 @@
 .kpi .klabel{font-size:12px;color:rgba(255,255,255,.70);letter-spacing:.12em;}
 .kpi .kvalue{margin-top:6px;font-size:32px;font-weight:850;letter-spacing:.02em;}
 @media(max-width:520px){.kpis{grid-template-columns:1fr;}.kpi .kvalue{font-size:28px;}}
-
-
 /* === Segmented control (B) === */
 .segmented{display:flex;gap:6px;padding:6px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.14);border-radius:14px;
            overflow-x:auto;-webkit-overflow-scrolling:touch;margin:10px 0 10px;}
@@ -130,21 +120,15 @@
 .seg-btn{flex:1 0 auto;padding:10px 12px;border-radius:12px;border:0;background:transparent;color:rgba(255,255,255,.72);font-weight:750;cursor:pointer;white-space:nowrap;}
 .seg-btn.active{background:rgba(255,255,255,.12);color:rgba(255,255,255,.96);}
 .select.hidden{display:none!important;}
-
-
 /* --- UX tweaks requested --- */
 #orderTag{ display:none !important; } /* hide 新→舊 label */
-
 .twoline{display:inline-block; line-height:1.05; text-align:center;}
 @media (max-width:720px){
   .twoline{font-size:12px;}
 }
-
 /* User insights segmented */
 .userseg{ margin-top:10px; }
-
 .kprev{margin-top:6px; font-size:12px; opacity:.85;}
-
 </style>
 </head>
 <body>
@@ -165,34 +149,25 @@
       </div>
     </div>
   </div>
-
   <div class="grid">
     <div class="panel">
       <div class="hd"><h2>圖表切換</h2><span class="pill" id="orderTag">新 → 舊</span></div>
       <div class="bd">
-        
 <div class="segmented" role="tablist" aria-label="Chart views">
   <button class="seg-btn active" type="button" data-value="money">Revenue</button>
   <button class="seg-btn" type="button" data-value="subs">Subscribers</button>
   <button class="seg-btn" type="button" data-value="mix">Plans</button>
   <button class="seg-btn" type="button" data-value="arpu">ARPU</button>
 </div>
-
 <select id="viewSelect" class="select hidden">
-          <option value="money">金額（總/訂閱/單片）</option>
-          <option value="subs">訂閱人數（新/舊柱狀）</option>
-          <option value="mix">方案比例（1/3/6M 勾選）</option>
-          <option value="arpu">ARPU（折線）</option>
         </select>
 <div class="checks" id="checks"></div>
       </div>
     </div>
-
     <div class="panel" style="padding:10px">
       <div id="chart"></div>
     </div>
   </div>
-
   <div class="tablesGrid">
     <div class="panel">
       <div class="hd">
@@ -220,17 +195,14 @@
         </div>
       </div>
     </div>
-
     <div class="panel">
       <div class="hd">
         <div style="display:flex; align-items:center; gap:10px;">
           <h2 style="margin:0;">用戶分析</h2><span class="pill">Top 10</span>
         </div>
-        
 <div class="segmented userseg" role="tablist" aria-label="User insights metric">
   <button class="seg-btn active" type="button" data-metric="spend_total">付最多錢</button><button class="seg-btn" type="button" data-metric="spend_sub">付最多錢</button><button class="seg-btn" type="button" data-metric="spend_single">付最多錢</button><button class="seg-btn" type="button" data-metric="active_months">訂閱最久</button><button class="seg-btn" type="button" data-metric="tenure_span">時間跨度最久</button><button class="seg-btn" type="button" data-metric="orders_total">購買最多次</button>
 </div>
-
 <select id="userMetric" style="display:none" class="select" style="max-width:220px; padding:8px 10px;">
           <option value="spend_total">付最多錢（總）</option>
           <option value="spend_sub">付最多錢（訂閱）</option>
@@ -258,7 +230,6 @@
       </div>
     </div>
   </div>
-
   <div class="tablesGrid" style="grid-template-columns: 1fr; margin-top:14px;">
     <div class="panel">
       <div class="hd">
@@ -283,11 +254,9 @@
     </div>
   </div>
 </div>
-
 <script>
 const SUB_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQiAPNDCD7qn6atO4VB6Ei63AacDK00AMKM16hK8c-wVWFadPPOj-P8olYQ-ofMFwy0maGU1A4CBneW/pub?gid=0&single=true&output=csv";
 const SINGLE_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQiAPNDCD7qn6atO4VB6Ei63AacDK00AMKM16hK8c-wVWFadPPOj-P8olYQ-ofMFwy0maGU1A4CBneW/pub?gid=1226262547&single=true&output=csv";
-
 function el(id){ return document.getElementById(id); }
 function money(n){ if(!isFinite(n)) return "–"; return "$ " + Number(n).toLocaleString("en-US"); }
 function parseMoney(s){
@@ -364,19 +333,15 @@ function parseTimeToSortable(s){
   }
   return `${m[1]}-${m[2]}-${m[3]} ${m[4]}:${m[5]}:${m[6]||"00"}`;
 }
-
 let STATE = { aggAsc:[], aggDesc:[], topSingles:[], users:[] };
-
 function buildAgg(subRows, singleRows){
   const subHeaders = Object.keys(subRows[0]||{});
   const timeKey  = pickKey(subHeaders, ["時間","time","date","datetime"]) || subHeaders[0];
   const planKey  = pickKey(subHeaders, ["方案","plan","類型"]) || subHeaders[1];
   const idKey    = pickKey(subHeaders, ["用戶id","user id","userid","id","用戶","user"]) || subHeaders[2];
   const priceKey = pickKey(subHeaders, ["價格","price","金額","amount","收入"]) || subHeaders[Math.min(3, subHeaders.length-1)];
-
   const monthMap = new Map();
   const seenBefore = new Set();
-
   const parsedSub = subRows.map(r=>({
     month: toMonthKey(r[timeKey]),
     time: parseTimeToSortable(r[timeKey]) || String(r[timeKey]||""),
@@ -384,9 +349,7 @@ function buildAgg(subRows, singleRows){
     plan: normalizePlan(r[planKey]),
     price: parseMoney(r[priceKey]),
   })).filter(x=>x.month && x.id);
-
   parsedSub.sort((a,b)=> (a.month<b.month?-1:a.month>b.month?1: (a.time<b.time?-1:a.time>b.time?1:0)));
-
   // user agg
   const userMap = new Map();
   function ensureUser(id){
@@ -402,7 +365,6 @@ function buildAgg(subRows, singleRows){
     if(!u.firstTs || ts < u.firstTs) u.firstTs = ts;
     if(!u.lastTs  || ts > u.lastTs)  u.lastTs  = ts;
   }
-
   for(const rec of parsedSub){
     if(!monthMap.has(rec.month)) monthMap.set(rec.month, {
       month: rec.month,
@@ -414,7 +376,6 @@ function buildAgg(subRows, singleRows){
       singleRevenue: 0,
     });
     const m = monthMap.get(rec.month);
-
     if(!m.subIds.has(rec.id)){
       m.subIds.add(rec.id);
       if(seenBefore.has(rec.id)) m.oldIds.add(rec.id); else m.newIds.add(rec.id);
@@ -422,21 +383,18 @@ function buildAgg(subRows, singleRows){
     m.planCount[rec.plan] = (m.planCount[rec.plan]||0) + 1;
     if(isFinite(rec.price)) m.subRevenue += rec.price;
     seenBefore.add(rec.id);
-
     const u = ensureUser(rec.id);
     if(isFinite(rec.price)) { u.subSpend += rec.price; u.totalSpend += rec.price; }
     u.subOrders += 1; u.totalOrders += 1;
     u.activeMonths.add(rec.month);
     updateTime(u, rec.time);
   }
-
   const sHeaders = Object.keys(singleRows[0]||{});
   const sTimeKey  = pickKey(sHeaders, ["時間","time","date","datetime"]) || sHeaders[0];
   const sTitleKey = pickKey(sHeaders, ["影片標題","標題","title","影片","內容"]) || sHeaders[1];
   const sUrlKey   = pickKey(sHeaders, ["網址","url","link"]) || sHeaders[2];
   const sIdKey    = pickKey(sHeaders, ["用戶id","user id","userid","id","用戶","user"]) || sHeaders[3];
   const sPriceKey = pickKey(sHeaders, ["價格","price","金額","amount","收入"]) || sHeaders[Math.min(4, sHeaders.length-1)];
-
   const titleAgg = new Map();
   for(const r of singleRows){
     const title = String(r[sTitleKey]||"").trim();
@@ -460,7 +418,6 @@ function buildAgg(subRows, singleRows){
       if(mo) u.activeMonths.add(mo);
     }
   }
-
   for(const r of singleRows){
     const month = toMonthKey(r[sTimeKey]);
     if(!month) continue;
@@ -472,7 +429,6 @@ function buildAgg(subRows, singleRows){
     const m = monthMap.get(month);
     if(isFinite(price)) m.singleRevenue += price;
   }
-
   const monthsAsc = Array.from(monthMap.keys()).sort();
   const aggAsc = monthsAsc.map(k=>{
     const m = monthMap.get(k);
@@ -489,9 +445,7 @@ function buildAgg(subRows, singleRows){
     const arpu = subs? subRevenue/subs : NaN;
     return { month:k, subs, newUsers, oldUsers, p1, p3, p6, subRevenue, singleRevenue, totalRevenue, arpu };
   });
-
   const topSingles = Array.from(titleAgg.values()).sort((a,b)=>b.sum-a.sum).slice(0,10);
-
   const users = Array.from(userMap.values()).map(u=>{
     const monthsActive = u.activeMonths.size;
     let spanDays = null;
@@ -502,10 +456,8 @@ function buildAgg(subRows, singleRows){
     }
     return {...u, monthsActive, spanDays};
   });
-
   return { aggAsc, topSingles, users };
 }
-
 function renderTables(aggDesc, topSingles){
   el("tbodyMonthly").innerHTML = aggDesc.map(x=>(
     `<tr>
@@ -519,7 +471,6 @@ function renderTables(aggDesc, topSingles){
       <td class="right">${isFinite(x.arpu)?x.arpu.toFixed(1):"–"}</td>
     </tr>`
   )).join("");
-
   el("tbodySingles").innerHTML = topSingles.map(t=>{
     const safeTitle = t.title.replace(/</g,"&lt;").replace(/>/g,"&gt;");
     const link = t.url ? `<a href="${t.url}" target="_blank" rel="noopener">${safeTitle}</a>` : safeTitle;
@@ -530,7 +481,6 @@ function renderTables(aggDesc, topSingles){
     </tr>`;
   }).join("");
 }
-
 function renderUsers(metric){
   const users = STATE.users || [];
   const rows = [...users];
@@ -542,10 +492,8 @@ function renderUsers(metric){
   else if(metric==="active_months"){ getVal=(u)=>u.monthsActive; fmt=(v)=>String(v); label="月數"; }
   else if(metric==="tenure_span"){ getVal=(u)=> (u.spanDays==null?-1:u.spanDays); fmt=(v)=> (v<0?"–":(v+"d")); label="跨度"; }
   else if(metric==="orders_total"){ getVal=(u)=>u.totalOrders; fmt=(v)=>String(v); label="次數"; }
-
   rows.sort((a,b)=> (getVal(b) - getVal(a)));
   const top = rows.filter(u=>getVal(u)>0).slice(0,10);
-
   el("tbodyUsers").innerHTML = top.map(u=>(
     `<tr>
       <td>${u.id}</td>
@@ -556,7 +504,6 @@ function renderUsers(metric){
     </tr>`
   )).join("") || `<tr><td colspan="5" style="color:rgba(156,163,175,.9); padding:14px;">（目前沒有資料）</td></tr>`;
 }
-
 function makeChecksFor(view){
   const css = getComputedStyle(document.documentElement);
   const itemsByView = {
@@ -587,18 +534,15 @@ function makeChecksFor(view){
   )).join("");
   box.style.display = (view==="arpu") ? "none" : "grid";
 }
-
 function applyOrder(newestFirst){
   const a = STATE.aggAsc;
   STATE.aggDesc = newestFirst ? [...a].reverse() : [...a];
   el("orderTag").textContent = newestFirst ? "新 → 舊" : "舊 → 新";
 }
-
 function buildTraces(view){
   const agg = STATE.aggDesc;
   const x = agg.map(d=>Number(d.month.split("-")[1]));
   const xText = agg.map(d=>d.month);
-
   const newY = agg.map(d=>d.newUsers);
   const oldY = agg.map(d=>d.oldUsers);
   const subRev = agg.map(d=>Math.round(d.subRevenue));
@@ -608,7 +552,6 @@ function buildTraces(view){
   const p1 = agg.map(d=> (d.p1*100));
   const p3 = agg.map(d=> (d.p3*100));
   const p6 = agg.map(d=> (d.p6*100));
-
   const css = getComputedStyle(document.documentElement);
   const CNEW = css.getPropertyValue('--new').trim();
   const COLD = css.getPropertyValue('--old').trim();
@@ -616,7 +559,6 @@ function buildTraces(view){
   const CSIN = css.getPropertyValue('--single').trim();
   const CTOT = css.getPropertyValue('--totalrev').trim();
   const CARPU = css.getPropertyValue('--arpu').trim();
-
   const xaxis = {
     tickmode:"array",
     tickvals:x,
@@ -632,7 +574,6 @@ function buildTraces(view){
   };
   const labelFont = {color:"rgba(229,231,235,.95)", size:12};
   const labelFontSmall = {color:"rgba(229,231,235,.95)", size:11};
-
   if(view==="subs"){
     return {
       traces: [
@@ -695,7 +636,6 @@ function buildTraces(view){
     defaults: ["r_total","r_sub","r_single"],
 };
 }
-
 function layoutBase(){
   return {
     dragmode:false,
@@ -708,13 +648,11 @@ function layoutBase(){
     hoverlabel:{bgcolor:"rgba(15,23,42,.95)", bordercolor:"rgba(255,255,255,.14)", font:{color:"#e5e7eb"}},
   };
 }
-
 function renderChart(view){
   makeChecksFor(view);
   const built = buildTraces(view);
   const layout = {...layoutBase(), ...built.layout};
   const config = {responsive:true, displaylogo:false, displayModeBar:false, scrollZoom:false, doubleClick:false};
-
   Plotly.react("chart", built.traces, layout, config).then(()=>{
     if(view!=="arpu"){
       (built.defaults||[]).forEach(id=>{ const node=document.getElementById(id); if(node) node.checked=true; });
@@ -725,11 +663,9 @@ function renderChart(view){
     }
   });
 }
-
 function applyVisibility(view, traces){
   let vis = new Array(traces.length).fill(false);
   const on = (id)=> { const n=document.getElementById(id); return n && n.checked; };
-
   if(view==="money"){
     if(on("r_total")) vis[0]=true;
     if(on("r_sub")) vis[1]=true;
@@ -744,7 +680,6 @@ function applyVisibility(view, traces){
   }
   Plotly.restyle("chart", "visible", vis);
 }
-
 async function main(){
   try{
     if(location.protocol==="file:") {
@@ -752,31 +687,23 @@ async function main(){
       return;
     }
     el("status").className = "sub"; el("status").textContent = "Loading… Fetching data";
-
     const [subCSV, singleCSV] = await Promise.all([fetchCSV(SUB_CSV_URL), fetchCSV(SINGLE_CSV_URL)]);
     const subRows = csvToRows(subCSV);
     const singleRows = csvToRows(singleCSV);
-
     if(!subRows.length) throw new Error("訂閱CSV 沒抓到資料（可能還沒 publish 或 gid 錯）");
     if(!singleRows.length) throw new Error("單片CSV 沒抓到資料（可能還沒 publish 或 gid 錯）");
-
     const built = buildAgg(subRows, singleRows);
     STATE.aggAsc = built.aggAsc;
     STATE.topSingles = built.topSingles;
     STATE.users = built.users;
-
     applyOrder(true);
-
     el("months").textContent = String(STATE.aggAsc.length);
     el("totalRevenue").textContent = money(Math.round(STATE.aggAsc.reduce((a,b)=>a+(b.totalRevenue||0),0)));
-
     renderTables(STATE.aggDesc, STATE.topSingles);
     renderUsers(el("userMetric").value);
     el("userMetric").addEventListener("change", (e)=> renderUsers(e.target.value));
-
     renderChart("money");
     el("viewSelect").addEventListener("change", (e)=> renderChart(e.target.value));
-
     el("status").className = "sub ok"; el("status").textContent = "● Data loaded • Last updated: " + new Date().toLocaleString();
   } catch(err) {
     el("status").textContent = "❌ Load failed: " + (err && err.message ? err.message : String(err));
@@ -784,20 +711,16 @@ async function main(){
 }
 main();
 </script>
-
 <script>
 (function(){
   const sel = document.getElementById('viewSelect');
   const buttons = Array.from(document.querySelectorAll('.seg-btn'));
   if(!sel || buttons.length===0) return;
-
   function setActive(val){
     buttons.forEach(b=>b.classList.toggle('active', b.dataset.value===val));
   }
-
   // Initialize from default render (script uses renderChart("money"))
   setActive(sel.value || 'money');
-
   buttons.forEach(btn=>{
     btn.addEventListener('click', ()=>{
       const val = btn.dataset.value;
@@ -808,9 +731,7 @@ main();
   });
 })();
 </script>
-
 <script>
-
 // --- Added: user insights segmented sync + prev month total revenue ---
 (function(){
   // User insights segmented -> hidden select
@@ -829,7 +750,6 @@ main();
       });
     });
   }
-
   // Prev month total revenue: after charts/data loaded, try to read from STATE if available
   function updatePrev(){
     const prevEl = document.getElementById("prevTotalRevenue");
@@ -854,19 +774,16 @@ main();
   setTimeout(updatePrev, 400);
   setTimeout(updatePrev, 1200);
 })();
-
 </script>
 <script>
 // --- Improved prev month total revenue (robust) ---
 (function(){
   const prevEl = document.getElementById("prevTotalRevenue");
   if(!prevEl) return;
-
   function moneyFmt(n){
     if(typeof window.money==="function") return window.money(Math.round(n));
     return "NT$ " + Math.round(n).toLocaleString("en-US");
   }
-
   function tryFromState(){
     try{
       if(window.STATE){
@@ -880,7 +797,6 @@ main();
     }catch(e){}
     return false;
   }
-
   function tryFromTable(){
     try{
       const rows = document.querySelectorAll("#monthlyTable tbody tr");
@@ -902,16 +818,49 @@ main();
     }catch(e){}
     return false;
   }
-
   function run(){
     if(tryFromState()) return;
     if(tryFromTable()) return;
     prevEl.textContent = "Prev –";
   }
-
   run();
   setTimeout(run, 600);
   setTimeout(run, 1500);
+})();
+</script>
+<script>
+// --- Simplest Prev: read from monthly table ---
+(function(){
+  const prevEl = document.getElementById("prevTotalRevenue");
+  if(!prevEl) return;
+  function moneyFmt(n){
+    if(typeof window.money==="function") return window.money(n);
+    return "NT$ " + n.toLocaleString("en-US");
+  }
+  function readPrev(){
+    const rows = document.querySelectorAll("#monthlyTable tbody tr");
+    if(!rows || rows.length < 2){
+      prevEl.textContent = "Prev –";
+      return;
+    }
+    const prevRow = rows[rows.length - 2];
+    const cells = prevRow.querySelectorAll("td");
+    if(!cells.length){
+      prevEl.textContent = "Prev –";
+      return;
+    }
+    const lastCell = cells[cells.length - 1];
+    const num = parseInt(lastCell.textContent.replace(/[^0-9]/g,""), 10);
+    if(!isNaN(num)){
+      prevEl.textContent = "Prev " + moneyFmt(num);
+    } else {
+      prevEl.textContent = "Prev –";
+    }
+  }
+  // run after render
+  setTimeout(readPrev, 300);
+  setTimeout(readPrev, 800);
+  setTimeout(readPrev, 1500);
 })();
 </script>
 </body>
