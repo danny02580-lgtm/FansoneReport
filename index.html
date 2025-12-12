@@ -1455,5 +1455,72 @@ main();
 })();
 </script>
 
+
+<script id="barHoverProxyNoColorShift">
+(function(){
+  function getTitle(gd){
+    try{
+      const t = (gd && gd._fullLayout && gd._fullLayout.title && (gd._fullLayout.title.text||gd._fullLayout.title)) || '';
+      return String(t||'');
+    }catch(e){ return ''; }
+  }
+  function isSensitive(gd){
+    const s = getTitle(gd).toLowerCase();
+    return s.includes('user') || s.includes('用戶') || s.includes('plan') || s.includes('方案');
+  }
+  function patchBars(gd){
+    if(!window.Plotly || !gd || !gd.data || !gd._fullLayout) return;
+    if(!isSensitive(gd) || gd.__barHoverProxyPatched) return;
+
+    const barIdx = [];
+    gd.data.forEach((tr,i)=>{ if(tr && tr.type==='bar') barIdx.push(i); });
+    if(!barIdx.length) return;
+
+    // Disable native hover on bars (prevents Plotly's hover color/outline shift)
+    const restyleUpdate = { hoverinfo: [], hovertemplate: [] };
+    barIdx.forEach((i)=>{
+      restyleUpdate.hoverinfo.push('skip');
+      restyleUpdate.hovertemplate.push(null);
+    });
+    try{
+      Plotly.restyle(gd, restyleUpdate, barIdx).catch(()=>{});
+    }catch(e){}
+
+    // Add invisible scatter proxies to capture hover without altering bar colors
+    const proxies = barIdx.map((i)=>{
+      const tr = gd.data[i] || {};
+      const x = (tr.x||[]);
+      const y = (tr.y||[]);
+      const color = (tr.marker && tr.marker.color) ? tr.marker.color : '#ffffff';
+      return {
+        type: 'scatter',
+        mode: 'markers',
+        x, y,
+        marker: { size: 18, color: color, opacity: 0.001, line: {width: 0} },
+        hoverinfo: 'none',
+        showlegend: false,
+        cliponaxis: false
+      };
+    });
+
+    gd.__barHoverProxyPatched = true;
+    try{
+      Plotly.addTraces(gd, proxies).catch(()=>{});
+      Plotly.relayout(gd, {hovermode:'closest', hoverdistance:8, spikedistance:-1}).catch(()=>{});
+    }catch(e){}
+  }
+
+  function scan(){
+    document.querySelectorAll('.js-plotly-plot, .plotly-graph-div').forEach((gd)=>{
+      try{ if(gd && gd._fullLayout) patchBars(gd); }catch(e){}
+    });
+  }
+
+  const obs = new MutationObserver(()=>scan());
+  obs.observe(document.documentElement,{childList:true,subtree:true});
+  window.addEventListener('load', ()=>{ setTimeout(scan,400); setTimeout(scan,1200); setTimeout(scan,2500); });
+})();
+</script>
+
 </body>
 </html>
