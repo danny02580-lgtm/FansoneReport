@@ -1119,7 +1119,7 @@ main();
 
 <script id="customHoverScript">
 (function(){
-  // Ensure tooltip container exists
+  function $(sel,root=document){ return root.querySelector(sel); }
   function ensureTooltip(){
     let tt = document.getElementById('customTooltip');
     if(!tt){
@@ -1127,24 +1127,19 @@ main();
       tt.id = 'customTooltip';
       document.body.appendChild(tt);
     }
+    // base styles
+    Object.assign(tt.style, {
+      position:'fixed', zIndex:9999, display:'none', pointerEvents:'none',
+      padding:'18px 22px', borderRadius:'22px',
+      background:'rgba(10,14,22,0.72)', border:'1px solid rgba(255,255,255,0.12)',
+      backdropFilter:'blur(10px)', WebkitBackdropFilter:'blur(10px)',
+      boxShadow:'0 18px 60px rgba(0,0,0,0.45)',
+      color:'#e9eef7',
+      fontFamily:'system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif'
+    });
     return tt;
   }
   const tt = ensureTooltip();
-
-  // Tooltip styling (rounded, semi-transparent)
-  tt.style.position = 'fixed';
-  tt.style.zIndex = 9999;
-  tt.style.display = 'none';
-  tt.style.pointerEvents = 'none';
-  tt.style.padding = '18px 22px';
-  tt.style.borderRadius = '22px';
-  tt.style.background = 'rgba(10,14,22,0.72)';
-  tt.style.border = '1px solid rgba(255,255,255,0.12)';
-  tt.style.backdropFilter = 'blur(10px)';
-  tt.style.webkitBackdropFilter = 'blur(10px)';
-  tt.style.boxShadow = '0 18px 60px rgba(0,0,0,0.45)';
-  tt.style.color = '#e9eef7';
-  tt.style.fontFamily = 'system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif';
 
   function fmtMoney(n){ return 'NT$ ' + Number(n).toLocaleString(undefined,{maximumFractionDigits:0}); }
   function kindFor(name){
@@ -1171,178 +1166,130 @@ main();
     }catch(e){ return '#fff'; }
   }
 
-  // --- Highlight (glow) ---
-  const orig = new WeakMap(); // gd -> {ti: {marker, mode}}
-
-  function remember(gd, ti){
-    let store = orig.get(gd);
-    if(!store){ store = {}; orig.set(gd, store); }
-    if(store[ti]) return store[ti];
-    const tr = (gd.data && gd.data[ti]) ? gd.data[ti] : {};
-    store[ti] = { marker: tr.marker ? JSON.parse(JSON.stringify(tr.marker)) : null, mode: tr.mode };
-    return store[ti];
+  // glow logic: only the hovered point in the hovered trace
+  const original = new WeakMap(); // gd -> {curveNumber:{marker,mode}}
+  function remember(gd, curve){
+    let store = original.get(gd);
+    if(!store){ store = {}; original.set(gd, store); }
+    if(store[curve]) return store[curve];
+    const tr = (gd.data && gd.data[curve]) ? gd.data[curve] : {};
+    store[curve] = { marker: tr.marker ? JSON.parse(JSON.stringify(tr.marker)) : null, mode: tr.mode || '' };
+    return store[curve];
   }
-  function restoreAll(gd){
-    const store = orig.get(gd);
+  function restore(gd){
+    const store = original.get(gd);
     if(!store) return;
     Object.keys(store).forEach(k=>{
-      const ti = Number(k);
-      const o = store[ti];
-      try{ Plotly.restyle(gd, {'marker':[o.marker], 'mode':[o.mode]}, [ti]); }catch(e){}
+      const curve = Number(k);
+      const o = store[curve];
+      try{ Plotly.restyle(gd, {'marker':[o.marker], 'mode':[o.mode]}, [curve]); }catch(e){}
     });
   }
-  function glowPoint(gd, pt){
-    try{
-      const ti = pt.curveNumber;
-      const tr = gd.data[ti] || {};
-      remember(gd, ti);
+  function applyGlow(gd, pt){
+    const curve = pt.curveNumber, idx = pt.pointNumber;
+    const tr = gd.data[curve] || {};
+    remember(gd, curve);
 
-      const n = (tr.x && tr.x.length) || (tr.y && tr.y.length) || 0;
-      const idx = pt.pointNumber;
-      const base = (tr.marker && tr.marker.size) || 8;
-      const baseNum = (typeof base === 'number') ? base : 8;
+    const n = (tr.x && tr.x.length) || (tr.y && tr.y.length) || 0;
+    const baseSize = (tr.marker && tr.marker.size);
+    const s0 = (typeof baseSize === 'number') ? baseSize : 8;
 
-      // Ensure markers exist
-      const mode = (tr.mode || '').includes('markers') ? tr.mode : ((tr.mode ? tr.mode+'+' : '') + 'markers');
+    const size = Array(n).fill(s0);
+    if(idx>=0 && idx<n) size[idx] = Math.round(s0*2.0);
 
-      let sizeArr = Array(n).fill(baseNum);
-      if(idx != null && idx >= 0 && idx < n) sizeArr[idx] = Math.round(baseNum * 2.0);
+    const lineW = Array(n).fill(0);
+    const lineC = Array(n).fill('rgba(255,255,255,0)');
+    if(idx>=0 && idx<n){ lineW[idx]=3; lineC[idx]='rgba(255,255,255,0.95)'; }
 
-      let lwArr = Array(n).fill(0);
-      let lcArr = Array(n).fill('rgba(255,255,255,0)');
-      if(idx != null && idx >= 0 && idx < n){
-        lwArr[idx] = 3;
-        lcArr[idx] = 'rgba(255,255,255,0.95)';
-      }
+    const marker = Object.assign({}, tr.marker || {});
+    marker.size = size;
+    marker.opacity = Array(n).fill(0.92);
+    if(idx>=0 && idx<n) marker.opacity[idx]=1.0;
+    marker.line = Object.assign({}, marker.line || {});
+    marker.line.width = lineW;
+    marker.line.color = lineC;
 
-      const marker = Object.assign({}, tr.marker || {});
-      marker.size = sizeArr;
-      marker.opacity = Array(n).fill(0.92).map((_,i)=> i===idx ? 1.0 : 0.92);
-      marker.line = Object.assign({}, marker.line || {});
-      marker.line.width = lwArr;
-      marker.line.color = lcArr;
-
-      Plotly.restyle(gd, {'marker':[marker], 'mode':[mode]}, [ti]);
-    }catch(e){}
+    const mode = (tr.mode||'').includes('markers') ? tr.mode : ((tr.mode?tr.mode+'+':'')+'markers');
+    try{ Plotly.restyle(gd, {'marker':[marker], 'mode':[mode]}, [curve]); }catch(e){}
   }
 
-  // --- Choose the closest point even if Plotly provides multiple points (x-unified) ---
-  function pickClosestPoint(gd, e){
-    const pts = (e && e.points) ? e.points : [];
-    if(!pts.length) return null;
-    if(pts.length === 1) return pts[0];
-
-    const ev = e.event;
-    if(!ev || typeof ev.clientX !== 'number') return pts[0];
-
-    let best = pts[0], bestD = Infinity;
-    for(const pt of pts){
-      try{
-        const xa = pt.xaxis, ya = pt.yaxis;
-        if(!xa || !ya || typeof xa.l2p!=='function' || typeof ya.l2p!=='function') continue;
-        const bb = gd.getBoundingClientRect();
-        const px = bb.left + (xa._offset||0) + xa.l2p(pt.x);
-        const py = bb.top  + (ya._offset||0) + ya.l2p(pt.y);
-        const dx = px - ev.clientX;
-        const dy = py - ev.clientY;
-        const d = dx*dx + dy*dy;
-        if(d < bestD){ bestD = d; best = pt; }
-      }catch(err){}
-    }
-    return best;
-  }
-
-  function renderOne(pt){
+  // tooltip content (single point)
+  function render(pt){
     const xLabel = String(pt.x);
     const name = (pt.fullData && pt.fullData.name) || (pt.data && pt.data.name) || 'Value';
-    const val = fmt(pt.y, kindFor(name));
+    const val  = fmt(pt.y, kindFor(name));
     const c = traceColor(pt);
-
     tt.innerHTML = `
       <div style="font-size:28px;font-weight:800;line-height:1;margin-bottom:10px;">${xLabel}</div>
       <div style="display:flex;align-items:center;gap:12px;">
         <span style="width:14px;height:14px;border-radius:50%;background:${c};display:inline-block;"></span>
         <span style="font-size:26px;font-weight:750;white-space:nowrap;">${name}</span>
         <span style="margin-left:auto;font-size:26px;font-weight:850;white-space:nowrap;">${val}</span>
-      </div>
-    `;
+      </div>`;
   }
 
   function place(gd, e, pt){
-    const pad = 12;
-    tt.style.display = 'block';
-
+    const pad=12; tt.style.display='block';
     let x=0,y=0;
-    const ev = e.event;
-    if(ev && typeof ev.clientX==='number'){
-      x = ev.clientX + 16; y = ev.clientY + 16;
-    }else{
-      // fallback by point coords
+    const ev = e && e.event;
+    if(ev && typeof ev.clientX==='number'){ x=ev.clientX+16; y=ev.clientY+16; }
+    else{
       try{
-        const xa = pt.xaxis, ya = pt.yaxis;
-        const bb = gd.getBoundingClientRect();
+        const xa=pt.xaxis, ya=pt.yaxis, bb=gd.getBoundingClientRect();
         x = bb.left + (xa._offset||0) + xa.l2p(pt.x) + 16;
         y = bb.top  + (ya._offset||0) + ya.l2p(pt.y) + 16;
       }catch(err){
-        const bb = gd.getBoundingClientRect();
-        x = bb.left + bb.width*0.6; y = bb.top + bb.height*0.2;
+        const bb=gd.getBoundingClientRect(); x=bb.left+bb.width*0.6; y=bb.top+bb.height*0.2;
       }
     }
-
-    const r = tt.getBoundingClientRect();
-    const vw = window.innerWidth, vh = window.innerHeight;
-    if(x + r.width + pad > vw) x = x - r.width - 32;
-    if(y + r.height + pad > vh) y = y - r.height - 32;
-
-    tt.style.left = Math.max(8,x) + 'px';
-    tt.style.top  = Math.max(8,y) + 'px';
+    const r=tt.getBoundingClientRect(), vw=innerWidth, vh=innerHeight;
+    if(x+r.width+pad>vw) x = x-r.width-32;
+    if(y+r.height+pad>vh) y = y-r.height-32;
+    tt.style.left = Math.max(8,x)+'px';
+    tt.style.top  = Math.max(8,y)+'px';
   }
 
-  function disableSpikes(gd){
+  function bind(gd){
+    if(!gd || gd.__customTTBound) return;
+    if(typeof gd.on!=='function') return;
+    gd.__customTTBound = true;
+
+    // force closest hover to avoid unified multi-points
     try{
       Plotly.relayout(gd, {
+        hovermode:'closest',
+        hoverdistance: 20,
         'xaxis.showspikes': false,
         'yaxis.showspikes': false,
         'xaxis.spikethickness': 0,
         'yaxis.spikethickness': 0
       });
     }catch(e){}
-  }
-
-  function bind(gd){
-    if(!gd || gd.__customTTBound) return;
-    if(!gd.on) return;
-    gd.__customTTBound = true;
-
-    // Do NOT rely on hovermode; we pick closest ourselves.
-    disableSpikes(gd);
 
     gd.on('plotly_hover', function(e){
       try{
-        const pt = pickClosestPoint(gd, e);
-        if(!pt) return;
-        restoreAll(gd);
-        renderOne(pt);
+        if(!e || !e.points || !e.points.length) return;
+        const pt = e.points[0]; // closest mode -> single point
+        restore(gd);
+        render(pt);
         place(gd, e, pt);
-        glowPoint(gd, pt);
+        applyGlow(gd, pt);
       }catch(err){}
     });
 
     gd.on('plotly_unhover', function(){
-      try{
-        tt.style.display = 'none';
-        restoreAll(gd);
-      }catch(e){}
+      try{ tt.style.display='none'; restore(gd); }catch(e){}
     });
 
-    gd.on('plotly_afterplot', function(){ disableSpikes(gd); });
+    gd.on('plotly_afterplot', function(){
+      try{ Plotly.relayout(gd, {hovermode:'closest', hoverdistance:20}); }catch(e){}
+    });
   }
 
   function scan(){ document.querySelectorAll('.js-plotly-plot').forEach(bind); }
-
   const obs = new MutationObserver(()=>scan());
-  obs.observe(document.documentElement, {childList:true, subtree:true});
-  window.addEventListener('load', ()=>{ setTimeout(scan,200); setTimeout(scan,800); setTimeout(scan,1500); });
+  obs.observe(document.documentElement,{childList:true,subtree:true});
+  window.addEventListener('load', ()=>{ setTimeout(scan,200); setTimeout(scan,800); setTimeout(scan,1600); });
 })();
 </script>
 
