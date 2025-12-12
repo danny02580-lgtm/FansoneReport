@@ -217,6 +217,63 @@
 }
 </style>
 
+
+<style id="customTooltipStyles">
+/* Hide Plotly's default hover label boxes (keep hover events working) */
+.js-plotly-plot .hoverlayer { display: none !important; }
+/* Ensure no spike/crosshair layer gets in the way visually */
+.js-plotly-plot .spikelines { display: none !important; }
+
+#customTooltipCard{
+  position: fixed;
+  z-index: 99999;
+  display: none;
+  pointer-events: none;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: rgba(12, 16, 24, 0.68);
+  border: 1px solid rgba(255,255,255,0.14);
+  box-shadow: 0 18px 60px rgba(0,0,0,0.45);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: #eef3ff;
+  max-width: min(320px, calc(100vw - 24px));
+}
+#customTooltipCard .tt-title{
+  font-weight: 800;
+  font-size: 14px;
+  letter-spacing: .2px;
+  opacity: .9;
+  margin-bottom: 6px;
+}
+#customTooltipCard .tt-row{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+#customTooltipCard .dot{
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  flex: 0 0 10px;
+  box-shadow: 0 0 0 3px rgba(255,255,255,0.08);
+}
+#customTooltipCard .name{
+  font-size: 13px;
+  font-weight: 650;
+  opacity: .92;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#customTooltipCard .value{
+  margin-left:auto;
+  font-size: 16px;
+  font-weight: 850;
+  white-space: nowrap;
+}
+</style>
+
 </head>
 <body>
 <div class="wrap">
@@ -1182,6 +1239,106 @@ main();
     document.querySelectorAll('.js-plotly-plot').forEach(enhance);
   }
 
+  const obs = new MutationObserver(()=>scan());
+  obs.observe(document.documentElement, {childList:true, subtree:true});
+  window.addEventListener('load', ()=>{ setTimeout(scan,200); setTimeout(scan,800); setTimeout(scan,1500); });
+})();
+</script>
+
+
+<script id="customTooltipCardScript">
+(function(){
+  function ensureCard(){
+    let el = document.getElementById('customTooltipCard');
+    if(!el){
+      el = document.createElement('div');
+      el.id = 'customTooltipCard';
+      el.innerHTML = '<div class="tt-title"></div><div class="tt-row"><span class="dot"></span><span class="name"></span><span class="value"></span></div>';
+      document.body.appendChild(el);
+    }
+    return el;
+  }
+  const card = ensureCard();
+  const titleEl = card.querySelector('.tt-title');
+  const dotEl = card.querySelector('.dot');
+  const nameEl = card.querySelector('.name');
+  const valueEl = card.querySelector('.value');
+
+  function colorOf(pt){
+    try{
+      const tr = pt.fullData || pt.data || {};
+      let c = (tr.line && tr.line.color) || (tr.marker && tr.marker.color) || '#ffffff';
+      if(Array.isArray(c)) c = c[0] || '#ffffff';
+      return c;
+    }catch(e){ return '#ffffff'; }
+  }
+  function kindFor(name){
+    const s=(name||'').toLowerCase();
+    if(s.includes('revenue')||s.includes('營收')||s.includes('total')) return 'money';
+    if(s.includes('arpu')) return 'money';
+    if(s.includes('%')||s.includes('rate')||s.includes('ratio')||s.includes('比例')||s.includes('成長')) return 'pct';
+    if(s.includes('user')||s.includes('subscriber')||s.includes('客')||s.includes('人數')) return 'int';
+    return 'num';
+  }
+  function fmt(v, kind){
+    if(v==null || isNaN(v)) return '-';
+    const n = Number(v);
+    if(kind==='money') return 'NT$ ' + n.toLocaleString(undefined,{maximumFractionDigits:0});
+    if(kind==='pct') return n.toFixed(1) + '%';
+    if(kind==='int') return n.toLocaleString(undefined,{maximumFractionDigits:0});
+    return n.toLocaleString(undefined,{maximumFractionDigits:1});
+  }
+
+  function place(e){
+    const pad = 10;
+    const ev = e && e.event;
+    if(!ev || typeof ev.clientX !== 'number') return;
+    card.style.display = 'block';
+
+    // Measure after display
+    const rect = card.getBoundingClientRect();
+    let x = ev.clientX + 14;
+    let y = ev.clientY + 14;
+
+    const vw = window.innerWidth, vh = window.innerHeight;
+    if(x + rect.width + pad > vw) x = ev.clientX - rect.width - 14;
+    if(y + rect.height + pad > vh) y = ev.clientY - rect.height - 14;
+
+    card.style.left = Math.max(8,x) + 'px';
+    card.style.top  = Math.max(8,y) + 'px';
+  }
+
+  function bind(gd){
+    if(!gd || gd.__customCardBound || !gd.on) return;
+    gd.__customCardBound = true;
+
+    gd.on('plotly_hover', function(e){
+      try{
+        if(!e || !e.points || !e.points.length) return;
+        const pt = e.points[0]; // closest already
+        const x = pt.x;
+        const name = (pt.fullData && pt.fullData.name) || (pt.data && pt.data.name) || 'Value';
+        const y = pt.y;
+
+        titleEl.textContent = String(x);
+        dotEl.style.background = colorOf(pt);
+        nameEl.textContent = name;
+        valueEl.textContent = fmt(y, kindFor(name));
+
+        place(e);
+      }catch(err){}
+    });
+
+    gd.on('plotly_unhover', function(){
+      card.style.display = 'none';
+    });
+
+    // Also hide if user scrolls (keeps it from "sticking")
+    window.addEventListener('scroll', ()=>{ card.style.display='none'; }, {passive:true});
+    window.addEventListener('resize', ()=>{ card.style.display='none'; }, {passive:true});
+  }
+
+  function scan(){ document.querySelectorAll('.js-plotly-plot').forEach(bind); }
   const obs = new MutationObserver(()=>scan());
   obs.observe(document.documentElement, {childList:true, subtree:true});
   window.addEventListener('load', ()=>{ setTimeout(scan,200); setTimeout(scan,800); setTimeout(scan,1500); });
