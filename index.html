@@ -7,24 +7,17 @@
 <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
 <style>
   :root{
-    --bg0:#0b1220;
-    --bg1:#0f1a2e;
-    --panel:rgba(255,255,255,.06);
-    --stroke:rgba(255,255,255,.14);
-    --text:#e5e7eb;
-    --muted:#9ca3af;
+    --bg0:#0b1220; --bg1:#0f1a2e; --panel:rgba(255,255,255,.06); --stroke:rgba(255,255,255,.14);
+    --text:#e5e7eb; --muted:#9ca3af;
 
-    --new:#3498db;
-    --old:#2980b9;
-    --rev:#e74c3c;
-    --single:#a78bfa;
-    --totalrev:#f59e0b;
+    --new:#3498db; --old:#2980b9;
+    --rev:#e74c3c; --single:#a78bfa; --totalrev:#f59e0b;
     --arpu:#d35400;
   }
   *{box-sizing:border-box}
   body{
     margin:0;
-    font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+    font-family: system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
     color:var(--text);
     background:
       radial-gradient(1200px 600px at 20% 10%, rgba(52,152,219,.18), transparent 60%),
@@ -33,61 +26,40 @@
       linear-gradient(180deg, var(--bg0), var(--bg1));
     min-height:100vh;
   }
-  a{ color:inherit; text-decoration:none; }
-  .wrap{ max-width:1200px; margin:0 auto; padding:20px 16px 36px; }
+  a{color:inherit; text-decoration:none}
+  .wrap{max-width:1200px; margin:0 auto; padding:20px 16px 36px}
   .topbar{
     display:flex; align-items:flex-start; justify-content:space-between; gap:14px;
-    padding:14px 14px; border:1px solid var(--stroke); border-radius:16px; background:var(--panel);
-    backdrop-filter: blur(10px);
+    padding:14px; border:1px solid var(--stroke); border-radius:16px; background:var(--panel); backdrop-filter: blur(10px);
   }
-  .title h1{ margin:0; font-size:18px; letter-spacing:.2px; }
-  .title .sub{ margin-top:6px; font-size:12px; color:var(--muted); line-height:1.4; }
-  .chips{ display:flex; flex-wrap:wrap; gap:8px; justify-content:flex-end; }
-  .chip{
-    padding:8px 10px; border:1px solid var(--stroke); border-radius:999px; background:rgba(255,255,255,.04);
-    font-size:12px; color:var(--muted); display:flex; gap:8px; align-items:center;
-  }
-  .chip b{ color:var(--text); font-weight:650; }
-  .grid{
-    display:grid;
-    grid-template-columns: 320px 1fr;
-    gap:14px;
-    margin-top:14px;
-  }
-  @media (max-width: 980px){
-    .grid{ grid-template-columns: 1fr; }
-  }
-  .panel{
+  .title h1{margin:0; font-size:18px}
+  .title .sub{margin-top:6px; font-size:12px; color:var(--muted); line-height:1.4}
+  .chips{display:flex; flex-wrap:wrap; gap:8px; justify-content:flex-end}
+  .chip{padding:8px 10px; border:1px solid var(--stroke); border-radius:999px; background:rgba(255,255,255,.04); font-size:12px; color:var(--muted); display:flex; gap:8px; align-items:center}
+  .chip b{color:var(--text); font-weight:700}
+
+  .grid{display:grid; grid-template-columns: 350px 1fr; gap:14px; margin-top:14px}
+  @media (max-width: 980px){ .grid{grid-template-columns: 1fr} }
+  .panel{border:1px solid var(--stroke); border-radius:16px; background:var(--panel); backdrop-filter: blur(10px); overflow:hidden}
+  .hd{padding:12px; border-bottom:1px solid rgba(255,255,255,.10); display:flex; align-items:center; justify-content:space-between; gap:10px}
+  .hd h2{margin:0; font-size:13px}
+  .bd{padding:12px}
+
+  .seg{display:flex; gap:8px; flex-wrap:wrap}
+  .seg button{
+    flex:1 1 auto;
+    padding:10px 12px;
     border:1px solid var(--stroke);
-    border-radius:16px;
-    background:var(--panel);
-    backdrop-filter: blur(10px);
-    overflow:hidden;
-  }
-  .panel .hd{
-    padding:12px 12px;
-    border-bottom:1px solid rgba(255,255,255,.10);
-    display:flex; align-items:center; justify-content:space-between; gap:10px;
-  }
-  .panel .hd h2{ margin:0; font-size:13px; letter-spacing:.2px; }
-  .panel .bd{ padding:12px; }
-  .btnrow{ display:flex; flex-wrap:wrap; gap:8px; }
-  .btn{
-    padding:9px 10px;
-    border:1px solid var(--stroke);
-    border-radius:12px;
+    border-radius:14px;
     background:rgba(255,255,255,.04);
     color:var(--text);
     font-size:12px;
     cursor:pointer;
-    user-select:none;
   }
-  .btn:hover{ background:rgba(255,255,255,.07); }
-  .btn.primary{ border-color:rgba(52,152,219,.55); }
-  .btn.warn{ border-color:rgba(245,158,11,.55); }
+  .seg button.active{border-color:rgba(245,158,11,.60); background:rgba(245,158,11,.10)}
+  .hint{margin-top:8px; font-size:11px; color:var(--muted); line-height:1.45}
 
-  .sectionTitle{ margin:10px 0 8px; font-size:12px; color:var(--muted); letter-spacing:.2px; }
-  .checks{ display:grid; grid-template-columns: 1fr 1fr; gap:8px; }
+  .checks{display:grid; grid-template-columns: 1fr; gap:8px; margin-top:10px}
   .check{
     display:flex; gap:10px; align-items:center;
     padding:10px 10px;
@@ -95,33 +67,30 @@
     border-radius:14px;
     background:rgba(255,255,255,.03);
   }
-  .check input{ width:18px; height:18px; accent-color: var(--new); }
-  .dot{ width:10px; height:10px; border-radius:999px; background:#fff; box-shadow:0 0 0 3px rgba(255,255,255,.07); }
-  .label{ display:flex; flex-direction:column; gap:2px; }
-  .label b{ font-size:12px; font-weight:700; }
-  .label span{ font-size:11px; color:var(--muted); }
+  .check input{width:18px; height:18px; accent-color: var(--new)}
+  .dot{width:10px; height:10px; border-radius:999px; background:#fff; box-shadow:0 0 0 3px rgba(255,255,255,.07)}
+  .label{display:flex; flex-direction:column; gap:2px}
+  .label b{font-size:12px; font-weight:750}
+  .label span{font-size:11px; color:var(--muted)}
 
-  .row{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
-  .toggle{ display:flex; align-items:center; gap:10px; padding:10px; border:1px solid var(--stroke); border-radius:14px; background:rgba(255,255,255,.03); }
-  .toggle input{ width:44px; height:24px; }
-  .mini{ font-size:11px; color:var(--muted); }
-  .note{ font-size:11px; color:var(--muted); line-height:1.45; }
+  .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-top:10px}
+  .toggle{display:flex; align-items:center; gap:10px; padding:10px; border:1px solid var(--stroke); border-radius:14px; background:rgba(255,255,255,.03)}
+  .toggle input{width:44px; height:24px}
+  .mini{font-size:11px; color:var(--muted)}
 
-  .plotWrap{ padding:10px; }
-  #chart{ width:100%; height:540px; }
-  @media (max-width: 980px){ #chart{ height:520px; } }
+  #chart{width:100%; height:560px}
+  @media (max-width: 980px){ #chart{height:520px} }
 
-  .tablesGrid{ display:grid; grid-template-columns: 1.3fr 1fr; gap:14px; margin-top:14px; }
-  @media (max-width: 980px){ .tablesGrid{ grid-template-columns: 1fr; } }
-  table{ width:100%; border-collapse:separate; border-spacing:0; font-size:12px; }
-  th, td{ padding:10px 10px; border-bottom:1px solid rgba(255,255,255,.08); }
-  th{ text-align:left; color:var(--muted); font-weight:650; background:rgba(255,255,255,.03); position:sticky; top:0; backdrop-filter: blur(10px); }
-  td.right, th.right{ text-align:right; }
-  tr:hover td{ background:rgba(255,255,255,.03); }
-  .sheetlink{ color: var(--muted); border:1px solid var(--stroke); padding:7px 9px; border-radius:999px; background:rgba(255,255,255,.04); }
-  .sheetlink:hover{ color:var(--text); }
-  .titleRow{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
-  .pill{ padding:5px 8px; border:1px solid var(--stroke); border-radius:999px; font-size:11px; color:var(--muted); background:rgba(255,255,255,.03); }
+  .tablesGrid{display:grid; grid-template-columns: 1.3fr 1fr; gap:14px; margin-top:14px}
+  @media (max-width: 980px){ .tablesGrid{grid-template-columns: 1fr} }
+  table{width:100%; border-collapse:separate; border-spacing:0; font-size:12px}
+  th,td{padding:10px 10px; border-bottom:1px solid rgba(255,255,255,.08)}
+  th{text-align:left; color:var(--muted); font-weight:700; background:rgba(255,255,255,.03); position:sticky; top:0; backdrop-filter: blur(10px)}
+  td.right, th.right{text-align:right}
+  tr:hover td{background:rgba(255,255,255,.03)}
+  .sheetlink{color: var(--muted); border:1px solid var(--stroke); padding:7px 9px; border-radius:999px; background:rgba(255,255,255,.04)}
+  .sheetlink:hover{color:var(--text)}
+  .pill{padding:5px 8px; border:1px solid var(--stroke); border-radius:999px; font-size:11px; color:var(--muted); background:rgba(255,255,255,.03)}
 </style>
 </head>
 <body>
@@ -130,7 +99,11 @@
     <div class="title">
       <h1>Fansone Report｜互動月報表</h1>
       <div class="sub" id="status">Loading…</div>
-      <div class="sub">資料來源：<a class="sheetlink" href="https://docs.google.com/spreadsheets/d/e/2PACX-1vQiAPNDCD7qn6atO4VB6Ei63AacDK00AMKM16hK8c-wVWFadPPOj-P8olYQ-ofMFwy0maGU1A4CBneW/pub?gid=0&single=true&output=html" target="_blank" rel="noopener">訂閱試算表</a>　<a class="sheetlink" href="https://docs.google.com/spreadsheets/d/e/2PACX-1vQiAPNDCD7qn6atO4VB6Ei63AacDK00AMKM16hK8c-wVWFadPPOj-P8olYQ-ofMFwy0maGU1A4CBneW/pub?gid=1226262547&single=true&output=html" target="_blank" rel="noopener">單片試算表</a></div>
+      <div class="sub">
+        資料來源：
+        <a class="sheetlink" href="https://docs.google.com/spreadsheets/d/e/2PACX-1vQiAPNDCD7qn6atO4VB6Ei63AacDK00AMKM16hK8c-wVWFadPPOj-P8olYQ-ofMFwy0maGU1A4CBneW/pub?gid=0&single=true&output=html" target="_blank" rel="noopener">訂閱試算表</a>
+        <a class="sheetlink" href="https://docs.google.com/spreadsheets/d/e/2PACX-1vQiAPNDCD7qn6atO4VB6Ei63AacDK00AMKM16hK8c-wVWFadPPOj-P8olYQ-ofMFwy0maGU1A4CBneW/pub?gid=1226262547&single=true&output=html" target="_blank" rel="noopener">單片試算表</a>
+      </div>
     </div>
     <div class="chips">
       <div class="chip"><span>Months</span> <b id="months">–</b></div>
@@ -141,45 +114,44 @@
 
   <div class="grid">
     <div class="panel">
-      <div class="hd"><h2>顯示控制</h2><span class="pill" id="orderTag">新 → 舊</span></div>
+      <div class="hd"><h2>怎麼用（更直覺版）</h2><span class="pill" id="orderTag">新 → 舊</span></div>
       <div class="bd">
-        <div class="sectionTitle">快速切換（合併版）</div>
-        <div class="btnrow">
-          <button class="btn primary" id="presetSubs">訂閱人數 + ARPU</button>
-          <button class="btn warn" id="presetMoney">金額合併（總/訂閱/單片 + ARPU）</button>
-          <button class="btn" id="presetPlans">方案比例（100%堆疊）</button>
+        <div class="seg" role="tablist" aria-label="modes">
+          <button id="mode_money" class="active">金額（總/訂閱/單片 + ARPU）</button>
+          <button id="mode_users">訂閱人數（新/舊 + ARPU）</button>
+          <button id="mode_mix">方案比例（100% 堆疊）</button>
+        </div>
+        <div class="hint" id="modeHint">
+          你現在在：<b>金額</b>。勾選想看的線（總營收/訂閱/單片/ARPU）。Hover 任一點會出數字。
         </div>
 
-        <div class="sectionTitle">系列勾選</div>
         <div class="checks" id="checks"></div>
 
-        <div class="sectionTitle">互動設定</div>
         <div class="row">
           <div class="toggle">
             <input type="checkbox" id="chkNewest" checked />
             <div>
-              <div style="font-size:12px;font-weight:650;">新 → 舊</div>
+              <div style="font-size:12px;font-weight:700;">新 → 舊</div>
               <div class="mini">勾選：月份由新到舊；取消：舊到新</div>
             </div>
           </div>
           <div class="toggle">
             <input type="checkbox" id="chkUnified" checked />
             <div>
-              <div style="font-size:12px;font-weight:650;">Unified tooltip</div>
+              <div style="font-size:12px;font-weight:700;">Unified tooltip</div>
               <div class="mini">同一月份一次看完</div>
             </div>
           </div>
         </div>
 
-        <div class="sectionTitle">小提示</div>
-        <div class="note">
-          圖例也能點：單擊隱藏 / 雙擊只看那條。<br/>
-          Hover 任一點都有數字，右上角工具列可下載 PNG。
+        <div class="hint" style="margin-top:10px">
+          ✅ 小提醒：圖例也能點（單擊隱藏 / 雙擊只看那條）。<br/>
+          ⚠️ 如果你看到很多 0，通常是「欄位名稱變了」或 Google CSV 還沒同步，我已經加強自動抓欄位邏輯。
         </div>
       </div>
     </div>
 
-    <div class="panel plotWrap">
+    <div class="panel" style="padding:10px">
       <div id="chart"></div>
     </div>
   </div>
@@ -187,10 +159,8 @@
   <div class="tablesGrid">
     <div class="panel">
       <div class="hd">
-        <div class="titleRow">
-          <div style="display:flex; align-items:center; gap:10px;">
-            <h2 style="margin:0;font-size:13px;">月度總表</h2><span class="pill">訂閱 + 單片合計</span>
-          </div>
+        <div style="display:flex; align-items:center; gap:10px;">
+          <h2 style="margin:0;">月度總表</h2><span class="pill">訂閱 + 單片合計</span>
         </div>
       </div>
       <div class="bd" style="padding:0 0 10px 0;">
@@ -216,12 +186,10 @@
 
     <div class="panel">
       <div class="hd">
-        <div class="titleRow">
-          <div style="display:flex; align-items:center; gap:10px;">
-            <h2 style="margin:0;font-size:13px;">單片 TOP</h2><span class="pill">點標題可直達貼文</span>
-          </div>
-          <a class="sheetlink" href="https://docs.google.com/spreadsheets/d/e/2PACX-1vQiAPNDCD7qn6atO4VB6Ei63AacDK00AMKM16hK8c-wVWFadPPOj-P8olYQ-ofMFwy0maGU1A4CBneW/pub?gid=1226262547&single=true&output=html" target="_blank" rel="noopener">Open sheet</a>
+        <div style="display:flex; align-items:center; gap:10px;">
+          <h2 style="margin:0;">單片 TOP</h2><span class="pill">點標題可直達貼文</span>
         </div>
+        <a class="sheetlink" href="https://docs.google.com/spreadsheets/d/e/2PACX-1vQiAPNDCD7qn6atO4VB6Ei63AacDK00AMKM16hK8c-wVWFadPPOj-P8olYQ-ofMFwy0maGU1A4CBneW/pub?gid=1226262547&single=true&output=html" target="_blank" rel="noopener">Open sheet</a>
       </div>
       <div class="bd" style="padding:0 0 10px 0;">
         <div style="max-height:340px; overflow:auto;">
@@ -239,7 +207,6 @@
       </div>
     </div>
   </div>
-
 </div>
 
 <script>
@@ -251,13 +218,14 @@ function money(n){ if(!isFinite(n)) return "–"; return "$ " + Number(n).toLoca
 function parseMoney(s){
   if(s==null) return NaN;
   const t = String(s);
+  // capture first number-like token
   const m = t.match(/-?\d+(?:,\d{3})*(?:\.\d+)?/);
   if(!m) return NaN;
   return Number(m[0].replace(/,/g,""));
 }
-function toMonthKey(isoLike){
-  if(!isoLike) return null;
-  const s = String(isoLike).trim();
+function toMonthKey(v){
+  if(!v) return null;
+  const s = String(v).trim();
   const m = s.match(/(\d{4})-(\d{2})/);
   if(!m) return null;
   return m[1] + "-" + m[2];
@@ -269,23 +237,24 @@ async function fetchCSV(url){
 }
 function splitCSVLine(line){
   const out=[]; let cur=""; let inQ=false;
-  for(let i=0;i<line.length;i++){
+  for(let i=0;i<line.length;i++) {
     const c=line[i];
-    if(c==='"'){
-      if(inQ && line[i+1]==='"'){ cur+='"'; i++; }
+    if(c==='"') {
+      if(inQ && line[i+1]==='"') { cur+='"'; i++; }
       else inQ=!inQ;
-    } else if(c===',' && !inQ){ out.push(cur); cur=""; }
+    } else if(c===',' && !inQ) { out.push(cur); cur=""; }
     else cur+=c;
   }
   out.push(cur);
   return out;
 }
 function csvToRows(csv){
-  const lines = csv.replace(/\r/g,"").trim().split("\n");
+  const text = csv.replace(/^\uFEFF/, ""); // BOM
+  const lines = text.replace(/\r/g,"").trim().split("\n");
   if(lines.length<=1) return [];
   const headers = splitCSVLine(lines[0]).map(h=>h.trim());
   const rows=[];
-  for(let i=1;i<lines.length;i++){
+  for(let i=1;i<lines.length;i++) {
     if(!lines[i].trim()) continue;
     const cols = splitCSVLine(lines[i]);
     const obj={};
@@ -300,13 +269,21 @@ function normalizePlan(plan){
   if(s.includes("3") || s.includes("三") || s.includes("3個月")) return "3M";
   return "1M";
 }
+function pickKey(headers, candidates){
+  const lower = headers.map(h=>h.toLowerCase());
+  for(const cand of candidates){
+    const c = String(cand).toLowerCase();
+    const idx = lower.findIndex(h => h.includes(c));
+    if(idx>=0) return headers[idx];
+  }
+  return null;
+}
 function buildAgg(subRows, singleRows){
-  const keys = Object.keys(subRows[0]||{});
-  const findKey = (cands)=> cands.find(k => keys.some(h => h.toLowerCase().includes(k)));
-  const timeKey = (findKey(["time","時間","date"]) || keys[0]);
-  const planKey = (findKey(["plan","方案"]) || keys[1]);
-  const idKey   = (findKey(["id","用戶","user"]) || keys[2]);
-  const priceKey= (findKey(["price","金額","amount"]) || keys[3]);
+  const subHeaders = Object.keys(subRows[0]||{});
+  const timeKey  = pickKey(subHeaders, ["時間","time","date","datetime"]) || subHeaders[0];
+  const planKey  = pickKey(subHeaders, ["方案","plan","類型"]) || subHeaders[1];
+  const idKey    = pickKey(subHeaders, ["用戶id","user id","userid","id","用戶","user"]) || subHeaders[2];
+  const priceKey = pickKey(subHeaders, ["價格","price","金額","amount","收入"]) || subHeaders[Math.min(3, subHeaders.length-1)];
 
   const monthMap = new Map();
   const seenBefore = new Set();
@@ -327,12 +304,14 @@ function buildAgg(subRows, singleRows){
       subIds: new Set(),
       newIds: new Set(),
       oldIds: new Set(),
-      planCount: { "1M":0, "3M":0, "6M":0 },
+      planCount: {"1M":0,"3M":0,"6M":0},
       subRevenue: 0,
+      singleRevenue: 0,
     });
     const m = monthMap.get(rec.month);
-    const firstThisMonth = !m.subIds.has(rec.id);
-    if(firstThisMonth){
+
+    // unique subscriber per month
+    if(!m.subIds.has(rec.id)){
       m.subIds.add(rec.id);
       if(seenBefore.has(rec.id)) m.oldIds.add(rec.id); else m.newIds.add(rec.id);
     }
@@ -341,13 +320,12 @@ function buildAgg(subRows, singleRows){
     seenBefore.add(rec.id);
   }
 
-  // Singles
-  const skeys = Object.keys(singleRows[0]||{});
-  const sFind = (cands)=> cands.find(k => skeys.some(h => h.toLowerCase().includes(k)));
-  const sTimeKey = (sFind(["time","時間","date"]) || skeys[0]);
-  const sTitleKey= (sFind(["title","標題","影片"]) || skeys[1]);
-  const sUrlKey  = (sFind(["url","網址","link"]) || skeys[2]);
-  const sPriceKey= (sFind(["price","金額","amount"]) || skeys[4] || skeys[3]);
+  // Singles headers
+  const sHeaders = Object.keys(singleRows[0]||{});
+  const sTimeKey  = pickKey(sHeaders, ["時間","time","date","datetime"]) || sHeaders[0];
+  const sTitleKey = pickKey(sHeaders, ["影片標題","標題","title","影片","內容"]) || sHeaders[1];
+  const sUrlKey   = pickKey(sHeaders, ["網址","url","link"]) || sHeaders[2];
+  const sPriceKey = pickKey(sHeaders, ["價格","price","金額","amount","收入"]) || sHeaders[Math.min(4, sHeaders.length-1)];
 
   const titleAgg = new Map();
   for(const r of singleRows){
@@ -368,11 +346,10 @@ function buildAgg(subRows, singleRows){
     const price = parseMoney(r[sPriceKey]);
     if(!monthMap.has(month)) monthMap.set(month, {
       month, subIds:new Set(), newIds:new Set(), oldIds:new Set(),
-      planCount: { "1M":0, "3M":0, "6M":0 },
-      subRevenue: 0,
+      planCount: {"1M":0,"3M":0,"6M":0}, subRevenue:0, singleRevenue:0
     });
     const m = monthMap.get(month);
-    m.singleRevenue = (m.singleRevenue||0) + (isFinite(price)?price:0);
+    if(isFinite(price)) m.singleRevenue += price;
   }
 
   const monthsAsc = Array.from(monthMap.keys()).sort();
@@ -385,15 +362,15 @@ function buildAgg(subRows, singleRows){
     const p1 = orders? m.planCount["1M"]/orders : 0;
     const p3 = orders? m.planCount["3M"]/orders : 0;
     const p6 = orders? m.planCount["6M"]/orders : 0;
-    const singleRevenue = m.singleRevenue || 0;
     const subRevenue = m.subRevenue || 0;
+    const singleRevenue = m.singleRevenue || 0;
     const totalRevenue = subRevenue + singleRevenue;
-    const arpu = subs? subRevenue/subs : NaN;
+    const arpu = subs? subRevenue/subs : NaN; // ARPU based on subscription revenue
     return { month:k, subs, newUsers, oldUsers, p1, p3, p6, subRevenue, singleRevenue, totalRevenue, arpu };
   });
 
   const topSingles = Array.from(titleAgg.values()).sort((a,b)=>b.sum-a.sum).slice(0,10);
-  return { aggAsc, topSingles };
+  return { aggAsc, topSingles, keys:{timeKey, planKey, idKey, priceKey, sTimeKey, sTitleKey, sUrlKey, sPriceKey} };
 }
 
 function renderTables(aggDesc, topSingles){
@@ -423,16 +400,13 @@ function renderTables(aggDesc, topSingles){
 
 function makeChecks(){
   const items = [
-    { id:"s_new",  color:"var(--new)",  title:"New users｜新客", desc:"訂閱人數（新客）" },
-    { id:"s_old",  color:"var(--old)",  title:"Old users｜舊客", desc:"訂閱人數（舊客）" },
-    { id:"s_total",color:"rgba(255,255,255,.55)", title:"Total｜總訂閱", desc:"New+Old（可選）" },
-
-    { id:"r_total",color:"var(--totalrev)", title:"Total revenue｜總營收", desc:"訂閱+單片" },
-    { id:"r_sub",  color:"var(--rev)", title:"Sub revenue｜訂閱營收", desc:"訂閱金額" },
-    { id:"r_single",color:"var(--single)", title:"Single revenue｜單片營收", desc:"單片金額" },
-    { id:"r_arpu", color:"var(--arpu)", title:"ARPU｜每人平均(訂閱)", desc:"訂閱營收/訂閱人數" },
-
-    { id:"p_mix",  color:"#fbbf24", title:"Plan mix｜方案比例", desc:"1M/3M/6M（100%堆疊）" },
+    { id:"s_new",    color:"var(--new)",     title:"新客（New users）", desc:"訂閱人數柱狀（新客）" },
+    { id:"s_old",    color:"var(--old)",     title:"舊客（Old users）", desc:"訂閱人數柱狀（舊客）" },
+    { id:"r_total",  color:"var(--totalrev)",title:"總營收（Total revenue）", desc:"訂閱 + 單片" },
+    { id:"r_sub",    color:"var(--rev)",     title:"訂閱營收（Sub revenue）", desc:"訂閱金額" },
+    { id:"r_single", color:"var(--single)",  title:"單片營收（Single revenue）", desc:"單片金額" },
+    { id:"r_arpu",   color:"var(--arpu)",    title:"ARPU", desc:"訂閱營收 / 訂閱人數（右軸）" },
+    { id:"p_mix",    color:"#fbbf24",        title:"方案比例（Plan mix）", desc:"1M / 3M / 6M（100% 堆疊）" },
   ];
   el("checks").innerHTML = items.map(it=>(
     `<label class="check">
@@ -443,7 +417,7 @@ function makeChecks(){
   )).join("");
 }
 
-let STATE = { aggAsc:[], aggDesc:[], topSingles:[] };
+let STATE = { aggAsc:[], aggDesc:[], topSingles:[], traces:[] };
 
 function applyOrder(newestFirst){
   const a = STATE.aggAsc;
@@ -453,62 +427,47 @@ function applyOrder(newestFirst){
 
 function buildFigure(){
   const agg = STATE.aggDesc;
-  const x = agg.map(d=>Number(d.month.split("-")[1])); // 只顯示月份數字
+  const x = agg.map(d=>Number(d.month.split("-")[1])); // show month number
   const xText = agg.map(d=>d.month);
 
   const newY = agg.map(d=>d.newUsers);
   const oldY = agg.map(d=>d.oldUsers);
-  const totY = agg.map(d=>d.subs);
-
   const subRev = agg.map(d=>Math.round(d.subRevenue));
   const singleRev = agg.map(d=>Math.round(d.singleRevenue));
   const totalRev = agg.map(d=>Math.round(d.totalRevenue));
   const arpu = agg.map(d=> (isFinite(d.arpu)? Number(d.arpu.toFixed(1)) : null));
-
   const p1 = agg.map(d=> (d.p1*100));
   const p3 = agg.map(d=> (d.p3*100));
   const p6 = agg.map(d=> (d.p6*100));
 
+  const css = getComputedStyle(document.documentElement);
+  const CNEW = css.getPropertyValue('--new').trim();
+  const COLD = css.getPropertyValue('--old').trim();
+  const CREV = css.getPropertyValue('--rev').trim();
+  const CSIN = css.getPropertyValue('--single').trim();
+  const CTOT = css.getPropertyValue('--totalrev').trim();
+  const CARPU = css.getPropertyValue('--arpu').trim();
+
   const traces = [
-    { name:"New users", type:"bar", x, y:newY, marker:{color:getComputedStyle(document.documentElement).getPropertyValue('--new').trim()}, customdata:xText,
-      hovertemplate:"%{customdata}<br>New: <b>%{y}</b><extra></extra>", visible:false, offsetgroup:"subs", legendgroup:"subs" },
-    { name:"Old users", type:"bar", x, y:oldY, marker:{color:getComputedStyle(document.documentElement).getPropertyValue('--old').trim()}, customdata:xText,
-      hovertemplate:"%{customdata}<br>Old: <b>%{y}</b><extra></extra>", visible:false, offsetgroup:"subs", legendgroup:"subs" },
-    { name:"Total subs", type:"scatter", mode:"lines+markers", x, y:totY, line:{color:"rgba(255,255,255,.55)", width:2, dash:"dot"},
-      marker:{size:7, color:"rgba(255,255,255,.7)"}, customdata:xText,
-      hovertemplate:"%{customdata}<br>Total subs: <b>%{y}</b><extra></extra>", visible:false, legendgroup:"subs" },
-
-    { name:"Total revenue", type:"scatter", mode:"lines+markers", x, y:totalRev,
-      line:{color:getComputedStyle(document.documentElement).getPropertyValue('--totalrev').trim(), width:3},
-      marker:{size:8, color:getComputedStyle(document.documentElement).getPropertyValue('--totalrev').trim()},
-      customdata:xText, hovertemplate:"%{customdata}<br>Total revenue: <b>%{y}</b><extra></extra>", visible:false, legendgroup:"money" },
-    { name:"Sub revenue", type:"scatter", mode:"lines+markers", x, y:subRev,
-      line:{color:getComputedStyle(document.documentElement).getPropertyValue('--rev').trim(), width:3},
-      marker:{size:8, color:getComputedStyle(document.documentElement).getPropertyValue('--rev').trim()},
-      customdata:xText, hovertemplate:"%{customdata}<br>Sub revenue: <b>%{y}</b><extra></extra>", visible:false, legendgroup:"money" },
-    { name:"Single revenue", type:"scatter", mode:"lines+markers", x, y:singleRev,
-      line:{color:getComputedStyle(document.documentElement).getPropertyValue('--single').trim(), width:3, dash:"dot"},
-      marker:{size:8, color:getComputedStyle(document.documentElement).getPropertyValue('--single').trim()},
-      customdata:xText, hovertemplate:"%{customdata}<br>Single revenue: <b>%{y}</b><extra></extra>", visible:false, legendgroup:"money" },
-    { name:"ARPU", type:"scatter", mode:"lines+markers", x, y:arpu, yaxis:"y2",
-      line:{color:getComputedStyle(document.documentElement).getPropertyValue('--arpu').trim(), width:3},
-      marker:{size:8, color:getComputedStyle(document.documentElement).getPropertyValue('--arpu').trim()},
-      customdata:xText, hovertemplate:"%{customdata}<br>ARPU: <b>%{y}</b><extra></extra>", visible:false, legendgroup:"money" },
-
-    { name:"1M", type:"bar", x, y:p1, marker:{color:"#22c55e"}, opacity:0.9, customdata:xText,
-      hovertemplate:"%{customdata}<br>1M: <b>%{y:.1f}%</b><extra></extra>", visible:false, offsetgroup:"mix", legendgroup:"mix" },
-    { name:"3M", type:"bar", x, y:p3, marker:{color:"#60a5fa"}, opacity:0.9, customdata:xText,
-      hovertemplate:"%{customdata}<br>3M: <b>%{y:.1f}%</b><extra></extra>", visible:false, offsetgroup:"mix", legendgroup:"mix" },
-    { name:"6M", type:"bar", x, y:p6, marker:{color:"#f97316"}, opacity:0.9, customdata:xText,
-      hovertemplate:"%{customdata}<br>6M: <b>%{y:.1f}%</b><extra></extra>", visible:false, offsetgroup:"mix", legendgroup:"mix" },
+    // 0-1: user bars
+    {name:"New users", type:"bar", x, y:newY, marker:{color:CNEW}, customdata:xText, hovertemplate:"%{customdata}<br>New: <b>%{y}</b><extra></extra>", visible:false, offsetgroup:"users", legendgroup:"users"},
+    {name:"Old users", type:"bar", x, y:oldY, marker:{color:COLD}, customdata:xText, hovertemplate:"%{customdata}<br>Old: <b>%{y}</b><extra></extra>", visible:false, offsetgroup:"users", legendgroup:"users"},
+    // 2-5: money lines
+    {name:"Total revenue", type:"scatter", mode:"lines+markers", x, y:totalRev, line:{color:CTOT,width:3}, marker:{size:8,color:CTOT}, customdata:xText, hovertemplate:"%{customdata}<br>Total revenue: <b>%{y}</b><extra></extra>", visible:false, legendgroup:"money"},
+    {name:"Sub revenue", type:"scatter", mode:"lines+markers", x, y:subRev, line:{color:CREV,width:3}, marker:{size:8,color:CREV}, customdata:xText, hovertemplate:"%{customdata}<br>Sub revenue: <b>%{y}</b><extra></extra>", visible:false, legendgroup:"money"},
+    {name:"Single revenue", type:"scatter", mode:"lines+markers", x, y:singleRev, line:{color:CSIN,width:3,dash:"dot"}, marker:{size:8,color:CSIN}, customdata:xText, hovertemplate:"%{customdata}<br>Single revenue: <b>%{y}</b><extra></extra>", visible:false, legendgroup:"money"},
+    {name:"ARPU", type:"scatter", mode:"lines+markers", x, y:arpu, yaxis:"y2", line:{color:CARPU,width:3}, marker:{size:8,color:CARPU}, customdata:xText, hovertemplate:"%{customdata}<br>ARPU: <b>%{y}</b><extra></extra>", visible:false, legendgroup:"money"},
+    // 6-8: plan mix bars (100% stacked)
+    {name:"1M", type:"bar", x, y:p1, marker:{color:"#22c55e"}, opacity:0.92, customdata:xText, hovertemplate:"%{customdata}<br>1M: <b>%{y:.1f}%</b><extra></extra>", visible:false, offsetgroup:"mix", legendgroup:"mix"},
+    {name:"3M", type:"bar", x, y:p3, marker:{color:"#60a5fa"}, opacity:0.92, customdata:xText, hovertemplate:"%{customdata}<br>3M: <b>%{y:.1f}%</b><extra></extra>", visible:false, offsetgroup:"mix", legendgroup:"mix"},
+    {name:"6M", type:"bar", x, y:p6, marker:{color:"#f97316"}, opacity:0.92, customdata:xText, hovertemplate:"%{customdata}<br>6M: <b>%{y:.1f}%</b><extra></extra>", visible:false, offsetgroup:"mix", legendgroup:"mix"},
   ];
 
   const unified = el("chkUnified").checked;
-
   const layout = {
     paper_bgcolor:"rgba(0,0,0,0)",
     plot_bgcolor:"rgba(255,255,255,0.02)",
-    margin:{l:54,r:54,t:18,b:46},
+    margin:{l:56,r:60,t:18,b:46},
     barmode:"stack",
     bargap:0.35,
     xaxis:{
@@ -539,116 +498,137 @@ function buildFigure(){
     hovermode: unified ? "x unified" : "closest",
     hoverlabel:{bgcolor:"rgba(15,23,42,.95)", bordercolor:"rgba(255,255,255,.14)", font:{color:"#e5e7eb"}},
   };
-
-  const config = { responsive:true, displaylogo:false, toImageButtonOptions:{format:"png", filename:"fansone_report", scale:2} };
+  const config = {responsive:true, displaylogo:false, toImageButtonOptions:{format:"png", filename:"fansone_report", scale:2}};
   return {traces, layout, config};
 }
 
+function restyleVisibility(vis){
+  // IMPORTANT: Plotly.restyle needs trace indices for per-trace visibility
+  const idx = [...Array(vis.length).keys()];
+  Plotly.restyle("chart", "visible", vis, idx);
+}
+
 function setVisibleByChecks(){
-  const vis = new Array(10).fill(false);
   const on = (id)=> el(id).checked;
 
+  // vis array aligned to traces indices (0..8)
+  const vis = new Array(9).fill(false);
+
+  // Users
   if(on("s_new")) vis[0]=true;
   if(on("s_old")) vis[1]=true;
-  if(on("s_total")) vis[2]=true;
 
-  if(on("r_total")) vis[3]=true;
-  if(on("r_sub")) vis[4]=true;
-  if(on("r_single")) vis[5]=true;
-  if(on("r_arpu")) vis[6]=true;
+  // Money
+  if(on("r_total")) vis[2]=true;
+  if(on("r_sub")) vis[3]=true;
+  if(on("r_single")) vis[4]=true;
+  if(on("r_arpu")) vis[5]=true;
 
-  if(on("p_mix")){ vis[7]=true; vis[8]=true; vis[9]=true; }
+  // Plan mix
+  const mixOn = on("p_mix");
+  if(mixOn) { vis[6]=true; vis[7]=true; vis[8]=true; }
 
-  Plotly.restyle("chart", {visible: vis});
+  restyleVisibility(vis);
+
+  // If plan mix enabled, force y-axis to 0..100 and show %
+  if(mixOn) {
+    Plotly.relayout("chart", {
+      "yaxis.range":[0,100],
+      "yaxis.ticksuffix":"%",
+      "yaxis2.visible": false,
+    });
+  } else {
+    Plotly.relayout("chart", {
+      "yaxis.autorange": true,
+      "yaxis.ticksuffix":"",
+      "yaxis2.visible": true,
+    });
+  }
 }
 
-function presetSubs(){
-  el("s_new").checked = true;
-  el("s_old").checked = true;
-  el("s_total").checked = false;
+function setMode(mode){
+  // clear all
+  ["s_new","s_old","r_total","r_sub","r_single","r_arpu","p_mix"].forEach(id=> el(id).checked=false);
 
-  el("r_total").checked = false;
-  el("r_sub").checked = false;
-  el("r_single").checked = false;
+  if(mode==="money"){
+    el("r_total").checked=true;
+    el("r_sub").checked=true;
+    el("r_single").checked=true;
+    el("r_arpu").checked=true;
+    el("modeHint").innerHTML = '你現在在：<b>金額</b>。勾選想看的線（總營收/訂閱/單片/ARPU）。';
+  } else if(mode==="users"){
+    el("s_new").checked=true;
+    el("s_old").checked=true;
+    el("r_arpu").checked=true;
+    el("modeHint").innerHTML = '你現在在：<b>訂閱人數</b>。柱狀圖看新/舊客，ARPU 走右軸折線。';
+  } else if(mode==="mix"){
+    el("p_mix").checked=true;
+    el("modeHint").innerHTML = '你現在在：<b>方案比例</b>。100% 堆疊柱狀圖，一眼看 1M/3M/6M。';
+  }
 
-  el("r_arpu").checked = true;
-  el("p_mix").checked = false;
-  setVisibleByChecks();
-}
-function presetMoney(){
-  el("s_new").checked = false;
-  el("s_old").checked = false;
-  el("s_total").checked = false;
+  // button highlight
+  ["mode_money","mode_users","mode_mix"].forEach(id=> el(id).classList.remove("active"));
+  el("mode_"+mode).classList.add("active");
 
-  el("r_total").checked = true;
-  el("r_sub").checked = true;
-  el("r_single").checked = true;
-  el("r_arpu").checked = true;
-
-  el("p_mix").checked = false;
-  setVisibleByChecks();
-}
-function presetPlans(){
-  el("s_new").checked = false;
-  el("s_old").checked = false;
-  el("s_total").checked = false;
-
-  el("r_total").checked = false;
-  el("r_sub").checked = false;
-  el("r_single").checked = false;
-  el("r_arpu").checked = false;
-
-  el("p_mix").checked = true;
   setVisibleByChecks();
 }
 
 async function main(){
   try{
-    if(location.protocol==="file:"){
+    if(location.protocol==="file:") {
       el("status").textContent = "⚠️ 這頁要用網址開（Vercel/localhost），file:// 會被瀏覽器擋住抓CSV";
       return;
     }
+
     makeChecks();
     el("status").textContent = "Loading… 正在抓 Google Sheets CSV";
+
     const [subCSV, singleCSV] = await Promise.all([fetchCSV(SUB_CSV_URL), fetchCSV(SINGLE_CSV_URL)]);
     const subRows = csvToRows(subCSV);
     const singleRows = csvToRows(singleCSV);
 
-    const {aggAsc, topSingles} = buildAgg(subRows, singleRows);
-    STATE.aggAsc = aggAsc;
-    STATE.topSingles = topSingles;
+    if(!subRows.length) throw new Error("訂閱CSV 沒抓到資料（可能還沒 publish 或 gid 錯）");
+    if(!singleRows.length) throw new Error("單片CSV 沒抓到資料（可能還沒 publish 或 gid 錯）");
+
+    const built = buildAgg(subRows, singleRows);
+    STATE.aggAsc = built.aggAsc;
+    STATE.topSingles = built.topSingles;
 
     applyOrder(true);
 
     // KPIs
-    el("months").textContent = String(STATE.aggDesc.length);
-    el("totalSubs").textContent = String(STATE.aggDesc.reduce((a,b)=>a+(b.subs||0),0));
-    el("totalRevenue").textContent = money(Math.round(STATE.aggDesc.reduce((a,b)=>a+(b.totalRevenue||0),0)));
+    el("months").textContent = String(STATE.aggAsc.length);
+    el("totalSubs").textContent = String(STATE.aggAsc.reduce((a,b)=>a+(b.subs||0),0));
+    el("totalRevenue").textContent = money(Math.round(STATE.aggAsc.reduce((a,b)=>a+(b.totalRevenue||0),0)));
 
-    renderTables(STATE.aggDesc, topSingles);
+    renderTables(STATE.aggDesc, STATE.topSingles);
 
     const fig = buildFigure();
     await Plotly.newPlot("chart", fig.traces, fig.layout, fig.config);
 
-    ["s_new","s_old","s_total","r_total","r_sub","r_single","r_arpu","p_mix"].forEach(id=> el(id).addEventListener("change", setVisibleByChecks));
-    el("presetSubs").addEventListener("click", presetSubs);
-    el("presetMoney").addEventListener("click", presetMoney);
-    el("presetPlans").addEventListener("click", presetPlans);
+    // checkbox listeners
+    ["s_new","s_old","r_total","r_sub","r_single","r_arpu","p_mix"].forEach(id=> el(id).addEventListener("change", setVisibleByChecks));
 
-    el("chkUnified").addEventListener("change", ()=>{
+    // mode buttons
+    el("mode_money").addEventListener("click", ()=>setMode("money"));
+    el("mode_users").addEventListener("click", ()=>setMode("users"));
+    el("mode_mix").addEventListener("click", ()=>setMode("mix"));
+
+    el("chkUnified").addEventListener("change", ()=> {
       Plotly.relayout("chart", {hovermode: el("chkUnified").checked ? "x unified" : "closest"});
     });
 
-    el("chkNewest").addEventListener("change", (e)=>{
+    el("chkNewest").addEventListener("change", (e)=> {
       applyOrder(e.target.checked);
       renderTables(STATE.aggDesc, STATE.topSingles);
       const fig2 = buildFigure();
-      Plotly.react("chart", fig2.traces, fig2.layout, fig2.config).then(setVisibleByChecks);
+      Plotly.react("chart", fig2.traces, fig2.layout, fig2.config).then(()=>{ setVisibleByChecks(); });
     });
 
-    presetMoney();
-    el("status").textContent = "✅ 已載入 · 用勾選合併看數據（Hover 都有數字）";
-  }catch(err){
+    // default
+    setMode("money");
+    el("status").textContent = "✅ 已載入 · 用上面的模式切換，再用勾選微調（Hover 都有數字）";
+  } catch(err) {
     el("status").textContent = "❌ Load failed: " + (err && err.message ? err.message : String(err));
   }
 }
