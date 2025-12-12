@@ -1117,20 +1117,34 @@ main();
 <div id="customTooltip" style="display:none"></div>
 
 
-
 <script id="customHoverScript">
 (function(){
+  // Ensure tooltip container exists
   function ensureTooltip(){
     let tt = document.getElementById('customTooltip');
     if(!tt){
       tt = document.createElement('div');
       tt.id = 'customTooltip';
-      tt.style.display = 'none';
       document.body.appendChild(tt);
     }
     return tt;
   }
   const tt = ensureTooltip();
+
+  // Tooltip styling (rounded, semi-transparent)
+  tt.style.position = 'fixed';
+  tt.style.zIndex = 9999;
+  tt.style.display = 'none';
+  tt.style.pointerEvents = 'none';
+  tt.style.padding = '18px 22px';
+  tt.style.borderRadius = '22px';
+  tt.style.background = 'rgba(10,14,22,0.72)';
+  tt.style.border = '1px solid rgba(255,255,255,0.12)';
+  tt.style.backdropFilter = 'blur(10px)';
+  tt.style.webkitBackdropFilter = 'blur(10px)';
+  tt.style.boxShadow = '0 18px 60px rgba(0,0,0,0.45)';
+  tt.style.color = '#e9eef7';
+  tt.style.fontFamily = 'system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif';
 
   function fmtMoney(n){ return 'NT$ ' + Number(n).toLocaleString(undefined,{maximumFractionDigits:0}); }
   function kindFor(name){
@@ -1148,7 +1162,7 @@ main();
     if(kind==='int') return n.toLocaleString(undefined,{maximumFractionDigits:0});
     return n.toLocaleString(undefined,{maximumFractionDigits:1});
   }
-  function colorFor(pt){
+  function traceColor(pt){
     try{
       const tr = pt.fullData || pt.data || {};
       const c = (tr.line && tr.line.color) || (tr.marker && tr.marker.color);
@@ -1157,107 +1171,142 @@ main();
     }catch(e){ return '#fff'; }
   }
 
-  // store original marker styles per trace
-  const orig = new WeakMap();
+  // --- Highlight (glow) ---
+  const orig = new WeakMap(); // gd -> {ti: {marker, mode}}
 
-  function ensureHoverClosest(gd){
-    try{ Plotly.relayout(gd, {hovermode:'closest', hoverdistance:18, spikedistance:-1}); }catch(e){}
-  }
   function remember(gd, ti){
     let store = orig.get(gd);
     if(!store){ store = {}; orig.set(gd, store); }
     if(store[ti]) return store[ti];
     const tr = (gd.data && gd.data[ti]) ? gd.data[ti] : {};
-    store[ti] = {
-      marker: tr.marker ? JSON.parse(JSON.stringify(tr.marker)) : null,
-      mode: tr.mode
-    };
+    store[ti] = { marker: tr.marker ? JSON.parse(JSON.stringify(tr.marker)) : null, mode: tr.mode };
     return store[ti];
   }
-  function restoreTrace(gd, ti){
+  function restoreAll(gd){
     const store = orig.get(gd);
-    if(!store || !store[ti]) return;
-    const o = store[ti];
-    try{
-      Plotly.restyle(gd, {'marker':[o.marker], 'mode':[o.mode]}, [ti]);
-    }catch(e){}
+    if(!store) return;
+    Object.keys(store).forEach(k=>{
+      const ti = Number(k);
+      const o = store[ti];
+      try{ Plotly.restyle(gd, {'marker':[o.marker], 'mode':[o.mode]}, [ti]); }catch(e){}
+    });
   }
-
   function glowPoint(gd, pt){
     try{
       const ti = pt.curveNumber;
       const tr = gd.data[ti] || {};
       remember(gd, ti);
 
-      // make sure markers exist for glow
-      const xs = tr.x || [];
-      const n = xs.length || (tr.y ? tr.y.length : 0);
+      const n = (tr.x && tr.x.length) || (tr.y && tr.y.length) || 0;
+      const idx = pt.pointNumber;
       const base = (tr.marker && tr.marker.size) || 8;
       const baseNum = (typeof base === 'number') ? base : 8;
 
-      let sizeArr = Array(n).fill(baseNum);
-      const idx = pt.pointNumber;
-      if(idx != null && idx >= 0 && idx < n) sizeArr[idx] = Math.round(baseNum * 1.9);
+      // Ensure markers exist
+      const mode = (tr.mode || '').includes('markers') ? tr.mode : ((tr.mode ? tr.mode+'+' : '') + 'markers');
 
-      const lineW = Array(n).fill(0).map((_,i)=> i===idx ? 3 : 0);
-      const lineC = Array(n).fill('rgba(255,255,255,0)').map((_,i)=> i===idx ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0)');
+      let sizeArr = Array(n).fill(baseNum);
+      if(idx != null && idx >= 0 && idx < n) sizeArr[idx] = Math.round(baseNum * 2.0);
+
+      let lwArr = Array(n).fill(0);
+      let lcArr = Array(n).fill('rgba(255,255,255,0)');
+      if(idx != null && idx >= 0 && idx < n){
+        lwArr[idx] = 3;
+        lcArr[idx] = 'rgba(255,255,255,0.95)';
+      }
 
       const marker = Object.assign({}, tr.marker || {});
       marker.size = sizeArr;
-      marker.line = Object.assign({}, marker.line || {});
-      marker.line.width = lineW;
-      marker.line.color = lineC;
       marker.opacity = Array(n).fill(0.92).map((_,i)=> i===idx ? 1.0 : 0.92);
+      marker.line = Object.assign({}, marker.line || {});
+      marker.line.width = lwArr;
+      marker.line.color = lcArr;
 
-      const mode = (tr.mode || '').includes('markers') ? tr.mode : ((tr.mode ? tr.mode+'+' : '') + 'markers');
       Plotly.restyle(gd, {'marker':[marker], 'mode':[mode]}, [ti]);
     }catch(e){}
   }
 
+  // --- Choose the closest point even if Plotly provides multiple points (x-unified) ---
+  function pickClosestPoint(gd, e){
+    const pts = (e && e.points) ? e.points : [];
+    if(!pts.length) return null;
+    if(pts.length === 1) return pts[0];
+
+    const ev = e.event;
+    if(!ev || typeof ev.clientX !== 'number') return pts[0];
+
+    let best = pts[0], bestD = Infinity;
+    for(const pt of pts){
+      try{
+        const xa = pt.xaxis, ya = pt.yaxis;
+        if(!xa || !ya || typeof xa.l2p!=='function' || typeof ya.l2p!=='function') continue;
+        const bb = gd.getBoundingClientRect();
+        const px = bb.left + (xa._offset||0) + xa.l2p(pt.x);
+        const py = bb.top  + (ya._offset||0) + ya.l2p(pt.y);
+        const dx = px - ev.clientX;
+        const dy = py - ev.clientY;
+        const d = dx*dx + dy*dy;
+        if(d < bestD){ bestD = d; best = pt; }
+      }catch(err){}
+    }
+    return best;
+  }
+
   function renderOne(pt){
-    const x = pt.x;
-    const title = String(x);
+    const xLabel = String(pt.x);
     const name = (pt.fullData && pt.fullData.name) || (pt.data && pt.data.name) || 'Value';
-    const kind = kindFor(name);
-    const val = fmt(pt.y, kind);
-    const dot = colorFor(pt);
+    const val = fmt(pt.y, kindFor(name));
+    const c = traceColor(pt);
 
     tt.innerHTML = `
-      <div class="tt-title">${title}</div>
-      <div class="tt-row">
-        <span class="tt-dot" style="background:${dot}"></span>
-        <span class="tt-name">${name}</span>
-        <span class="tt-val">${val}</span>
+      <div style="font-size:28px;font-weight:800;line-height:1;margin-bottom:10px;">${xLabel}</div>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <span style="width:14px;height:14px;border-radius:50%;background:${c};display:inline-block;"></span>
+        <span style="font-size:26px;font-weight:750;white-space:nowrap;">${name}</span>
+        <span style="margin-left:auto;font-size:26px;font-weight:850;white-space:nowrap;">${val}</span>
       </div>
     `;
   }
 
-  function place(gd, evt, pt){
-    const pad = 14;
+  function place(gd, e, pt){
+    const pad = 12;
     tt.style.display = 'block';
 
     let x=0,y=0;
-    if(evt && typeof evt.clientX==='number'){
-      x = evt.clientX + 18;
-      y = evt.clientY + 18;
-    } else if(pt && pt.xaxis && pt.yaxis && typeof pt.xaxis.l2p==='function' && typeof pt.yaxis.l2p==='function'){
-      const bb = gd.getBoundingClientRect();
-      x = bb.left + (pt.xaxis._offset||0) + pt.xaxis.l2p(pt.x) + 18;
-      y = bb.top  + (pt.yaxis._offset||0) + pt.yaxis.l2p(pt.y) + 18;
-    } else {
-      const bb = gd.getBoundingClientRect();
-      x = bb.left + bb.width*0.6;
-      y = bb.top + bb.height*0.2;
+    const ev = e.event;
+    if(ev && typeof ev.clientX==='number'){
+      x = ev.clientX + 16; y = ev.clientY + 16;
+    }else{
+      // fallback by point coords
+      try{
+        const xa = pt.xaxis, ya = pt.yaxis;
+        const bb = gd.getBoundingClientRect();
+        x = bb.left + (xa._offset||0) + xa.l2p(pt.x) + 16;
+        y = bb.top  + (ya._offset||0) + ya.l2p(pt.y) + 16;
+      }catch(err){
+        const bb = gd.getBoundingClientRect();
+        x = bb.left + bb.width*0.6; y = bb.top + bb.height*0.2;
+      }
     }
 
     const r = tt.getBoundingClientRect();
     const vw = window.innerWidth, vh = window.innerHeight;
-
-    if(x + r.width + pad > vw) x = x - r.width - 36;
-    if(y + r.height + pad > vh) y = y - r.height - 36;
+    if(x + r.width + pad > vw) x = x - r.width - 32;
+    if(y + r.height + pad > vh) y = y - r.height - 32;
 
     tt.style.left = Math.max(8,x) + 'px';
     tt.style.top  = Math.max(8,y) + 'px';
+  }
+
+  function disableSpikes(gd){
+    try{
+      Plotly.relayout(gd, {
+        'xaxis.showspikes': false,
+        'yaxis.showspikes': false,
+        'xaxis.spikethickness': 0,
+        'yaxis.spikethickness': 0
+      });
+    }catch(e){}
   }
 
   function bind(gd){
@@ -1265,15 +1314,16 @@ main();
     if(!gd.on) return;
     gd.__customTTBound = true;
 
-    ensureHoverClosest(gd);
+    // Do NOT rely on hovermode; we pick closest ourselves.
+    disableSpikes(gd);
 
     gd.on('plotly_hover', function(e){
       try{
-        const pt = (e && e.points && e.points[0]) ? e.points[0] : null;
+        const pt = pickClosestPoint(gd, e);
         if(!pt) return;
-        for(let i=0;i<(gd.data||[]).length;i++) restoreTrace(gd,i);
+        restoreAll(gd);
         renderOne(pt);
-        place(gd, e.event, pt);
+        place(gd, e, pt);
         glowPoint(gd, pt);
       }catch(err){}
     });
@@ -1281,22 +1331,20 @@ main();
     gd.on('plotly_unhover', function(){
       try{
         tt.style.display = 'none';
-        for(let i=0;i<(gd.data||[]).length;i++) restoreTrace(gd,i);
+        restoreAll(gd);
       }catch(e){}
     });
 
-    gd.on('plotly_afterplot', function(){ ensureHoverClosest(gd); });
+    gd.on('plotly_afterplot', function(){ disableSpikes(gd); });
   }
 
   function scan(){ document.querySelectorAll('.js-plotly-plot').forEach(bind); }
 
   const obs = new MutationObserver(()=>scan());
   obs.observe(document.documentElement, {childList:true, subtree:true});
-
   window.addEventListener('load', ()=>{ setTimeout(scan,200); setTimeout(scan,800); setTimeout(scan,1500); });
 })();
 </script>
-
 
 
 </body>
