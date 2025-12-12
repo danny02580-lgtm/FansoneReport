@@ -162,32 +162,36 @@
 }
 
 
-/* ===== Monthly table header fixes ===== */
-/* Force single-line headers */
-#monthlyTable th,
+/* ===== Monthly table header FINAL fixes ===== */
 #monthlyTable thead th {
-  white-space: nowrap;
-  line-height: 1.2;
-  text-align: center;
-  vertical-align: middle;
+  white-space: nowrap !important;
+  line-height: 1.15 !important;
+  text-align: center !important;
+  vertical-align: middle !important;
+  padding: 12px 10px !important;
 }
 
-/* Left-align Month column only */
-#monthlyTable th:first-child,
-#monthlyTable td:first-child {
-  text-align: left;
-  white-space: nowrap;
+#monthlyTable thead th * {
+  white-space: nowrap !important;
 }
 
-/* Numeric columns center aligned */
-#monthlyTable th:not(:first-child),
-#monthlyTable td:not(:first-child) {
-  text-align: center;
+/* Month column: left aligned, single line */
+#monthlyTable thead th:first-child,
+#monthlyTable tbody td:first-child {
+  text-align: left !important;
+  white-space: nowrap !important;
+  min-width: 64px;
 }
 
-/* Remove accidental <br> effects in headers */
-#monthlyTable th br {
-  display: none;
+/* Prevent header auto line-break */
+#monthlyTable thead th::before,
+#monthlyTable thead th::after {
+  content: none !important;
+}
+
+/* Kill <br> in headers */
+#monthlyTable thead th br {
+  display: none !important;
 }
 
 </style>
