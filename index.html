@@ -1351,5 +1351,109 @@ main();
 })();
 </script>
 
+
+<script id="noHoverColorShift">
+(function(){
+  function isSensitiveChart(gd){
+    try{
+      const t = (gd && gd._fullLayout && gd._fullLayout.title && (gd._fullLayout.title.text||gd._fullLayout.title)) || '';
+      const s = String(t).toLowerCase();
+      // Match your "users / plan" views (English or Chinese)
+      return s.includes('user') || s.includes('用戶') || s.includes('plan') || s.includes('方案');
+    }catch(e){ return false; }
+  }
+
+  function snapColor(tr){
+    // Returns a JSON-serializable "color spec" we can restore
+    const out = {};
+    if(tr.marker){
+      if(tr.marker.color!=null) out.markerColor = tr.marker.color;
+      if(tr.marker.line && tr.marker.line.color!=null) out.markerLineColor = tr.marker.line.color;
+      if(tr.marker.opacity!=null) out.markerOpacity = tr.marker.opacity;
+    }
+    if(tr.line){
+      if(tr.line.color!=null) out.lineColor = tr.line.color;
+      if(tr.line.width!=null) out.lineWidth = tr.line.width;
+    }
+    if(tr.fillcolor!=null) out.fillcolor = tr.fillcolor;
+    if(tr.opacity!=null) out.opacity = tr.opacity;
+    return out;
+  }
+
+  function restoreTrace(gd, i){
+    if(!gd.__origTraceStyles || !gd.__origTraceStyles[i]) return;
+    const st = gd.__origTraceStyles[i];
+    const update = {};
+    if(st.opacity!=null) update.opacity = st.opacity;
+    else update.opacity = 1;
+
+    if(st.fillcolor!=null) update.fillcolor = st.fillcolor;
+
+    // marker
+    if(st.markerColor!=null){
+      update['marker.color'] = st.markerColor;
+    }
+    if(st.markerLineColor!=null){
+      update['marker.line.color'] = st.markerLineColor;
+    }
+    if(st.markerOpacity!=null){
+      update['marker.opacity'] = st.markerOpacity;
+    }else{
+      // prevent Plotly dimming on hover
+      update['marker.opacity'] = 1;
+    }
+
+    // line
+    if(st.lineColor!=null) update['line.color'] = st.lineColor;
+    if(st.lineWidth!=null) update['line.width'] = st.lineWidth;
+
+    try{ window.Plotly && window.Plotly.restyle(gd, update, [i]); }catch(e){}
+  }
+
+  function bind(gd){
+    if(!gd || gd.__noHoverShiftBound || !gd.on) return;
+    gd.__noHoverShiftBound = true;
+
+    // Snapshot original styles after first render
+    function snapshot(){
+      try{
+        if(!gd.data) return;
+        gd.__origTraceStyles = gd.data.map(snapColor);
+      }catch(e){}
+    }
+    snapshot();
+
+    // re-snapshot after any relayout/restyle that might recreate traces
+    gd.on('plotly_afterplot', snapshot);
+
+    gd.on('plotly_hover', function(e){
+      if(!isSensitiveChart(gd)) return;
+      try{
+        // Restore ALL traces on hover to prevent any transient hover styling
+        for(let i=0;i<(gd.data?gd.data.length:0);i++){
+          restoreTrace(gd,i);
+        }
+      }catch(err){}
+    });
+
+    gd.on('plotly_unhover', function(){
+      if(!isSensitiveChart(gd)) return;
+      try{
+        for(let i=0;i<(gd.data?gd.data.length:0);i++){
+          restoreTrace(gd,i);
+        }
+      }catch(err){}
+    });
+  }
+
+  function scan(){
+    document.querySelectorAll('.js-plotly-plot, .plotly-graph-div').forEach(bind);
+  }
+  const obs=new MutationObserver(()=>scan());
+  obs.observe(document.documentElement,{childList:true,subtree:true});
+  window.addEventListener('load', ()=>{ setTimeout(scan,300); setTimeout(scan,1000); setTimeout(scan,2000); });
+})();
+</script>
+
 </body>
 </html>
