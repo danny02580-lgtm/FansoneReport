@@ -131,6 +131,16 @@
 .seg-btn.active{background:rgba(255,255,255,.12);color:rgba(255,255,255,.96);}
 .select.hidden{display:none!important;}
 
+
+/* Mobile readability tweaks */
+.twoline{display:inline-block; line-height:1.05; text-align:center;}
+td.month .mwrap{display:inline-block; max-width:48px; word-break:break-all; line-height:1.05;}
+/* Make user insights segmented wrap nicely */
+.segmented.userseg{flex-wrap:wrap; gap:6px;}
+.segmented.userseg .seg-btn{padding:8px 10px;}
+@media (max-width: 480px){
+  td.month .mwrap{max-width:38px;}
+}
 </style>
 </head>
 <body>
@@ -149,12 +159,16 @@
         <div class="klabel">Total revenue</div>
         <div class="kvalue" id="totalRevenue">–</div>
       </div>
+      <div class="kpi">
+        <div class="klabel">Prev month</div>
+        <div class="kvalue" id="prevMonthRevenue">–</div>
+      </div>
     </div>
   </div>
 
   <div class="grid">
     <div class="panel">
-      <div class="hd"><h2>圖表切換</h2><span class="pill" id="orderTag">新 → 舊</span></div>
+      <div class="hd"><h2>圖表切換</h2></div>
       <div class="bd">
         
 <div class="segmented" role="tablist" aria-label="Chart views">
@@ -162,7 +176,6 @@
   <button class="seg-btn" type="button" data-value="subs">Subscribers</button>
   <button class="seg-btn" type="button" data-value="mix">Plans</button>
   <button class="seg-btn" type="button" data-value="arpu">ARPU</button>
-  <button class="seg-btn" type="button" data-value="users">Users</button>
 </div>
 
 <select id="viewSelect" class="select hidden">
@@ -171,6 +184,16 @@
           <option value="mix">方案比例（1/3/6M 勾選）</option>
           <option value="arpu">ARPU（折線）</option>
         </select>
+
+        <div class="segmented userseg" data-userseg role="tablist" aria-label="User insights">
+          <button class="seg-btn active" type="button" data-metric="spend_total">Total</button>
+          <button class="seg-btn" type="button" data-metric="spend_sub">Sub</button>
+          <button class="seg-btn" type="button" data-metric="spend_single">Single</button>
+          <button class="seg-btn" type="button" data-metric="active_months">Active</button>
+          <button class="seg-btn" type="button" data-metric="tenure_span">Span</button>
+          <button class="seg-btn" type="button" data-metric="orders_total">Orders</button>
+        </div>
+
 <div class="checks" id="checks"></div>
       </div>
     </div>
@@ -192,13 +215,13 @@
           <table>
             <thead>
               <tr>
-                <th>月份</th>
+                <th><span class="twoline">月<br>份</span></th>
                 <th class="right">訂閱人數</th>
                 <th class="right">新客</th>
                 <th class="right">舊客</th>
-                <th class="right">訂閱營收</th>
-                <th class="right">單片營收</th>
-                <th class="right">總營收</th>
+                <th class="right"><span class="twoline">訂閱<br>營收</span></th>
+                <th class="right"><span class="twoline">單片<br>營收</span></th>
+                <th class="right"><span class="twoline">總<br>營收</span></th>
                 <th class="right">ARPU</th>
               </tr>
             </thead>
@@ -213,7 +236,7 @@
         <div style="display:flex; align-items:center; gap:10px;">
           <h2 style="margin:0;">用戶分析</h2><span class="pill">Top 10</span>
         </div>
-        <select id="userMetric" class="select" style="max-width:220px; padding:8px 10px;">
+        <select id="userMetric" class="select" style="max-width:220px; padding:8px 10px;" class="select hidden">
           <option value="spend_total">付最多錢（總）</option>
           <option value="spend_sub">付最多錢（訂閱）</option>
           <option value="spend_single">付最多錢（單片）</option>
@@ -245,10 +268,9 @@
     <div class="panel">
       <div class="hd">
         <div style="display:flex; align-items:center; gap:10px;">
-          <h2 style="margin:0;">單片 TOP</h2><span class="pill">點標題可直達貼文</span>
+          <h2 style="margin:0;">單片 TOP10</h2><span class="pill">點標題可直達貼文</span>
         </div>
-        <a class="sheetlink" href="https://docs.google.com/spreadsheets/d/e/2PACX-1vQiAPNDCD7qn6atO4VB6Ei63AacDK00AMKM16hK8c-wVWFadPPOj-P8olYQ-ofMFwy0maGU1A4CBneW/pub?gid=1226262547&single=true&output=html" target="_blank" rel="noopener">Open sheet</a>
-      </div>
+</div>
       <div class="bd" style="padding:0 0 10px 0;">
         <div style="max-height:320px; overflow:auto;">
           <table>
@@ -492,7 +514,7 @@ function buildAgg(subRows, singleRows){
 function renderTables(aggDesc, topSingles){
   el("tbodyMonthly").innerHTML = aggDesc.map(x=>(
     `<tr>
-      <td>${x.month}</td>
+      <td class="month"><span class="mwrap">${x.month}</span></td>
       <td class="right">${x.subs}</td>
       <td class="right">${x.newUsers}</td>
       <td class="right">${x.oldUsers}</td>
@@ -752,6 +774,8 @@ async function main(){
 
     el("months").textContent = String(STATE.aggAsc.length);
     el("totalRevenue").textContent = money(Math.round(STATE.aggAsc.reduce((a,b)=>a+(b.totalRevenue||0),0)));
+    const _pm = (STATE.aggAsc.length>=2) ? (STATE.aggAsc[STATE.aggAsc.length-2].totalRevenue||0) : 0;
+    if(el("prevMonthRevenue")) el("prevMonthRevenue").textContent = money(Math.round(_pm));
 
     renderTables(STATE.aggDesc, STATE.topSingles);
     renderUsers(el("userMetric").value);
@@ -771,7 +795,7 @@ main();
 <script>
 (function(){
   const sel = document.getElementById('viewSelect');
-  const buttons = Array.from(document.querySelectorAll('.seg-btn'));
+  const buttons = Array.from(document.querySelectorAll('.segmented[aria-label="Chart views"] .seg-btn[data-value]'));
   if(!sel || buttons.length===0) return;
 
   function setActive(val){
@@ -784,6 +808,30 @@ main();
   buttons.forEach(btn=>{
     btn.addEventListener('click', ()=>{
       const val = btn.dataset.value;
+      sel.value = val;
+      setActive(val);
+      sel.dispatchEvent(new Event('change', {bubbles:true}));
+    });
+  });
+})();
+</script>
+
+<script>
+(function(){
+  const sel = document.getElementById('userMetric');
+  const wrap = document.querySelector('.segmented.userseg[data-userseg]');
+  if(!sel || !wrap) return;
+  const buttons = Array.from(wrap.querySelectorAll('.seg-btn[data-metric]'));
+  if(buttons.length===0) return;
+
+  function setActive(val){
+    buttons.forEach(b=>b.classList.toggle('active', b.dataset.metric===val));
+  }
+  setActive(sel.value || buttons[0].dataset.metric);
+
+  buttons.forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const val = btn.dataset.metric;
       sel.value = val;
       setActive(val);
       sel.dispatchEvent(new Event('change', {bubbles:true}));
