@@ -1117,182 +1117,76 @@ main();
 <div id="customTooltip" style="display:none"></div>
 
 
-<script id="customHoverScript">
+
+
+<script id="safeHoverEnhancer">
 (function(){
-  function $(sel,root=document){ return root.querySelector(sel); }
-  function ensureTooltip(){
-    let tt = document.getElementById('customTooltip');
-    if(!tt){
-      tt = document.createElement('div');
-      tt.id = 'customTooltip';
-      document.body.appendChild(tt);
-    }
-    // base styles
-    Object.assign(tt.style, {
-      position:'fixed', zIndex:9999, display:'none', pointerEvents:'none',
-      padding:'18px 22px', borderRadius:'22px',
-      background:'rgba(10,14,22,0.72)', border:'1px solid rgba(255,255,255,0.12)',
-      backdropFilter:'blur(10px)', WebkitBackdropFilter:'blur(10px)',
-      boxShadow:'0 18px 60px rgba(0,0,0,0.45)',
-      color:'#e9eef7',
-      fontFamily:'system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif'
-    });
-    return tt;
-  }
-  const tt = ensureTooltip();
+  function enhance(gd){
+    if(!gd || gd.__safeHoverBound || !gd.on) return;
+    gd.__safeHoverBound = true;
 
-  function fmtMoney(n){ return 'NT$ ' + Number(n).toLocaleString(undefined,{maximumFractionDigits:0}); }
-  function kindFor(name){
-    const s=(name||'').toLowerCase();
-    if(s.includes('revenue')||s.includes('營收')||s.includes('total')) return 'money';
-    if(s.includes('%')||s.includes('rate')||s.includes('ratio')||s.includes('比例')||s.includes('成長')) return 'pct';
-    if(s.includes('user')||s.includes('subscriber')||s.includes('客')||s.includes('人數')) return 'int';
-    return 'num';
-  }
-  function fmt(v, kind){
-    if(v==null || isNaN(v)) return '-';
-    const n = Number(v);
-    if(kind==='money') return fmtMoney(n);
-    if(kind==='pct') return n.toFixed(1) + '%';
-    if(kind==='int') return n.toLocaleString(undefined,{maximumFractionDigits:0});
-    return n.toLocaleString(undefined,{maximumFractionDigits:1});
-  }
-  function traceColor(pt){
     try{
-      const tr = pt.fullData || pt.data || {};
-      const c = (tr.line && tr.line.color) || (tr.marker && tr.marker.color);
-      if(Array.isArray(c)) return c[0] || '#fff';
-      return c || '#fff';
-    }catch(e){ return '#fff'; }
-  }
-
-  // glow logic: only the hovered point in the hovered trace
-  const original = new WeakMap(); // gd -> {curveNumber:{marker,mode}}
-  function remember(gd, curve){
-    let store = original.get(gd);
-    if(!store){ store = {}; original.set(gd, store); }
-    if(store[curve]) return store[curve];
-    const tr = (gd.data && gd.data[curve]) ? gd.data[curve] : {};
-    store[curve] = { marker: tr.marker ? JSON.parse(JSON.stringify(tr.marker)) : null, mode: tr.mode || '' };
-    return store[curve];
-  }
-  function restore(gd){
-    const store = original.get(gd);
-    if(!store) return;
-    Object.keys(store).forEach(k=>{
-      const curve = Number(k);
-      const o = store[curve];
-      try{ Plotly.restyle(gd, {'marker':[o.marker], 'mode':[o.mode]}, [curve]); }catch(e){}
-    });
-  }
-  function applyGlow(gd, pt){
-    const curve = pt.curveNumber, idx = pt.pointNumber;
-    const tr = gd.data[curve] || {};
-    remember(gd, curve);
-
-    const n = (tr.x && tr.x.length) || (tr.y && tr.y.length) || 0;
-    const baseSize = (tr.marker && tr.marker.size);
-    const s0 = (typeof baseSize === 'number') ? baseSize : 8;
-
-    const size = Array(n).fill(s0);
-    if(idx>=0 && idx<n) size[idx] = Math.round(s0*2.0);
-
-    const lineW = Array(n).fill(0);
-    const lineC = Array(n).fill('rgba(255,255,255,0)');
-    if(idx>=0 && idx<n){ lineW[idx]=3; lineC[idx]='rgba(255,255,255,0.95)'; }
-
-    const marker = Object.assign({}, tr.marker || {});
-    marker.size = size;
-    marker.opacity = Array(n).fill(0.92);
-    if(idx>=0 && idx<n) marker.opacity[idx]=1.0;
-    marker.line = Object.assign({}, marker.line || {});
-    marker.line.width = lineW;
-    marker.line.color = lineC;
-
-    const mode = (tr.mode||'').includes('markers') ? tr.mode : ((tr.mode?tr.mode+'+':'')+'markers');
-    try{ Plotly.restyle(gd, {'marker':[marker], 'mode':[mode]}, [curve]); }catch(e){}
-  }
-
-  // tooltip content (single point)
-  function render(pt){
-    const xLabel = String(pt.x);
-    const name = (pt.fullData && pt.fullData.name) || (pt.data && pt.data.name) || 'Value';
-    const val  = fmt(pt.y, kindFor(name));
-    const c = traceColor(pt);
-    tt.innerHTML = `
-      <div style="font-size:28px;font-weight:800;line-height:1;margin-bottom:10px;">${xLabel}</div>
-      <div style="display:flex;align-items:center;gap:12px;">
-        <span style="width:14px;height:14px;border-radius:50%;background:${c};display:inline-block;"></span>
-        <span style="font-size:26px;font-weight:750;white-space:nowrap;">${name}</span>
-        <span style="margin-left:auto;font-size:26px;font-weight:850;white-space:nowrap;">${val}</span>
-      </div>`;
-  }
-
-  function place(gd, e, pt){
-    const pad=12; tt.style.display='block';
-    let x=0,y=0;
-    const ev = e && e.event;
-    if(ev && typeof ev.clientX==='number'){ x=ev.clientX+16; y=ev.clientY+16; }
-    else{
-      try{
-        const xa=pt.xaxis, ya=pt.yaxis, bb=gd.getBoundingClientRect();
-        x = bb.left + (xa._offset||0) + xa.l2p(pt.x) + 16;
-        y = bb.top  + (ya._offset||0) + ya.l2p(pt.y) + 16;
-      }catch(err){
-        const bb=gd.getBoundingClientRect(); x=bb.left+bb.width*0.6; y=bb.top+bb.height*0.2;
-      }
-    }
-    const r=tt.getBoundingClientRect(), vw=innerWidth, vh=innerHeight;
-    if(x+r.width+pad>vw) x = x-r.width-32;
-    if(y+r.height+pad>vh) y = y-r.height-32;
-    tt.style.left = Math.max(8,x)+'px';
-    tt.style.top  = Math.max(8,y)+'px';
-  }
-
-  function bind(gd){
-    if(!gd || gd.__customTTBound) return;
-    if(typeof gd.on!=='function') return;
-    gd.__customTTBound = true;
-
-    // force closest hover to avoid unified multi-points
-    try{
-      Plotly.relayout(gd, {
-        hovermode:'closest',
-        hoverdistance: 20,
-        'xaxis.showspikes': false,
-        'yaxis.showspikes': false,
-        'xaxis.spikethickness': 0,
-        'yaxis.spikethickness': 0
-      });
+      Plotly.relayout(gd, {hovermode:'closest', hoverdistance:18, spikedistance:-1});
     }catch(e){}
+
+    const orig = {};
+    function remember(ti){
+      if(orig[ti]) return;
+      const tr = gd.data[ti] || {};
+      orig[ti] = {
+        marker: tr.marker ? JSON.parse(JSON.stringify(tr.marker)) : null,
+        mode: tr.mode
+      };
+    }
+    function restore(){
+      Object.keys(orig).forEach(k=>{
+        const ti = Number(k);
+        const o = orig[ti];
+        try{ Plotly.restyle(gd, {'marker':[o.marker], 'mode':[o.mode]}, [ti]); }catch(e){}
+      });
+    }
 
     gd.on('plotly_hover', function(e){
       try{
         if(!e || !e.points || !e.points.length) return;
-        const pt = e.points[0]; // closest mode -> single point
-        restore(gd);
-        render(pt);
-        place(gd, e, pt);
-        applyGlow(gd, pt);
+        const pt = e.points[0];
+        const ti = pt.curveNumber;
+        const tr = gd.data[ti] || {};
+        remember(ti);
+
+        const n = (tr.x && tr.x.length) || (tr.y && tr.y.length) || 0;
+        const idx = pt.pointNumber;
+        const base = (tr.marker && tr.marker.size) || 8;
+        const baseNum = (typeof base === 'number') ? base : 8;
+
+        const sizeArr = Array(n).fill(baseNum);
+        if(idx!=null && idx>=0 && idx<n) sizeArr[idx] = Math.round(baseNum*1.8);
+
+        const marker = Object.assign({}, tr.marker || {});
+        marker.size = sizeArr;
+        marker.line = Object.assign({}, marker.line || {});
+        marker.line.width = Array(n).fill(0).map((_,i)=> i===idx ? 3 : 0);
+        marker.line.color = Array(n).fill('rgba(255,255,255,0)').map((_,i)=> i===idx ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0)');
+
+        const mode = (tr.mode || '').includes('markers') ? tr.mode : ((tr.mode ? tr.mode+'+' : '') + 'markers');
+        Plotly.restyle(gd, {'marker':[marker], 'mode':[mode]}, [ti]);
       }catch(err){}
     });
 
     gd.on('plotly_unhover', function(){
-      try{ tt.style.display='none'; restore(gd); }catch(e){}
-    });
-
-    gd.on('plotly_afterplot', function(){
-      try{ Plotly.relayout(gd, {hovermode:'closest', hoverdistance:20}); }catch(e){}
+      try{ restore(); }catch(e){}
     });
   }
 
-  function scan(){ document.querySelectorAll('.js-plotly-plot').forEach(bind); }
+  function scan(){
+    document.querySelectorAll('.js-plotly-plot').forEach(enhance);
+  }
+
   const obs = new MutationObserver(()=>scan());
-  obs.observe(document.documentElement,{childList:true,subtree:true});
-  window.addEventListener('load', ()=>{ setTimeout(scan,200); setTimeout(scan,800); setTimeout(scan,1600); });
+  obs.observe(document.documentElement, {childList:true, subtree:true});
+  window.addEventListener('load', ()=>{ setTimeout(scan,200); setTimeout(scan,800); setTimeout(scan,1500); });
 })();
 </script>
-
 
 </body>
 </html>
