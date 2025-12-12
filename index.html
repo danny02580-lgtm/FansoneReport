@@ -145,6 +145,22 @@
 .userseg .userseg-btn{ all:unset; cursor:pointer; padding:10px 12px; border-radius:999px; font-weight:600; letter-spacing:.2px; }
 .userseg .userseg-btn.active{ background:rgba(255,255,255,.12); box-shadow:inset 0 0 0 1px rgba(255,255,255,.14); }
 
+
+/* Hide legacy Prev label */
+#prevTotalRevenue{display:none !important;}
+
+
+/* Match Latest KPI typography to Total Revenue */
+.kpi-card[data-kpi="latest"] .kpi-title,
+#kpiLatest .kpi-title, #latestKpi .kpi-title, #kpiLatestTitle, #latestKpiTitle{
+  font-size: inherit;
+}
+.kpi-card[data-kpi="latest"] .kpi-value,
+#kpiLatest .kpi-value, #latestKpi .kpi-value, #kpiLatestValue, #latestKpiValue{
+  font-size: inherit;
+  font-weight: inherit;
+}
+
 </style>
 </head>
 <body>
@@ -161,8 +177,7 @@
       </div>
       <div class="kpi">
         <div class="klabel">Total revenue</div>
-        <div class="kvalue" id="totalRevenue">–</div><div class="kprev" id="prevTotalRevenue">Prev –</div>
-      </div>
+        <div class="kvalue" id="totalRevenue">–</div></div>
     </div>
   </div>
 
@@ -1028,6 +1043,25 @@ main();
     const obs = new MutationObserver(()=>setLatest());
     obs.observe(tbody, {childList:true, subtree:true});
   }
+})();
+</script>
+
+
+<script>
+// Ensure Latest KPI uses same emphasis class as Total Revenue
+(function(){
+  function syncKpiStyles(){
+    const totalCard = document.querySelector('.kpi-card[data-kpi="total"], #kpiTotal, #totalKpi, [data-kpi="totalRevenue"]');
+    const latestCard = document.querySelector('.kpi-card[data-kpi="latest"], #kpiLatest, #latestKpi, [data-kpi="latestRevenue"]');
+    if(totalCard && latestCard){
+      // copy key classes if present
+      ["kpi-primary","kpi-big","primary","big"].forEach(cls=>{
+        if(totalCard.classList.contains(cls)) latestCard.classList.add(cls);
+      });
+    }
+  }
+  setTimeout(syncKpiStyles, 0);
+  setTimeout(syncKpiStyles, 300);
 })();
 </script>
 
