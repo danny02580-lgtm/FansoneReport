@@ -1522,5 +1522,126 @@ main();
 })();
 </script>
 
+
+<script id="disableHoverForBars_and_TapTooltip">
+(function(){
+  function getTitle(gd){
+    try{
+      const t = (gd && gd._fullLayout && gd._fullLayout.title && (gd._fullLayout.title.text||gd._fullLayout.title)) || '';
+      return String(t||'');
+    }catch(e){ return ''; }
+  }
+  function isSensitive(gd){
+    const s = getTitle(gd).toLowerCase();
+    return s.includes('user') || s.includes('用戶') || s.includes('plan') || s.includes('方案');
+  }
+
+  // Simple reusable tooltip card (HTML overlay) for click/tap
+  const tip = document.createElement('div');
+  tip.style.position = 'fixed';
+  tip.style.zIndex = '9999';
+  tip.style.pointerEvents = 'none';
+  tip.style.display = 'none';
+  tip.style.padding = '14px 16px';
+  tip.style.borderRadius = '18px';
+  tip.style.background = 'rgba(10,14,20,0.72)';
+  tip.style.backdropFilter = 'blur(10px)';
+  tip.style.webkitBackdropFilter = 'blur(10px)';
+  tip.style.border = '1px solid rgba(255,255,255,0.10)';
+  tip.style.boxShadow = '0 18px 40px rgba(0,0,0,0.45)';
+  tip.style.color = '#e8eefc';
+  tip.style.fontFamily = 'ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial';
+  tip.style.fontSize = '16px';
+  tip.style.lineHeight = '1.25';
+  tip.style.maxWidth = '320px';
+  document.addEventListener('DOMContentLoaded', ()=>document.body.appendChild(tip));
+
+  function showTip(x,y,html){
+    tip.innerHTML = html;
+    tip.style.display = 'block';
+    // keep on-screen
+    const pad = 14;
+    const rect = tip.getBoundingClientRect();
+    let left = x + 14;
+    let top = y + 14;
+    if(left + rect.width + pad > window.innerWidth) left = x - rect.width - 14;
+    if(top + rect.height + pad > window.innerHeight) top = y - rect.height - 14;
+    tip.style.left = Math.max(pad,left) + 'px';
+    tip.style.top = Math.max(pad,top) + 'px';
+  }
+  function hideTip(){ tip.style.display = 'none'; }
+
+  function formatRow(label, value){
+    return `<div style="display:flex;gap:12px;justify-content:space-between;align-items:baseline;margin-top:6px;">
+      <span style="opacity:.9">${label}</span>
+      <span style="font-weight:800;letter-spacing:.2px">${value}</span>
+    </div>`;
+  }
+
+  function attach(gd){
+    if(!window.Plotly || !gd || !gd._fullLayout || gd.__noHoverPatched) return;
+    if(!isSensitive(gd)) return;
+    gd.__noHoverPatched = true;
+
+    // Disable hover (prevents Plotly hover highlight / color shift)
+    try{
+      Plotly.relayout(gd, {hovermode:false, hoverdistance:0, spikedistance:-1}).catch(()=>{});
+      // Also ensure no hover template on traces
+      const idx = gd.data.map((_,i)=>i);
+      Plotly.restyle(gd, {hoverinfo:'skip', hovertemplate:null}, idx).catch(()=>{});
+    }catch(e){}
+
+    // Tap/Click to show tooltip
+    gd.on('plotly_click', function(ev){
+      try{
+        const pt = ev && ev.points && ev.points[0];
+        if(!pt) return;
+
+        const month = (pt.x !== undefined ? pt.x : '');
+        const traceName = pt.data && pt.data.name ? pt.data.name : '';
+        const val = (pt.y !== undefined ? pt.y : '');
+
+        // If stacked bar, pt has pt.data.name to distinguish (New/Old etc.)
+        const title = `<div style="font-weight:900;font-size:22px;margin-bottom:6px;">${month}</div>`;
+        const main = formatRow(traceName || 'Value', val);
+
+        const html = title + main;
+        const e = ev.event || {};
+        const cx = (e.clientX !== undefined) ? e.clientX : (window.innerWidth/2);
+        const cy = (e.clientY !== undefined) ? e.clientY : (window.innerHeight/2);
+        showTip(cx, cy, html);
+      }catch(e){}
+    });
+
+    // Hide on background tap/click
+    gd.addEventListener('click', function(e){
+      // if click didn't originate from a point, plotly_click won't fire; hide
+      // delay to allow point-click handler to run first
+      setTimeout(()=>{ 
+        const active = (gd._hoverdata && gd._hoverdata.length) || false;
+        if(!active) hideTip();
+      }, 0);
+    });
+
+    // Hide on escape
+    window.addEventListener('keydown', (e)=>{ if(e.key==='Escape') hideTip(); });
+
+    // On touch scroll/resize, hide
+    window.addEventListener('scroll', hideTip, {passive:true});
+    window.addEventListener('resize', hideTip);
+  }
+
+  function scan(){
+    document.querySelectorAll('.js-plotly-plot, .plotly-graph-div').forEach((gd)=>{
+      try{ if(gd && gd._fullLayout) attach(gd); }catch(e){}
+    });
+  }
+
+  const obs = new MutationObserver(()=>scan());
+  obs.observe(document.documentElement,{childList:true,subtree:true});
+  window.addEventListener('load', ()=>{ setTimeout(scan,600); setTimeout(scan,1600); setTimeout(scan,3000); });
+})();
+</script>
+
 </body>
 </html>
