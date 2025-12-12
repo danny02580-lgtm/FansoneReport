@@ -94,7 +94,12 @@
     .right{text-align:right}
     .badge{display:inline-block;padding:2px 8px;border-radius:999px;border:1px solid var(--border);color:#cbd5e1;font-size:12px}
     a{color:#93c5fd}
-  </style>
+  
+.titlelink{color:#93c5fd;text-decoration:none;border-bottom:1px dashed rgba(147,197,253,.5)}
+.titlelink:hover{color:#bfdbfe;border-bottom-color:#bfdbfe}
+.sheetlink{display:inline-block;margin:0 0 8px 0;color:#93c5fd;text-decoration:none;font-size:12px}
+.sheetlink:hover{color:#bfdbfe}
+</style>
 </head>
 <body>
   <div class="wrap">
@@ -160,8 +165,9 @@
 const SUB_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQiAPNDCD7qn6atO4VB6Ei63AacDK00AMKM16hK8c-wVWFadPPOj-P8olYQ-ofMFwy0maGU1A4CBneW/pub?gid=0&single=true&output=csv";
 const SINGLE_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQiAPNDCD7qn6atO4VB6Ei63AacDK00AMKM16hK8c-wVWFadPPOj-P8olYQ-ofMFwy0maGU1A4CBneW/pub?gid=1226262547&single=true&output=csv";
 
+const SINGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQiAPNDCD7qn6atO4VB6Ei63AacDK00AMKM16hK8c-wVWFadPPOj-P8olYQ-ofMFwy0maGU1A4CBneW/pub?gid=1226262547&single=true&output=html";
 document.getElementById("subUrl").href = SUB_CSV_URL;
-document.getElementById("singleUrl").href = SINGLE_CSV_URL;
+document.getElementById("singleUrl").href = (typeof SINGLE_SHEET_URL!=="undefined") ? SINGLE_SHEET_URL : SINGLE_CSV_URL;
 
 const el = (id)=>document.getElementById(id);
 
@@ -558,7 +564,7 @@ if(view==="arpu"){
         "t_totalrev":"Total revenue",
       };
 
-      const label = (view==="money") ? altMap[chk.id] : nameMap[chk.id];
+      const label = (view==="money" || view==="totalrev") ? altMap[chk.id] : nameMap[chk.id];
       const idx = traces.findIndex(t=>t.name===label);
       if(idx>=0){
         const vis = chk.checked ? true : "legendonly";
@@ -607,7 +613,7 @@ function renderTopSinglesTable(topSingles){
   const rows = topSingles.map(x=>{
     const title = x.title.length>42 ? x.title.slice(0,42)+"…" : x.title;
     return `<tr>
-      <td title="${x.title.replaceAll('"','&quot;')}">${title}</td>
+      <td title="${x.title.replaceAll('"','&quot;')}"><a class="titlelink" href="${x.exampleUrl||'#'}" target="_blank" rel="noopener">${title}</a></td>
       <td class="right">${Math.round(x.revenue)}</td>
       <td class="right">${x.count}</td>
     </tr>`;
