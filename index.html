@@ -161,6 +161,35 @@
   font-weight: inherit;
 }
 
+
+/* ===== Monthly table header fixes ===== */
+/* Force single-line headers */
+#monthlyTable th,
+#monthlyTable thead th {
+  white-space: nowrap;
+  line-height: 1.2;
+  text-align: center;
+  vertical-align: middle;
+}
+
+/* Left-align Month column only */
+#monthlyTable th:first-child,
+#monthlyTable td:first-child {
+  text-align: left;
+  white-space: nowrap;
+}
+
+/* Numeric columns center aligned */
+#monthlyTable th:not(:first-child),
+#monthlyTable td:not(:first-child) {
+  text-align: center;
+}
+
+/* Remove accidental <br> effects in headers */
+#monthlyTable th br {
+  display: none;
+}
+
 </style>
 </head>
 <body>
