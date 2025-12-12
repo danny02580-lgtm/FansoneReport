@@ -1085,58 +1085,101 @@ main();
     return "<b>%{x}</b><br>"+(name||"Value")+": %{y:,.0f}<extra></extra>";
   }
 
-  function enhance(gd){
-    if(!gd || !gd.data || !window.Plotly) return;
+  function enhanceDiv(div){
+    try{
+      const gd = (typeof div === "string") ? document.getElementById(div) : div;
+      if(!gd || !window.Plotly || !gd.data) return;
+      // unified tooltip + crosshair
+      Plotly.relayout(gd,{
+        hovermode:"x unified",
+        spikedistance:-1,
+        hoverdistance:20,
+        xaxis:{
+          showspikes:true,
+          spikemode:"across",
+          spikesnap:"cursor",
+          spikecolor:"rgba(255,255,255,0.35)",
+          spikethickness:1
+        },
+        hoverlabel:{
+          bgcolor:"rgba(15,15,15,0.92)",
+          bordercolor:"rgba(255,255,255,0.12)",
+          font:{color:"#fff", size:12},
+          namelength:-1,
+          align:"left"
+        }
+      });
 
-    // unified hover + crosshair
-    Plotly.relayout(gd,{
-      hovermode:'x unified',
-      spikedistance:-1,
-      hoverdistance:20,
-      xaxis:{
-        showspikes:true,
-        spikemode:'across',
-        spikesnap:'cursor',
-        spikecolor:'rgba(255,255,255,0.35)',
-        spikethickness:1
-      },
-      hoverlabel:{
-        bgcolor:'rgba(15,15,15,0.92)',
-        bordercolor:'rgba(255,255,255,0.12)',
-        font:{color:'#fff',size:12},
-        namelength:-1
-      }
-    });
+      // per-trace templates + easier hit targets
+      const hovertemplates = gd.data.map(tr => smartTemplate(tr.name));
+      Plotly.restyle(gd, {hovertemplate: hovertemplates});
 
-    // card-like unified title
-    Plotly.relayout(gd, {"hoverlabel.align":"left"});
+      const modes = gd.data.map(tr => {
+        const m = (tr.mode||"");
+        if(m.includes("lines") && !m.includes("markers")) return m + "+markers";
+        return tr.mode;
+      });
+      Plotly.restyle(gd, {mode: modes});
 
-    // cleaner per-trace tooltip text + remove extra box
-    const hovertemplates = gd.data.map(tr => smartTemplate(tr.name));
-    Plotly.restyle(gd, {hovertemplate: hovertemplates});
-
-    // make markers easier to hit on lines
-    const modes = gd.data.map(tr => {
-      const m = (tr.mode||"");
-      if(m.includes('lines') && !m.includes('markers')) return m + "+markers";
-      return tr.mode;
-    });
-    Plotly.restyle(gd, {mode: modes});
-    const msize = gd.data.map(tr => (tr.mode||"").includes('markers') ? 7 : (tr.marker && tr.marker.size) );
-    Plotly.restyle(gd, {"marker.size": msize});
+      const sizes = gd.data.map(tr => ((tr.mode||"").includes("markers")) ? 7 : (tr.marker && tr.marker.size) );
+      Plotly.restyle(gd, {"marker.size": sizes});
+    }catch(e){}
   }
 
-  function bind(){
-    document.querySelectorAll('.js-plotly-plot').forEach(gd=>{
-      if(gd.__fansoneEnhanced) return;
-      gd.__fansoneEnhanced = true;
-      gd.on('plotly_afterplot', ()=>enhance(gd));
-      // initial
-      setTimeout(()=>enhance(gd), 350);
-    });
+  function install(){
+    if(!window.Plotly || window.__fansoneHoverPatched) return;
+    window.__fansoneHoverPatched = true;
+
+    const origReact = Plotly.react;
+    Plotly.react = function(div, data, layout, config){
+      // force layout defaults even if caller forgets
+      try{
+        layout = layout || {};
+        layout.hovermode = "x unified";
+        layout.hoverlabel = layout.hoverlabel || {};
+        layout.hoverlabel.bgcolor = layout.hoverlabel.bgcolor || "rgba(15,15,15,0.92)";
+        layout.hoverlabel.bordercolor = layout.hoverlabel.bordercolor || "rgba(255,255,255,0.12)";
+        layout.hoverlabel.font = layout.hoverlabel.font || {color:"#fff", size:12};
+        layout.hoverlabel.namelength = -1;
+        layout.hoverlabel.align = "left";
+        layout.xaxis = layout.xaxis || {};
+        layout.xaxis.showspikes = true;
+        layout.xaxis.spikemode = "across";
+        layout.xaxis.spikesnap = "cursor";
+        layout.xaxis.spikecolor = "rgba(255,255,255,0.35)";
+        layout.xaxis.spikethickness = 1;
+      }catch(e){}
+
+      // set hovertemplate on data up-front
+      try{
+        if(Array.isArray(data)){
+          data = data.map(tr=>{
+            if(!tr) return tr;
+            if(!tr.hovertemplate) tr.hovertemplate = smartTemplate(tr.name);
+            if(tr.mode && tr.mode.includes("lines") && !tr.mode.includes("markers")) tr.mode = tr.mode + "+markers";
+            if(tr.mode && tr.mode.includes("markers")){
+              tr.marker = tr.marker || {};
+              if(!tr.marker.size) tr.marker.size = 7;
+            }
+            return tr;
+          });
+        }
+      }catch(e){}
+
+      return origReact.call(this, div, data, layout, config).then(()=>{
+        enhanceDiv(div);
+      });
+    };
+
+    // if chart already rendered
+    setTimeout(()=>enhanceDiv("chart"), 600);
   }
 
-  window.addEventListener('load', ()=>setTimeout(bind, 400));
+  if(document.readyState === "complete"){
+    install();
+  }else{
+    window.addEventListener("load", install);
+  }
 })();
 </script>
 
