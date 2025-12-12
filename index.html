@@ -1,649 +1,655 @@
-<!DOCTYPE html>
-<html lang="zh-Hant">
+<!doctype html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>FansOne Monthly Report</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Fansone Report</title>
+  <script src="https://cdn.plot.ly/plotly-2.30.0.min.js"></script>
   <style>
-    * {
-      box-sizing: border-box;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
-    }
-    body {
-      margin: 0;
-      padding: 0;
-      background: radial-gradient(circle at top, #0f172a 0, #020617 45%, #000 100%);
-      color: #e5e7eb;
-    }
-    .shell {
-      max-width: 1120px;
-      margin: 0 auto;
-      padding: 20px 16px 32px;
-    }
+    :root{
+      --bg:#0b1220;
+      --panel:#0f172a;
+      --panel2:#0b1326;
+      --border:rgba(148,163,184,.22);
+      --grid:rgba(148,163,184,.18);
+      --text:#e5e7eb;
+      --muted:#9ca3af;
 
-    /* Top bar */
-    .topbar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      padding: 10px 14px;
-      border-radius: 999px;
-      background: rgba(15, 23, 42, 0.9);
-      box-shadow: 0 18px 45px rgba(15, 23, 42, 0.8);
-      border: 1px solid rgba(148,163,184,0.3);
-      margin-bottom: 18px;
-      backdrop-filter: blur(16px);
+      --new:#3498db;   /* light blue */
+      --old:#2980b9;   /* deep blue  */
+      --rev:#e74c3c;   /* bright red */
+      --arpu:#d35400;  /* deep orange */
+      --single:#a855f7;/* vivid purple */
+      --m1:#22c55e;    /* green */
+      --m3:#f59e0b;    /* amber */
+      --m6:#ef4444;    /* red */
     }
-    .topbar-left {
-      display: flex;
-      align-items: center;
-      gap: 10px;
+    html,body{height:100%}
+    body{margin:0;background:linear-gradient(180deg, #0b1220 0%, #0a1020 45%, #0b1220 100%);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial}
+    .wrap{max-width:1180px;margin:0 auto;padding:16px 14px 24px}
+    .top{
+      background:rgba(15,23,42,.88);
+      border:1px solid var(--border);
+      border-radius:16px;
+      padding:14px 14px;
+      display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;
+      box-shadow:0 10px 30px rgba(0,0,0,.22);
     }
-    .badge-dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 999px;
-      background: radial-gradient(circle at 30% 30%, #22c55e, #16a34a);
-      box-shadow: 0 0 12px rgba(34,197,94,0.8);
+    .title{font-weight:900;letter-spacing:.2px}
+    .muted{color:var(--muted);font-size:12px}
+    .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+    .panel{
+      margin-top:14px;
+      background:rgba(2,6,23,.70);
+      border:1px solid rgba(59,130,246,.20);
+      border-radius:16px;
+      padding:14px;
+      box-shadow:0 10px 30px rgba(0,0,0,.18);
     }
-    .top-title {
-      font-size: 16px;
-      font-weight: 600;
+    .controls{
+      display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between;
+      margin-bottom:8px
     }
-    .top-sub {
-      font-size: 12px;
-      color: #9ca3af;
+    select,.btn{
+      background:rgba(5,10,22,.92);
+      color:var(--text);
+      border:1px solid var(--border);
+      border-radius:12px;
+      padding:9px 10px;
+      font-weight:800;
+      outline:none;
     }
-    .topbar-right {
-      font-size: 11px;
-      color: #9ca3af;
-      text-align: right;
+    .btn{cursor:pointer}
+    .btn:disabled{opacity:.55;cursor:not-allowed}
+    .checkgrid{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+    .chk{
+      display:flex;gap:6px;align-items:center;
+      padding:6px 10px;border-radius:999px;
+      border:1px solid var(--border);
+      background:rgba(5,10,22,.75);
+      font-size:12px;color:var(--text);
+      user-select:none;
     }
-
-    h1 {
-      margin: 8px 0 8px;
-      font-size: 22px;
-      letter-spacing: 0.02em;
+    .chk input{accent-color:#60a5fa}
+    #chart{width:100%;height:520px}
+    .split{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap:12px;
+      margin-top:12px;
     }
-    .subtitle {
-      margin-bottom: 18px;
-      color: #9ca3af;
-      font-size: 13px;
+    @media (min-width: 980px){
+      .split{grid-template-columns: 1.15fr .85fr;}
     }
-
-    .layout {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-      align-items: stretch;
+    .mini{
+      background:rgba(15,23,42,.55);
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:12px;
     }
-
-    .card {
-      background: rgba(2, 6, 23, 0.95);
-      border-radius: 14px;
-      padding: 16px 18px 16px;
-      box-shadow: 0 0 0 1px rgba(30,64,175,0.5), 0 18px 45px rgba(15,23,42,0.9);
-    }
-    .card h2 {
-      margin: 0 0 10px;
-      font-size: 17px;
-    }
-
-    .table-wrapper {
-      max-width: 100%;
-      overflow-x: auto;
-      padding-bottom: 4px;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 12px;
-      min-width: 900px;
-    }
-    thead {
-      background: #0f172a;
-    }
-    th, td {
-      padding: 6px 8px;
-      text-align: right;
-      white-space: nowrap;
-    }
-    th {
-      color: #e5e7eb;
-      font-weight: 500;
-    }
-    td {
-      color: #d1d5db;
-    }
-    th:first-child,
-    td:first-child {
-      text-align: left;
-      position: sticky;
-      left: 0;
-      background: #020617;
-    }
-    tr:nth-child(even) td {
-      background: #020617;
-    }
-    tr:nth-child(odd) td {
-      background: #020617;
-    }
-
-    .tag {
-      padding: 2px 8px;
-      border-radius: 999px;
-      font-size: 11px;
-      font-weight: 600;
-    }
-    .tag-sp {
-      background: rgba(250, 204, 21, 0.12);
-      color: #facc15;
-    }
-    .tag-total {
-      background: rgba(248, 113, 113, 0.18);
-      color: #fca5a5;
-    }
-    .kpi-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-bottom: 8px;
-      font-size: 13px;
-    }
-    .kpi-label {
-      color: #9ca3af;
-      margin-right: 4px;
-    }
-    .kpi-value {
-      font-weight: 600;
-      margin-right: 12px;
-    }
-    .muted {
-      color: #6b7280;
-      font-size: 12px;
-    }
-
-    .chart-section {
-      margin-top: 4px;
-    }
-    .chart-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 10px;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-    .chart-header h2 {
-      font-size: 17px;
-      margin: 0;
-    }
-    .chart-controls {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 8px;
-      font-size: 12px;
-      justify-content: flex-end;
-    }
-    .chart-controls-label {
-      color: #9ca3af;
-      margin-right: 4px;
-      font-size: 11px;
-    }
-    .group-toggle {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      color: #e5e7eb;
-      padding: 2px 6px;
-      border-radius: 999px;
-      background: rgba(15,23,42,0.9);
-      border: 1px solid transparent;
-      cursor: pointer;
-      user-select: none;
-    }
-    .group-toggle input {
-      accent-color: #22c55e;
-    }
-    .group-toggle:hover {
-      border-color: rgba(148,163,184,0.7);
-    }
-
-    .chart-legend-hint {
-      margin-top: 6px;
-      font-size: 11px;
-      color: #6b7280;
-    }
-
-    .chart-wrapper {
-      position: relative;
-      width: 100%;
-      height: 340px;
-    }
-
-    .chart-wrapper canvas {
-      width: 100% !important;
-      height: 100% !important;
-      background: radial-gradient(circle at top, #020617 0, #020617 50%, #020617 100%);
-      border-radius: 12px;
-      box-shadow: 0 0 0 1px rgba(30,64,175,0.6);
-      padding: 8px;
-    }
-
-    @media (max-width: 768px) {
-      .topbar {
-        flex-direction: column;
-        align-items: flex-start;
-        border-radius: 16px;
-      }
-      .topbar-right {
-        text-align: left;
-      }
-      .card {
-        padding: 14px 12px 14px;
-      }
-      h1 {
-        font-size: 20px;
-      }
-      .chart-wrapper {
-        height: 360px;
-      }
-    }
+    .mini h3{margin:0 0 6px 0;font-size:14px}
+    table{width:100%;border-collapse:collapse;font-size:12px}
+    th,td{padding:8px 8px;border-bottom:1px solid rgba(148,163,184,.14);text-align:left;vertical-align:top}
+    th{color:#cbd5e1;font-weight:900}
+    .right{text-align:right}
+    .badge{display:inline-block;padding:2px 8px;border-radius:999px;border:1px solid var(--border);color:#cbd5e1;font-size:12px}
+    a{color:#93c5fd}
   </style>
 </head>
 <body>
-  <div class="shell">
-    <div class="topbar">
-      <div class="topbar-left">
-        <div class="badge-dot"></div>
-        <div>
-          <div class="top-title">FansOne Monthly Report</div>
-          <div class="top-sub">Subscription performance, single-purchase insight, ARPU overview.</div>
-        </div>
+  <div class="wrap">
+    <div class="top">
+      <div>
+        <div class="title">Fansone Report</div>
+        <div class="muted" id="subline">Loading…</div>
       </div>
-      <div class="topbar-right">
-        <div>Last update: 2025-12-11</div>
-        <div>Data range: 2025-06 ~ 2025-11</div>
+      <div class="row">
+        <span class="badge" id="rangeBadge">—</span>
+        <button class="btn" id="reloadBtn">Reload</button>
       </div>
     </div>
 
-    <h1>月度訂閱 & 單片購買報表（6–11 月）</h1>
-    <div class="subtitle">
-      「營收金額」僅代表訂閱營收，<b>單片購買為額外補充資訊，不併入營收與 ARPU。</b>
-      下方圖表可透過右上角勾選，切換要觀察的維度。
-    </div>
-
-    <div class="layout">
-      <div class="card">
-        <h2>月度概況總表</h2>
-        <div class="table-wrapper">
-          <table>
-            <thead>
-              <tr>
-                <th>月份</th>
-                <th>訂閱人數</th>
-                <th>單月%</th>
-                <th>三月%</th>
-                <th>六月%</th>
-                <th>訂閱數成長率%</th>
-                <th>新客</th>
-                <th>舊客</th>
-                <th>新客比例%</th>
-                <th>舊客比例%</th>
-                <th>營收金額</th>
-                <th>營收成長率%</th>
-                <th>單片購買</th>
-                <th>ARPU</th>
-                <th>長期方案佔比%</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>6 月</td><td>49</td><td>89.80%</td><td>0%</td><td>10.20%</td>
-                <td>—</td><td>49</td><td>0</td><td>100%</td><td>0%</td>
-                <td>10,887</td><td>—</td><td>$ 1,067</td><td>222.2</td><td>10.20%</td>
-              </tr>
-              <tr>
-                <td>7 月</td><td>103</td><td>89.30%</td><td>5.80%</td><td>4.90%</td>
-                <td>110.20%</td><td>94</td><td>9</td><td>91.30%</td><td>8.70%</td>
-                <td>22,126</td><td>103.20%</td><td>$ 2,087</td><td>214.8</td><td>10.70%</td>
-              </tr>
-              <tr>
-                <td>8 月</td><td>120</td><td>90%</td><td>1.70%</td><td>8.30%</td>
-                <td>16.50%</td><td>88</td><td>32</td><td>73.30%</td><td>26.70%</td>
-                <td>27,867</td><td>25.90%</td><td>$ 3,137</td><td>232.2</td><td>10%</td>
-              </tr>
-              <tr>
-                <td>9 月</td><td>113</td><td>77.90%</td><td>6.20%</td><td>15.90%</td>
-                <td>-5.80%</td><td>75</td><td>38</td><td>66.40%</td><td>33.60%</td>
-                <td>31,699</td><td>13.80%</td><td>$ 2,357</td><td>280.5</td><td>22.10%</td>
-              </tr>
-              <tr>
-                <td>10 月</td><td>98</td><td>93.90%</td><td>6.10%</td><td>0%</td>
-                <td>-13.30%</td><td>57</td><td>41</td><td>58.20%</td><td>41.80%</td>
-                <td>37,209</td><td>17.40%</td><td>$ 12,256</td><td>379.7</td><td>6.10%</td>
-              </tr>
-              <tr>
-                <td>11 月</td><td>157</td><td>84.71%</td><td>15.29%</td><td>0%</td>
-                <td>60.20%</td><td>80</td><td>77</td><td>50.96%</td><td>49.04%</td>
-                <td>49,598</td><td>33.32%</td><td>$ 6,664</td><td>317.0</td><td>15.29%</td>
-              </tr>
-            </tbody>
-          </table>
+    <div class="panel">
+      <div class="controls">
+        <div class="row">
+          <label class="muted" style="font-weight:800">View</label>
+          <select id="viewSelect">
+            <option value="subs">Subscribers (New vs Old)</option>
+            <option value="mix">Plan Mix (1M/3M/6M)</option>
+            <option value="rev">Revenue (Subscriptions)</option>
+            <option value="single">Single Purchases (Revenue)</option>
+            <option value="arpu">ARPU</option>
+            <option value="money">Money Overlay (Sub Rev + Single Rev + ARPU)</option>
+          </select>
         </div>
+        <div class="checkgrid" id="traceToggles"></div>
       </div>
+      <div id="chart"></div>
 
-      <div class="card chart-section">
-        <div class="chart-header">
-          <h2>互動圖表</h2>
-          <div class="chart-controls">
-            <span class="chart-controls-label">顯示維度：</span>
-            <label class="group-toggle">
-              <input type="checkbox" id="toggle-subs" checked />
-              <span>訂閱＋新舊客</span>
-            </label>
-            <label class="group-toggle">
-              <input type="checkbox" id="toggle-plans" checked />
-              <span>方案比例</span>
-            </label>
-            <label class="group-toggle">
-              <input type="checkbox" id="toggle-revenue" checked />
-              <span>營收</span>
-            </label>
-            <label class="group-toggle">
-              <input type="checkbox" id="toggle-single" checked />
-              <span>單片購買</span>
-            </label>
-            <label class="group-toggle">
-              <input type="checkbox" id="toggle-arpu" checked />
-              <span>ARPU</span>
-            </label>
+      <!-- Single purchase info moved BELOW to keep page not too wide -->
+      <div class="split">
+        <div class="mini">
+          <h3>Monthly Summary</h3>
+          <div class="muted">Newest → Oldest</div>
+          <div class="scroll">
+            <table id="monthlyTable"></table>
           </div>
         </div>
-        <div class="chart-wrapper">
-          <canvas id="mainChart"></canvas>
-        </div>
-        <div class="chart-legend-hint">
-          💡 提示：滑鼠移到任何一個點，可查看該月對應的人數 / 比例 / 金額 / ARPU。
+
+        <div class="mini">
+          <h3>Top Single Purchases</h3>
+          <div class="muted">By revenue (title aggregated)</div>
+          <div class="scroll">
+            <table id="topSinglesTable"></table>
+          </div>
         </div>
       </div>
+    </div>
 
-      <div class="card">
-        <h2>單片購買摘要</h2>
-
-        <div class="kpi-row">
-          <span class="kpi-label">6–11 月單片總營收：</span>
-          <span class="kpi-value tag tag-sp">27,568 元</span>
-        </div>
-        <div class="kpi-row">
-          <span class="kpi-label">6–11 月單片總訂單數：</span>
-          <span class="kpi-value">209 筆</span>
-        </div>
-        <div class="kpi-row">
-          <span class="kpi-label">單片平均客單價：</span>
-          <span class="kpi-value">約 132 元 / 筆</span>
-        </div>
-        <div class="kpi-row">
-          <span class="kpi-label">單月營收高峰：</span>
-          <span class="kpi-value tag tag-total">10 月（12,256 元 / 87 筆）</span>
-        </div>
-
-        <p class="muted" style="margin-top: 10px; margin-bottom: 4px;">
-          最暢銷單片作品（依總營收）：
-        </p>
-        <div class="table-wrapper">
-          <table>
-            <thead><tr><th>作品名稱</th><th>單片總營收</th></tr></thead>
-            <tbody>
-              <tr><td>火車站廁所幫尻 兩隻手才握得住🥵</td><td>2,899</td></tr>
-              <tr><td>微醺的氣氛下 要不要來根棒棒糖🍭</td><td>2,100</td></tr>
-              <tr><td>台北研究生放學在幹嘛？吃雞雞！！</td><td>2,000</td></tr>
-              <tr><td>奶狗雪糕噴射 被尻射還繼續吃🥵</td><td>1,232</td></tr>
-              <tr><td>大屌弟弟 停車場大噴射 噴得整台車都是洨💦</td><td>1,201</td></tr>
-            </tbody>
-          </table>
-        </div>
-        <p class="muted">
-          以上金額皆為實際到手收入（已扣除平台手續費）。
-        </p>
+    <div class="panel">
+      <div class="muted">
+        Data sources (CSV):<br/>
+        Subscriptions: <a id="subUrl" href="#" target="_blank" rel="noreferrer">open</a><br/>
+        Single purchases: <a id="singleUrl" href="#" target="_blank" rel="noreferrer">open</a>
       </div>
     </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script>
-    const labels = ["Jun", "Jul", "Aug", "Sep", "Oct", "Nov"];
+<script>
+const SUB_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQiAPNDCD7qn6atO4VB6Ei63AacDK00AMKM16hK8c-wVWFadPPOj-P8olYQ-ofMFwy0maGU1A4CBneW/pub?gid=0&single=true&output=csv";
+const SINGLE_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQiAPNDCD7qn6atO4VB6Ei63AacDK00AMKM16hK8c-wVWFadPPOj-P8olYQ-ofMFwy0maGU1A4CBneW/pub?gid=1226262547&single=true&output=csv";
 
-    // 數據
-    const subs = [49, 103, 120, 113, 98, 157];
-    const newUsers = [49, 94, 88, 75, 57, 80];
-    const oldUsers = [0, 9, 32, 38, 41, 77];
+document.getElementById("subUrl").href = SUB_CSV_URL;
+document.getElementById("singleUrl").href = SINGLE_CSV_URL;
 
-    const subRevenue = [10887, 22126, 27867, 31699, 37209, 49598];
-    const singleRevenue = [1067, 2087, 3137, 2357, 12256, 6664];
+const el = (id)=>document.getElementById(id);
 
-    const arpu = [222.2, 214.8, 232.2, 280.5, 379.7, 317.0];
-
-    const singleRate = [89.8, 89.3, 90.0, 77.9, 93.9, 84.71];
-    const threeRate  = [0.0, 5.8, 1.7, 6.2, 6.1, 15.29];
-    const sixRate    = [10.2, 4.9, 8.3, 15.9, 0.0, 0.0];
-
-    const ctx = document.getElementById("mainChart").getContext("2d");
-
-    // 全部 datasets，一開始都建立好，加上 group 標籤
-    const allDatasets = [
-      // 訂閱 & 新舊客：柱狀堆疊
-      {
-        id: "subs_new",
-        group: "subs",
-        type: "bar",
-        label: "New Users",
-        data: newUsers,
-        backgroundColor: "rgba(56,189,248,0.85)",
-        borderRadius: 6,
-        stack: "subsStack",
-        yAxisID: "y"
-      },
-      {
-        id: "subs_old",
-        group: "subs",
-        type: "bar",
-        label: "Old Users",
-        data: oldUsers,
-        backgroundColor: "rgba(37,99,235,0.9)",
-        borderRadius: 6,
-        stack: "subsStack",
-        yAxisID: "y"
-      },
-
-      // 方案比例：100% 堆疊柱狀圖
-      {
-        id: "plan_1m",
-        group: "plans",
-        type: "bar",
-        label: "1-Month %",
-        data: singleRate,
-        backgroundColor: "rgba(34,197,94,0.9)",
-        stack: "planStack",
-        yAxisID: "y"
-      },
-      {
-        id: "plan_3m",
-        group: "plans",
-        type: "bar",
-        label: "3-Month %",
-        data: threeRate,
-        backgroundColor: "rgba(168,85,247,0.9)",
-        stack: "planStack",
-        yAxisID: "y"
-      },
-      {
-        id: "plan_6m",
-        group: "plans",
-        type: "bar",
-        label: "6-Month %",
-        data: sixRate,
-        backgroundColor: "rgba(249,115,22,0.95)",
-        stack: "planStack",
-        yAxisID: "y"
-      },
-
-      // 營收：訂閱營收折線
-      {
-        id: "rev_main",
-        group: "revenue",
-        type: "line",
-        label: "Subscription Revenue",
-        data: subRevenue,
-        borderColor: "#f97373",
-        backgroundColor: "rgba(248,113,113,0.18)",
-        borderWidth: 3,
-        tension: 0.35,
-        pointRadius: 4,
-        pointHoverRadius: 5,
-        yAxisID: "y1"
-      },
-
-      // 單片購買：單片營收折線
-      {
-        id: "single_rev",
-        group: "single",
-        type: "line",
-        label: "Single-Purchase Revenue",
-        data: singleRevenue,
-        borderColor: "#eab308",
-        backgroundColor: "rgba(234,179,8,0.2)",
-        borderWidth: 2.5,
-        tension: 0.35,
-        pointRadius: 4,
-        pointHoverRadius: 5,
-        yAxisID: "y1"
-      },
-
-      // ARPU
-      {
-        id: "arpu_line",
-        group: "arpu",
-        type: "line",
-        label: "ARPU",
-        data: arpu,
-        borderColor: "#4f46e5",
-        backgroundColor: "rgba(79,70,229,0.25)",
-        borderWidth: 3,
-        tension: 0.35,
-        pointRadius: 4,
-        pointHoverRadius: 5,
-        yAxisID: "y"
-      }
-    ];
-
-    const chartConfig = {
-      type: "bar",
-      data: {
-        labels,
-        datasets: allDatasets.map(ds => ({ ...ds })) // clone
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        interaction: {
-          mode: "nearest",
-          intersect: false
-        },
-        plugins: {
-          legend: {
-            labels: {
-              color: "#e5e7eb"
-            }
-          },
-          tooltip: {
-            enabled: true,
-            callbacks: {
-              label: function(ctx) {
-                const label = ctx.dataset.label || "";
-                const value = ctx.parsed.y;
-
-                if (label.includes("%")) {
-                  return label + ": " + value.toFixed(1) + " %";
-                }
-                if (label.toLowerCase().includes("revenue")) {
-                  return label + ": " + value.toLocaleString() + " NTD";
-                }
-                if (label === "ARPU") {
-                  return label + ": " + value.toFixed(1);
-                }
-                if (label.includes("Users")) {
-                  return label + ": " + value;
-                }
-                return label + ": " + value;
-              }
-            }
-          }
-        },
-        scales: {
-          y: {
-            position: "left",
-            title: { display: true, text: "Count / % / ARPU", color: "#9ca3af" },
-            grid: { color: "rgba(55,65,81,0.7)" },
-            ticks: {
-              color: "#9ca3af",
-              callback: function(value) { return value; }
-            },
-            stacked: false
-          },
-          y1: {
-            position: "right",
-            title: { display: true, text: "Revenue (NTD)", color: "#9ca3af" },
-            grid: { drawOnChartArea: false },
-            ticks: {
-              color: "#9ca3af",
-              callback: function(value) { return value.toLocaleString(); }
-            },
-            stacked: false
-          }
-        }
-      }
-    };
-
-    const mainChart = new Chart(ctx, chartConfig);
-
-    // group checkbox 控制
-    const groupCheckboxes = {
-      subs: document.getElementById("toggle-subs"),
-      plans: document.getElementById("toggle-plans"),
-      revenue: document.getElementById("toggle-revenue"),
-      single: document.getElementById("toggle-single"),
-      arpu: document.getElementById("toggle-arpu")
-    };
-
-    function updateVisibility() {
-      mainChart.data.datasets.forEach(ds => {
-        const group = ds.group;
-        const checkbox = groupCheckboxes[group];
-        if (!checkbox) return;
-        ds.hidden = !checkbox.checked;
-      });
-
-      // 左側 y 軸堆疊邏輯：如果只看方案比例，才使用堆疊（比較乾淨）
-      const plansOn = groupCheckboxes.plans.checked;
-      const subsOn = groupCheckboxes.subs.checked;
-      if (plansOn && !subsOn) {
-        mainChart.options.scales.y.stacked = true;
-      } else {
-        mainChart.options.scales.y.stacked = false;
-      }
-
-      mainChart.update();
+// --- CSV parsing with quotes support ---
+function parseCSV(text){
+  const rows = [];
+  let cur = [], field = "", inQuotes = false;
+  for(let i=0;i<text.length;i++){
+    const c = text[i];
+    if(inQuotes){
+      if(c === '"'){
+        if(text[i+1] === '"'){ field += '"'; i++; }
+        else inQuotes = false;
+      } else field += c;
+    } else {
+      if(c === '"') inQuotes = true;
+      else if(c === ','){ cur.push(field); field=""; }
+      else if(c === '\n'){
+        cur.push(field); field="";
+        // trim possible \r
+        if(cur.length===1 && cur[0].trim()===""){ cur=[]; continue; }
+        rows.push(cur.map(x=>x.replace(/\r/g,"")));
+        cur=[];
+      } else field += c;
     }
+  }
+  if(field.length || cur.length){
+    cur.push(field);
+    rows.push(cur.map(x=>x.replace(/\r/g,"")));
+  }
+  return rows;
+}
 
-    Object.values(groupCheckboxes).forEach(cb => {
-      cb.addEventListener("change", updateVisibility);
+function toNumberMoney(x){
+  if(x==null) return 0;
+  const m = String(x).match(/([0-9]+(?:\.[0-9]+)?)/);
+  return m ? Number(m[1]) : 0;
+}
+function normTime(t){
+  t = String(t||"").trim();
+  const m = t.match(/^(\d{4}-\d{2}-\d{2})(\d{2}:\d{2}:\d{2})$/);
+  if(m) return m[1]+" "+m[2];
+  const m2 = t.match(/^(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2}:\d{2})$/);
+  if(m2) return m2[1]+" "+m2[2];
+  const m3 = t.match(/^(\d{4}-\d{2}-\d{2})(\d{2}:\d{2}:\d{2}).*$/);
+  if(m3) return m3[1]+" "+m3[2];
+  return t;
+}
+function monthKeyFromTime(t){
+  t = normTime(t);
+  const m = t.match(/^(\d{4})-(\d{2})-/);
+  return m ? (m[1]+"-"+m[2]) : "";
+}
+function planNorm(p){
+  p = String(p||"").trim();
+  if(/^1m$/i.test(p)) return "1M";
+  if(/^3m$/i.test(p)) return "3M";
+  if(/^6m$/i.test(p)) return "6M";
+  if(/1\s*個月/.test(p)) return "1M";
+  if(/3\s*個月/.test(p)) return "3M";
+  if(/6\s*個月/.test(p)) return "6M";
+  const mm = p.match(/(?:^|\/)(1|3|6)\s*個月/);
+  if(mm) return mm[1]+"M";
+  return p;
+}
+function yyyymmSortAsc(a,b){ return a.localeCompare(b); } // works for YYYY-MM
+function yyyymmSortDesc(a,b){ return b.localeCompare(a); }
+
+async function fetchTable(url){
+  const r = await fetch(url, {cache:"no-store"});
+  if(!r.ok) throw new Error("Fetch failed: "+r.status);
+  const txt = await r.text();
+  const raw = parseCSV(txt);
+  const header = raw[0].map(h=>h.trim());
+  const data = raw.slice(1).filter(row => row.some(v => String(v||"").trim()!==""));
+  return {header, data};
+}
+
+function buildMonthly(subRows, singleRows){
+  // Sub rows: time, plan, user_id, price, fee
+  // Single rows: time, title, url, user_id, price, fee
+
+  // Parse and normalize
+  const subs = subRows.map(r=>({
+    time: normTime(r.time),
+    month: monthKeyFromTime(r.time),
+    plan: planNorm(r.plan),
+    user_id: String(r.user_id||"").trim(),
+    price: toNumberMoney(r.price),
+    fee: toNumberMoney(r.fee)
+  })).filter(x=>x.month && x.user_id);
+
+  const singles = singleRows.map(r=>({
+    time: normTime(r.time),
+    month: monthKeyFromTime(r.time),
+    title: String(r.title||"").trim(),
+    url: String(r.url||"").trim(),
+    user_id: String(r.user_id||"").trim(),
+    price: toNumberMoney(r.price),
+    fee: toNumberMoney(r.fee)
+  })).filter(x=>x.month && x.user_id);
+
+  // months union
+  const monthsSet = new Set([...subs.map(s=>s.month), ...singles.map(s=>s.month)]);
+  const monthsAsc = [...monthsSet].sort(yyyymmSortAsc);
+
+  // Build "latest plan per user per month" for plan mix & subscriber counting
+  // key = month|user_id -> keep latest by time string
+  const latestPlanByUserMonth = new Map();
+  for(const s of subs){
+    const key = s.month+"|"+s.user_id;
+    const prev = latestPlanByUserMonth.get(key);
+    if(!prev || s.time > prev.time){
+      latestPlanByUserMonth.set(key, {time:s.time, plan:s.plan});
+    }
+  }
+
+  // For new/old: consider month order ascending (oldest->newest)
+  const seenBefore = new Set();
+  const monthAgg = new Map();
+
+  for(const m of monthsAsc){
+    // subscribers: unique users in that month (from subs, using latest plan map)
+    const userSet = new Set();
+    const planCount = { "1M":0, "3M":0, "6M":0 };
+    for(const [key,val] of latestPlanByUserMonth.entries()){
+      if(key.startsWith(m+"|")){
+        const user_id = key.split("|")[1];
+        userSet.add(user_id);
+        if(planCount[val.plan]!=null) planCount[val.plan] += 1;
+      }
+    }
+    const subscribers = userSet.size;
+
+    // new/old counts based on "seenBefore"
+    let newUsers = 0, oldUsers = 0;
+    for(const u of userSet){
+      if(seenBefore.has(u)) oldUsers++;
+      else newUsers++;
+    }
+    // after classifying this month, add to seen
+    for(const u of userSet) seenBefore.add(u);
+
+    // revenue (subscriptions): sum of all subscription rows in that month
+    const subRevenue = subs.filter(x=>x.month===m).reduce((a,b)=>a+b.price,0);
+
+    // single revenue
+    const singleRevenue = singles.filter(x=>x.month===m).reduce((a,b)=>a+b.price,0);
+
+    // ARPU (subscription revenue / subscribers)
+    const arpu = subscribers ? (subRevenue / subscribers) : 0;
+
+    monthAgg.set(m, {
+      month:m,
+      subscribers,
+      newUsers,
+      oldUsers,
+      planCount,
+      subRevenue,
+      singleRevenue,
+      arpu
     });
+  }
 
-    // 初始套用一次
-    updateVisibility();
-  </script>
+  // growth rates (vs previous month) on ASC, then we'll display DESC
+  const monthsWithGrowthAsc = monthsAsc.map((m, i)=>{
+    const cur = monthAgg.get(m);
+    const prev = i>0 ? monthAgg.get(monthsAsc[i-1]) : null;
+    const subsGrowth = prev && prev.subscribers ? ((cur.subscribers - prev.subscribers)/prev.subscribers)*100 : null;
+    const revGrowth  = prev && prev.subRevenue ? ((cur.subRevenue - prev.subRevenue)/prev.subRevenue)*100 : null;
+    return {...cur, subsGrowth, revGrowth};
+  });
+
+  // Display order: newest -> oldest
+  const monthsDesc = [...monthsAsc].sort(yyyymmSortDesc);
+  const aggDesc = monthsDesc.map(m => monthsWithGrowthAsc.find(x=>x.month===m)).filter(Boolean);
+
+  // Top singles (overall)
+  const titleAgg = new Map();
+  for(const s of singles){
+    const key = s.title || "(untitled)";
+    const prev = titleAgg.get(key) || {title:key, revenue:0, count:0, exampleUrl:s.url};
+    prev.revenue += s.price;
+    prev.count += 1;
+    if(!prev.exampleUrl && s.url) prev.exampleUrl = s.url;
+    titleAgg.set(key, prev);
+  }
+  const topSingles = [...titleAgg.values()].sort((a,b)=>b.revenue-a.revenue).slice(0, 12);
+
+  return { monthsAsc, monthsDesc, aggDesc, topSingles };
+}
+
+function plotView(view, aggDesc){
+  const months = aggDesc.map(x=>x.month); // newest -> oldest
+  const x = months;
+
+  const toggles = el("traceToggles");
+  toggles.innerHTML = "";
+
+  function addToggle(id, label, checked=true){
+    const w = document.createElement("label");
+    w.className = "chk";
+    w.innerHTML = `<input type="checkbox" id="${id}" ${checked?"checked":""}/> <span>${label}</span>`;
+    toggles.appendChild(w);
+  }
+
+  let traces = [];
+  let layout = {
+    paper_bgcolor:"rgba(0,0,0,0)",
+    plot_bgcolor:"rgba(0,0,0,0)",
+    margin:{l:52,r:52,t:14,b:46},
+    font:{color:"#e5e7eb", family:"system-ui, -apple-system, Segoe UI"},
+    xaxis:{tickfont:{color:"#cbd5e1"}, gridcolor:"rgba(148,163,184,.0)", zerolinecolor:"rgba(148,163,184,.0)"},
+    yaxis:{tickfont:{color:"#cbd5e1"}, gridcolor:"rgba(148,163,184,.18)", zerolinecolor:"rgba(148,163,184,.0)"},
+    legend:{orientation:"h", yanchor:"bottom", y:1.02, xanchor:"left", x:0},
+    hoverlabel:{bgcolor:"rgba(15,23,42,.95)", bordercolor:"rgba(148,163,184,.35)", font:{color:"#e5e7eb"}}
+  };
+
+  if(view==="subs"){
+    addToggle("t_new","New users", true);
+    addToggle("t_old","Old users", true);
+    addToggle("t_total","Total", false);
+
+    const newUsers = aggDesc.map(x=>x.newUsers);
+    const oldUsers = aggDesc.map(x=>x.oldUsers);
+    const total = aggDesc.map(x=>x.subscribers);
+
+    traces = [
+      {name:"New users", x, y:newUsers, type:"bar", marker:{color:getComputedStyle(document.documentElement).getPropertyValue('--new').trim()}, hovertemplate:"%{x}<br>New: <b>%{y}</b><extra></extra>", visible:true},
+      {name:"Old users", x, y:oldUsers, type:"bar", marker:{color:getComputedStyle(document.documentElement).getPropertyValue('--old').trim()}, hovertemplate:"%{x}<br>Old: <b>%{y}</b><extra></extra>", visible:true},
+      {name:"Total", x, y:total, type:"scatter", mode:"lines+markers+text",
+        line:{color:"#e5e7eb", width:2}, marker:{size:7, color:"#e5e7eb"},
+        text: total.map(v=>String(v)), textposition:"top center", textfont:{size:12, color:"#e5e7eb", family:"system-ui",},
+        hovertemplate:"%{x}<br>Total: <b>%{y}</b><extra></extra>", visible:false}
+    ];
+    layout.barmode="stack";
+    layout.yaxis.title = "";
+  }
+
+  if(view==="mix"){
+    addToggle("t_1m","1M", true);
+    addToggle("t_3m","3M", true);
+    addToggle("t_6m","6M", true);
+
+    // plan mix as stacked 100% bars
+    const c1 = aggDesc.map(x=>x.planCount["1M"]||0);
+    const c3 = aggDesc.map(x=>x.planCount["3M"]||0);
+    const c6 = aggDesc.map(x=>x.planCount["6M"]||0);
+    const total = c1.map((_,i)=> (c1[i]+c3[i]+c6[i]) || 1);
+    const p1 = c1.map((v,i)=> v/total[i]*100);
+    const p3 = c3.map((v,i)=> v/total[i]*100);
+    const p6 = c6.map((v,i)=> v/total[i]*100);
+
+    traces = [
+      {name:"1M", x, y:p1, type:"bar", marker:{color:getComputedStyle(document.documentElement).getPropertyValue('--m1').trim()},
+       hovertemplate:"%{x}<br>1M: <b>%{y:.1f}%</b><extra></extra>"},
+      {name:"3M", x, y:p3, type:"bar", marker:{color:getComputedStyle(document.documentElement).getPropertyValue('--m3').trim()},
+       hovertemplate:"%{x}<br>3M: <b>%{y:.1f}%</b><extra></extra>"},
+      {name:"6M", x, y:p6, type:"bar", marker:{color:getComputedStyle(document.documentElement).getPropertyValue('--m6').trim()},
+       hovertemplate:"%{x}<br>6M: <b>%{y:.1f}%</b><extra></extra>"},
+    ];
+    layout.barmode="stack";
+    layout.yaxis.range=[0,100];
+    layout.yaxis.ticksuffix="%";
+  }
+
+  if(view==="rev"){
+    addToggle("t_rev","Revenue", true);
+    const rev = aggDesc.map(x=>x.subRevenue);
+    traces = [
+      {name:"Revenue", x, y:rev, type:"scatter", mode:"lines+markers+text",
+       line:{color:getComputedStyle(document.documentElement).getPropertyValue('--rev').trim(), width:3},
+       marker:{size:8, color:getComputedStyle(document.documentElement).getPropertyValue('--rev').trim()},
+       text: rev.map(v=>String(Math.round(v))), textposition:"top center", textfont:{size:12, color:"#e5e7eb"},
+       hovertemplate:"%{x}<br>Revenue: <b>%{y}</b><extra></extra>"}
+    ];
+    layout.yaxis.title="";
+  }
+
+  if(view==="single"){
+    addToggle("t_single","Single purchase revenue", true);
+    const sr = aggDesc.map(x=>x.singleRevenue);
+    traces = [
+      {name:"Single purchase revenue", x, y:sr, type:"scatter", mode:"lines+markers+text",
+       line:{color:getComputedStyle(document.documentElement).getPropertyValue('--single').trim(), width:3},
+       marker:{size:8, color:getComputedStyle(document.documentElement).getPropertyValue('--single').trim()},
+       text: sr.map(v=>String(Math.round(v))), textposition:"top center", textfont:{size:12, color:"#e5e7eb"},
+       hovertemplate:"%{x}<br>Single: <b>%{y}</b><extra></extra>"}
+    ];
+  }
+
+  if(view==="arpu"){
+    addToggle("t_arpu","ARPU", true);
+    const arpu = aggDesc.map(x=>x.arpu);
+    traces = [
+      {name:"ARPU", x, y:arpu, type:"scatter", mode:"lines+markers+text",
+       line:{color:getComputedStyle(document.documentElement).getPropertyValue('--arpu').trim(), width:3},
+       marker:{size:8, color:getComputedStyle(document.documentElement).getPropertyValue('--arpu').trim()},
+       text: arpu.map(v=>String(Math.round(v))), textposition:"top center", textfont:{size:12, color:"#e5e7eb"},
+       hovertemplate:"%{x}<br>ARPU: <b>%{y:.2f}</b><extra></extra>"}
+    ];
+  }
+
+  if(view==="money"){
+    addToggle("t_rev","Sub revenue", true);
+    addToggle("t_single","Single revenue", true);
+    addToggle("t_arpu","ARPU", false);
+
+    const rev = aggDesc.map(x=>x.subRevenue);
+    const sr  = aggDesc.map(x=>x.singleRevenue);
+    const arpu= aggDesc.map(x=>x.arpu);
+
+    traces = [
+      {name:"Sub revenue", x, y:rev, type:"scatter", mode:"lines+markers",
+       line:{color:getComputedStyle(document.documentElement).getPropertyValue('--rev').trim(), width:3},
+       marker:{size:8, color:getComputedStyle(document.documentElement).getPropertyValue('--rev').trim()},
+       hovertemplate:"%{x}<br>Sub revenue: <b>%{y}</b><extra></extra>"},
+      {name:"Single revenue", x, y:sr, type:"scatter", mode:"lines+markers",
+       line:{color:getComputedStyle(document.documentElement).getPropertyValue('--single').trim(), width:3, dash:"dot"},
+       marker:{size:8, color:getComputedStyle(document.documentElement).getPropertyValue('--single').trim()},
+       hovertemplate:"%{x}<br>Single revenue: <b>%{y}</b><extra></extra>"},
+      {name:"ARPU", x, y:arpu, type:"scatter", mode:"lines+markers",
+       line:{color:getComputedStyle(document.documentElement).getPropertyValue('--arpu').trim(), width:3},
+       marker:{size:8, color:getComputedStyle(document.documentElement).getPropertyValue('--arpu').trim()},
+       hovertemplate:"%{x}<br>ARPU: <b>%{y:.2f}</b><extra></extra>", visible:false, yaxis:"y2"}
+    ];
+    layout.yaxis.title = "";
+    layout.yaxis2 = {
+      overlaying:"y",
+      side:"right",
+      showgrid:false,
+      tickfont:{color:"#cbd5e1"},
+    };
+  }
+
+  Plotly.newPlot("chart", traces, layout, {displayModeBar:false, responsive:true});
+
+  // Hook toggles
+  toggles.querySelectorAll("input[type=checkbox]").forEach((chk)=>{
+    chk.addEventListener("change", ()=>{
+      const nameMap = {
+        "t_new":"New users",
+        "t_old":"Old users",
+        "t_total":"Total",
+        "t_1m":"1M",
+        "t_3m":"3M",
+        "t_6m":"6M",
+        "t_rev":"Revenue",
+        "t_single":"Single purchase revenue",
+        "t_arpu":"ARPU",
+      };
+
+      // In money overlay, labels differ a bit:
+      const altMap = {
+        "t_rev":"Sub revenue",
+        "t_single":"Single revenue",
+        "t_arpu":"ARPU",
+      };
+
+      const label = (view==="money") ? altMap[chk.id] : nameMap[chk.id];
+      const idx = traces.findIndex(t=>t.name===label);
+      if(idx>=0){
+        const vis = chk.checked ? true : "legendonly";
+        Plotly.restyle("chart", {visible: vis}, [idx]);
+      }
+    });
+  });
+}
+
+function renderMonthlyTable(aggDesc){
+  // Newest -> Oldest
+  const header = `
+    <tr>
+      <th>Month</th>
+      <th class="right">Subs</th>
+      <th class="right">New</th>
+      <th class="right">Old</th>
+      <th class="right">Sub Rev</th>
+      <th class="right">Single Rev</th>
+      <th class="right">ARPU</th>
+    </tr>`;
+  const rows = aggDesc.map(x=>{
+    const arpu = x.arpu ? Math.round(x.arpu) : 0;
+    return `<tr>
+      <td>${x.month}</td>
+      <td class="right">${x.subscribers}</td>
+      <td class="right">${x.newUsers}</td>
+      <td class="right">${x.oldUsers}</td>
+      <td class="right">${Math.round(x.subRevenue)}</td>
+      <td class="right">${Math.round(x.singleRevenue)}</td>
+      <td class="right">${arpu}</td>
+    </tr>`;
+  }).join("");
+  el("monthlyTable").innerHTML = header + rows;
+}
+
+function renderTopSinglesTable(topSingles){
+  const header = `
+    <tr>
+      <th>Title</th>
+      <th class="right">Revenue</th>
+      <th class="right">Count</th>
+    </tr>`;
+  const rows = topSingles.map(x=>{
+    const title = x.title.length>42 ? x.title.slice(0,42)+"…" : x.title;
+    return `<tr>
+      <td title="${x.title.replaceAll('"','&quot;')}">${title}</td>
+      <td class="right">${Math.round(x.revenue)}</td>
+      <td class="right">${x.count}</td>
+    </tr>`;
+  }).join("");
+  el("topSinglesTable").innerHTML = header + rows;
+}
+
+function normalizeTable(header, data){
+  const idx = {};
+  header.forEach((h,i)=> idx[h.trim().toLowerCase()] = i);
+
+  // create objects by expected fields
+  return data.map(r=>{
+    const get = (k)=> r[idx[k]] ?? "";
+    return get;
+  });
+}
+
+async function loadAll(){
+  el("subline").textContent = "Loading…";
+  if (location.protocol === "file:") {
+    el("subline").textContent = "⚠️ Open via a website (not file://). Use Vercel or run a local server (python -m http.server).";
+  }
+
+  el("reloadBtn").disabled = true;
+  try{
+    const [subs, singles] = await Promise.all([fetchTable(SUB_CSV_URL), fetchTable(SINGLE_CSV_URL)]);
+
+    // Map headers to lower
+    const sh = subs.header.map(h=>h.trim().toLowerCase());
+    const si = {};
+    sh.forEach((h,i)=>si[h]=i);
+    const subsRows = subs.data.map(r=>({
+      time: r[si["time"]] ?? r[0],
+      plan: r[si["plan"]] ?? r[1],
+      user_id: r[si["user_id"]] ?? r[2],
+      price: r[si["price"]] ?? r[3],
+      fee: r[si["fee"]] ?? r[4],
+    }));
+
+    const hh = singles.header.map(h=>h.trim().toLowerCase());
+    const hi = {};
+    hh.forEach((h,i)=>hi[h]=i);
+    const singleRows = singles.data.map(r=>({
+      time: r[hi["time"]] ?? r[0],
+      title: r[hi["title"]] ?? r[1],
+      url: r[hi["url"]] ?? r[2],
+      user_id: r[hi["user_id"]] ?? r[3],
+      price: r[hi["price"]] ?? r[4],
+      fee: r[hi["fee"]] ?? r[5],
+    }));
+
+    const {monthsDesc, aggDesc, topSingles} = buildMonthly(subsRows, singleRows);
+
+    // header line
+    const badge = monthsDesc.length ? `${monthsDesc[0]} → ${monthsDesc[monthsDesc.length-1]}` : "—";
+    el("rangeBadge").textContent = badge;
+    el("subline").textContent = `Auto-updates from Google Sheets CSV · Order: newest → oldest · Months: ${monthsDesc.length}`;
+
+    // tables
+    renderMonthlyTable(aggDesc);
+    renderTopSinglesTable(topSingles);
+
+    // plot initial
+    const view = el("viewSelect").value;
+    plotView(view, aggDesc);
+
+    // view switch
+    el("viewSelect").onchange = ()=> plotView(el("viewSelect").value, aggDesc);
+
+  } catch(err){
+    console.error(err);
+    el("subline").textContent = "❌ Load failed: " + (err && err.message ? err.message : String(err)) + " · If you opened this as file://, CORS will block Google CSV. Open via Vercel / localhost server.";
+
+    el("rangeBadge").textContent = "error";
+  } finally {
+    el("reloadBtn").disabled = false;
+  }
+}
+
+el("reloadBtn").onclick = loadAll;
+loadAll();
+</script>
 </body>
 </html>
