@@ -1103,7 +1103,7 @@ main();
         spikedistance:-1,
         hoverdistance:20,
         xaxis:{
-          showspikes:true,
+          showspikes:false,
           spikemode:"across",
           spikesnap:"cursor",
           spikecolor:"rgba(255,255,255,0.35)",
@@ -1188,6 +1188,33 @@ main();
   }else{
     window.addEventListener("load", install);
   }
+})();
+</script>
+
+
+<script>
+(function(){
+  function bindSpikeToggle(gd){
+    if(!gd || gd.__spikeToggleBound) return;
+    gd.__spikeToggleBound = true;
+    gd.on('plotly_hover', function(){
+      try{
+        Plotly.relayout(gd, {'xaxis.showspikes': true});
+      }catch(e){}
+    });
+    gd.on('plotly_unhover', function(){
+      try{
+        Plotly.relayout(gd, {'xaxis.showspikes': false});
+      }catch(e){}
+    });
+    // start clean
+    try{ Plotly.relayout(gd, {'xaxis.showspikes': false}); }catch(e){}
+    try{ Plotly.Fx.unhover(gd); }catch(e){}
+  }
+  function bindAll(){
+    document.querySelectorAll('.js-plotly-plot').forEach(bindSpikeToggle);
+  }
+  window.addEventListener('load', ()=>setTimeout(bindAll, 500));
 })();
 </script>
 
