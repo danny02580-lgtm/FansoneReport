@@ -145,6 +145,13 @@
 .userseg .userseg-btn{ all:unset; cursor:pointer; padding:10px 12px; border-radius:999px; font-weight:600; letter-spacing:.2px; }
 .userseg .userseg-btn.active{ background:rgba(255,255,255,.12); box-shadow:inset 0 0 0 1px rgba(255,255,255,.14); }
 
+
+/* Hide Months KPI */
+#kpiMonths, .kpi-months, [data-kpi="months"] { display:none !important; }
+
+
+.kpi-card .kpi-label.months, .kpi-card[data-type="months"] { display:none !important; }
+
 </style>
 </head>
 <body>
@@ -831,8 +838,8 @@ main();
     });
   }
 
-  // Prev month total revenue: read from Monthly summary table (tbodyMonthly)
-  // (patched) prevent legacy Prev logic from running
+  // Latest month total revenue: read from Monthly summary table (tbodyMonthly)
+  // (patched) prevent legacy Latest logic from running
   return;
 
   const prevEl = document.getElementById("prevTotalRevenue");
@@ -843,18 +850,18 @@ main();
   function readPrevFromMonthly(){
     if(!prevEl) return;
     const tbody = document.getElementById("tbodyMonthly");
-    if(!tbody){ prevEl.textContent="Prev –"; return; }
+    if(!tbody){ prevEl.textContent="Latest –"; return; }
     const rows = tbody.querySelectorAll("tr");
-    if(rows.length < 2){ prevEl.textContent="Prev –"; return; }
+    if(rows.length < 2){ prevEl.textContent="Latest –"; return; }
     const prevRow = rows[rows.length-2];
     const cells = prevRow.querySelectorAll("td");
-    if(!cells.length){ prevEl.textContent="Prev –"; return; }
+    if(!cells.length){ prevEl.textContent="Latest –"; return; }
     const lastCell = cells[cells.length-1]; // total revenue column
     const num = parseInt((lastCell.textContent||"").replace(/[^0-9]/g,""),10);
     if(!isNaN(num) && num>0){
-      prevEl.textContent = "Prev " + moneyFmt(num);
+      prevEl.textContent = "Latest " + moneyFmt(num);
     } else {
-      prevEl.textContent="Prev –";
+      prevEl.textContent="Latest –";
     }
   }
   // retry a few times after render
