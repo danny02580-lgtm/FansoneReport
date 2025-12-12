@@ -182,6 +182,16 @@
 .js-plotly-plot .gridlayer .xgrid { opacity: 0; }
 </style>
 
+
+<style id="hoverCardRoundStrong">
+/* Force rounded hover card */
+.js-plotly-plot .hoverlayer .hovertext rect{
+  rx:14px !important;
+  ry:14px !important;
+}
+.js-plotly-plot .hoverlayer .hovertext path{ opacity:0 !important; }
+</style>
+
 </head>
 <body>
 <div class="wrap">
@@ -1210,6 +1220,34 @@ main();
     document.querySelectorAll('.js-plotly-plot').forEach(bindSpikeToggle);
   }
   window.addEventListener('load', ()=>setTimeout(bindAll, 500));
+})();
+</script>
+
+
+<script>
+(function(){
+  function roundNow(gd){
+    try{
+      const rects = gd.querySelectorAll('.hoverlayer .hovertext rect');
+      rects.forEach(r=>{
+        r.setAttribute('rx','14');
+        r.setAttribute('ry','14');
+      });
+      const paths = gd.querySelectorAll('.hoverlayer .hovertext path');
+      paths.forEach(p=>p.style.opacity='0');
+    }catch(e){}
+  }
+  function bind(gd){
+    if(!gd || gd.__roundBind) return;
+    gd.__roundBind = true;
+    gd.on('plotly_hover', ()=>roundNow(gd));
+    gd.on('plotly_unhover', ()=>roundNow(gd));
+    gd.on('plotly_afterplot', ()=>roundNow(gd));
+    setTimeout(()=>roundNow(gd), 400);
+  }
+  window.addEventListener('load', ()=>{
+    document.querySelectorAll('.js-plotly-plot').forEach(bind);
+  });
 })();
 </script>
 
