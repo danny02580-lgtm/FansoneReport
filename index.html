@@ -192,6 +192,55 @@
 .js-plotly-plot .hoverlayer .hovertext path{ opacity:0 !important; }
 </style>
 
+
+<style id="customHoverStyle">
+/* Hide Plotly default hover boxes */
+.js-plotly-plot .hoverlayer { display:none !important; }
+
+/* Custom tooltip card */
+#customTooltip{
+  position:fixed;
+  z-index:9999;
+  pointer-events:none;
+  min-width: 220px;
+  max-width: 320px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(20, 24, 34, 0.78);
+  border: 1px solid rgba(255,255,255,0.10);
+  box-shadow: 0 14px 40px rgba(0,0,0,0.45);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: #fff;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Noto Sans", "PingFang TC", "Microsoft JhengHei", sans-serif;
+}
+#customTooltip .tt-title{
+  font-weight: 800;
+  letter-spacing: .3px;
+  margin-bottom: 8px;
+  opacity: .95;
+}
+#customTooltip .tt-row{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin: 7px 0;
+}
+#customTooltip .tt-dot{
+  width:10px;height:10px;border-radius:999px;flex:0 0 10px;
+}
+#customTooltip .tt-name{
+  flex:1;
+  opacity:.92;
+  font-weight:600;
+}
+#customTooltip .tt-val{
+  font-weight:800;
+  letter-spacing:.2px;
+}
+#customTooltip .muted{ opacity:.75; font-weight:600; }
+</style>
+
 </head>
 <body>
 <div class="wrap">
@@ -1245,6 +1294,108 @@ main();
     gd.on('plotly_afterplot', ()=>roundNow(gd));
     setTimeout(()=>roundNow(gd), 400);
   }
+  window.addEventListener('load', ()=>{
+    document.querySelectorAll('.js-plotly-plot').forEach(bind);
+  });
+})();
+</script>
+
+<div id="customTooltip" style="display:none"></div>
+
+<script>
+(function(){
+  const tt = document.getElementById('customTooltip');
+
+  function fmt(v, kind){
+    if(v==null || isNaN(v)) return '-';
+    const n = Number(v);
+    if(kind==='money') return 'NT$ ' + n.toLocaleString(undefined,{maximumFractionDigits:0});
+    if(kind==='pct') return n.toFixed(1) + '%';
+    if(kind==='int') return n.toLocaleString(undefined,{maximumFractionDigits:0});
+    return n.toLocaleString(undefined,{maximumFractionDigits:1});
+  }
+  function kindFor(name){
+    const s=(name||'').toLowerCase();
+    if(s.includes('revenue')||s.includes('營收')||s.includes('total')) return 'money';
+    if(s.includes('arpu')) return 'num';
+    if(s.includes('%')||s.includes('rate')||s.includes('ratio')||s.includes('比例')||s.includes('成長')) return 'pct';
+    if(s.includes('user')||s.includes('subscriber')||s.includes('客')||s.includes('人數')) return 'int';
+    return 'num';
+  }
+  function colorFor(pt){
+    // try trace line/marker color
+    try{
+      const tr = pt.data || {};
+      return (tr.line && tr.line.color) || (tr.marker && tr.marker.color) || '#fff';
+    }catch(e){ return '#fff'; }
+  }
+
+  function render(points){
+    if(!points || !points.length) return;
+    const x = points[0].x;
+    let title = String(x);
+    // if looks like 2025-08 keep as is; if month number, show as is
+    const rows = points.map(pt=>{
+      const name = pt.data && pt.data.name ? pt.data.name : (pt.fullData && pt.fullData.name) || 'Value';
+      const kind = kindFor(name);
+      const val = fmt(pt.y, kind);
+      const dot = colorFor(pt);
+      return {name, val, dot};
+    });
+
+    tt.innerHTML = `
+      <div class="tt-title">${title}</div>
+      ${rows.map(r=>`
+        <div class="tt-row">
+          <span class="tt-dot" style="background:${r.dot}"></span>
+          <span class="tt-name">${r.name}</span>
+          <span class="tt-val">${r.val}</span>
+        </div>
+      `).join('')}
+    `;
+  }
+
+  function place(ev){
+    if(!ev) return;
+    const pad = 14;
+    let x = ev.clientX + 18;
+    let y = ev.clientY + 18;
+
+    tt.style.display = 'block';
+    // measure
+    const r = tt.getBoundingClientRect();
+    const vw = window.innerWidth, vh = window.innerHeight;
+
+    if(x + r.width + pad > vw) x = ev.clientX - r.width - 18;
+    if(y + r.height + pad > vh) y = ev.clientY - r.height - 18;
+
+    tt.style.left = x + 'px';
+    tt.style.top  = y + 'px';
+  }
+
+  function bind(gd){
+    if(!gd || gd.__customTTBound) return;
+    gd.__customTTBound = true;
+
+    gd.on('plotly_hover', function(e){
+      try{
+        const pts = e.points || [];
+        // group by x: if multiple traces share same x, include them all
+        render(pts);
+        place(e.event);
+      }catch(err){}
+    });
+
+    gd.on('plotly_unhover', function(){
+      tt.style.display = 'none';
+    });
+
+    gd.on('plotly_relayout', function(){
+      // keep hidden unless hovering
+      if(tt.style.display!=='none') tt.style.display='none';
+    });
+  }
+
   window.addEventListener('load', ()=>{
     document.querySelectorAll('.js-plotly-plot').forEach(bind);
   });
