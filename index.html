@@ -176,6 +176,12 @@
 .js-plotly-plot .hoverlayer .hovertext { filter: drop-shadow(0 8px 18px rgba(0,0,0,0.35)); }
 </style>
 
+
+<style id="gridSafety">
+/* Safety: ensure no vertical gridlines */
+.js-plotly-plot .gridlayer .xgrid { opacity: 0; }
+</style>
+
 </head>
 <body>
 <div class="wrap">
@@ -316,7 +322,6 @@
 </div>
 
 <script>
-
 const SUB_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQiAPNDCD7qn6atO4VB6Ei63AacDK00AMKM16hK8c-wVWFadPPOj-P8olYQ-ofMFwy0maGU1A4CBneW/pub?gid=0&single=true&output=csv";
 const SINGLE_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQiAPNDCD7qn6atO4VB6Ei63AacDK00AMKM16hK8c-wVWFadPPOj-P8olYQ-ofMFwy0maGU1A4CBneW/pub?gid=1226262547&single=true&output=csv";
 
@@ -818,7 +823,6 @@ main();
 </script>
 
 <script>
-
 (function(){
   const sel = document.getElementById('viewSelect');
   const buttons = Array.from(document.querySelectorAll('.seg-btn'));
@@ -843,8 +847,6 @@ main();
 </script>
 
 <script>
-
-
 (function(){
   // Sync user insights segmented buttons to hidden select
   const userSel = document.getElementById("userMetric");
@@ -888,12 +890,10 @@ main();
   setTimeout(readPrevFromMonthly, 600);
   setTimeout(readPrevFromMonthly, 1200);
 })();
-
 </script>
 
 
 <script>
-
 // --- Prev: compute from monthly table header (robust + observer) ---
 (function(){
   if(!prevEl) return;
@@ -981,7 +981,6 @@ main();
 
 
 <script>
-
 (function(){
   function moneyFmt(n){
     if(typeof window.money==="function") return window.money(n);
@@ -1055,7 +1054,6 @@ main();
 
 
 <script>
-
 // Ensure Latest KPI uses same emphasis class as Total Revenue
 (function(){
   function syncKpiStyles(){
@@ -1102,13 +1100,12 @@ main();
         hovermode:"x unified",
         spikedistance:-1,
         hoverdistance:20,
-        xaxis:{
+        xaxis:{showgrid:false,zeroline:false,
           showspikes:false,
-          spikemode:"across",
-          spikesnap:"cursor",
-          spikecolor:"rgba(255,255,255,0.35)",
-          spikethickness:1
-        },
+          
+          
+          255,255,0.35)",
+          },
         hoverlabel:{
           bgcolor:"rgba(15,15,15,0.92)",
           bordercolor:"rgba(255,255,255,0.12)",
@@ -1116,7 +1113,7 @@ main();
           namelength:-1,
           align:"left"
         }
-      });
+      ,yaxis:{showgrid:true,gridcolor:'rgba(255,255,255,0.10)',zeroline:false}});
 
       // per-trace templates + easier hit targets
       const hovertemplates = gd.data.map(tr => smartTemplate(tr.name));
@@ -1199,16 +1196,14 @@ main();
     gd.__spikeToggleBound = true;
     gd.on('plotly_hover', function(){
       try{
-        Plotly.relayout(gd, {'xaxis.showspikes': true});
-      }catch(e){}
+        }catch(e){}
     });
     gd.on('plotly_unhover', function(){
       try{
-        Plotly.relayout(gd, {'xaxis.showspikes': false});
-      }catch(e){}
+        }catch(e){}
     });
     // start clean
-    try{ Plotly.relayout(gd, {'xaxis.showspikes': false}); }catch(e){}
+    try{ }catch(e){}
     try{ Plotly.Fx.unhover(gd); }catch(e){}
   }
   function bindAll(){
