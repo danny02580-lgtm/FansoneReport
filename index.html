@@ -1,1030 +1,755 @@
 <!doctype html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>FansOne Report</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Fansone Report</title>
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+<style>
+  :root{
+    --bg0:#0b1220; --bg1:#0f1a2e; --panel:rgba(255,255,255,.06); --stroke:rgba(255,255,255,.14);
+    --text:#e5e7eb; --muted:#9ca3af;
+    --new:#3498db; --old:#2980b9;
+    --rev:#e74c3c; --single:#a78bfa; --totalrev:#f59e0b;
+    --arpu:#d35400;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    font-family: system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
+    color:var(--text);
+    background:
+      radial-gradient(1200px 600px at 20% 10%, rgba(52,152,219,.18), transparent 60%),
+      radial-gradient(900px 500px at 85% 25%, rgba(231,76,60,.16), transparent 60%),
+      radial-gradient(800px 500px at 60% 90%, rgba(245,158,11,.14), transparent 60%),
+      linear-gradient(180deg, var(--bg0), var(--bg1));
+    min-height:100vh;
+  }
+  a{color:inherit; text-decoration:none}
+  .wrap{max-width:1200px; margin:0 auto; padding:20px 16px 36px}
+  .topbar{
+    display:flex; align-items:flex-start; justify-content:space-between; gap:14px;
+    padding:14px; border:1px solid var(--stroke); border-radius:16px; background:var(--panel); backdrop-filter: blur(10px);
+  }
+  .title h1{margin:0; font-size:18px}
+  .title .sub{margin-top:6px; font-size:12px; color:var(--muted); line-height:1.4}
+  .kpis{display:flex; flex-wrap:wrap; gap:10px; justify-content:flex-end; align-items:stretch}
+  .kpi{
+    padding:12px 14px; border:1px solid var(--stroke); border-radius:16px; background:rgba(255,255,255,.04);
+    min-width:220px; display:flex; flex-direction:column; gap:6px;
+  }
+  .kpi .klabel{font-size:12px; color:var(--muted)}
+  .kpi .kvalue{font-size:24px; font-weight:850; letter-spacing:.2px; color:var(--text)}
+  .kpi.small{min-width:140px}
+  .kpi.small .kvalue{font-size:24px}
 
-  <!-- Chart.js -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <!-- Data labels (numbers always visible) -->
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
+  .grid{display:grid; grid-template-columns: 360px 1fr; gap:14px; margin-top:14px}
+  @media (max-width: 980px){ .grid{grid-template-columns: 1fr} }
+  .panel{border:1px solid var(--stroke); border-radius:16px; background:var(--panel); backdrop-filter: blur(10px); overflow:hidden}
+  .hd{padding:12px; border-bottom:1px solid rgba(255,255,255,.10); display:flex; align-items:center; justify-content:space-between; gap:10px}
+  .hd h2{margin:0; font-size:13px}
+  .bd{padding:12px}
 
-  <style>
-    :root{
-      --bg0:#0f1420;
-      --bg1:#151b2b;
-      --card:#141a2a;
-      --card2:#101626;
-      --stroke:rgba(255,255,255,.10);
-      --text:rgba(255,255,255,.90);
-      --muted:rgba(255,255,255,.65);
-      --muted2:rgba(255,255,255,.45);
+  .select{
+    width:100%;
+    padding:12px 12px;
+    border:1px solid var(--stroke);
+    border-radius:14px;
+    background:rgba(255,255,255,.04);
+    color:var(--text);
+    font-size:13px;
+    outline:none;
+  }
+  .hint{margin-top:8px; font-size:11px; color:var(--muted); line-height:1.45}
 
-      --new:#3498db;        /* New users */
-      --old:#2980b9;        /* Old users */
-      --rev:#e74c3c;        /* Revenue */
-      --arpu:#d35400;       /* ARPU */
-      --single:#9b59b6;     /* Single purchase */
-      --total:#2ecc71;      /* Total revenue */
-      --m1:#f1c40f;         /* Plan 1 */
-      --m3:#f39c12;         /* Plan 3 */
-      --m6:#e67e22;         /* Plan 6 */
-    }
+  .checks{display:grid; grid-template-columns: 1fr; gap:8px; margin-top:10px}
+  .check{
+    display:flex; gap:10px; align-items:center;
+    padding:10px 10px;
+    border:1px solid var(--stroke);
+    border-radius:14px;
+    background:rgba(255,255,255,.03);
+  }
+  .check input{width:18px; height:18px; accent-color: var(--new)}
+  .dot{width:10px; height:10px; border-radius:999px; background:#fff; box-shadow:0 0 0 3px rgba(255,255,255,.07)}
+  .label{display:flex; flex-direction:column; gap:2px}
+  .label b{font-size:12px; font-weight:750}
+  .label span{font-size:11px; color:var(--muted)}
 
-    *{ box-sizing:border-box; }
-    html,body{ height:100%; }
-    body{
-      margin:0;
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", Arial, sans-serif;
-      color:var(--text);
-      background: radial-gradient(1200px 500px at 20% -10%, rgba(52,152,219,.20), transparent 60%),
-                  radial-gradient(1000px 450px at 90% 0%, rgba(231,76,60,.18), transparent 55%),
-                  linear-gradient(180deg, var(--bg0), var(--bg1));
-      overflow-x:hidden;
-    }
+  #chart{width:100%; height:560px}
+  @media (max-width: 980px){ #chart{height:520px} }
 
-    .container{
-      max-width: 1100px;
-      margin: 0 auto;
-      padding: 16px;
-    }
+  .tablesGrid{display:grid; grid-template-columns: 1.3fr 1fr; gap:14px; margin-top:14px}
+  @media (max-width: 980px){ .tablesGrid{grid-template-columns: 1fr} }
+  table{width:100%; border-collapse:separate; border-spacing:0; font-size:12px}
+  th,td{padding:10px 10px; border-bottom:1px solid rgba(255,255,255,.08)}
+  th{text-align:left; color:var(--muted); font-weight:700; background:rgba(255,255,255,.03); position:sticky; top:0; backdrop-filter: blur(10px)}
+  td.right, th.right{text-align:right}
+  tr:hover td{background:rgba(255,255,255,.03)}
+  .sheetlink{color: var(--muted); border:1px solid var(--stroke); padding:7px 9px; border-radius:999px; background:rgba(255,255,255,.04)}
+  .sheetlink:hover{color:var(--text)}
+  .pill{padding:5px 8px; border:1px solid var(--stroke); border-radius:999px; font-size:11px; color:var(--muted); background:rgba(255,255,255,.03)}
 
-    .top{
-      display:flex;
-      gap:12px;
-      align-items:stretch;
-      flex-wrap:wrap;
-    }
+/* --- Mobile polish (no layout break) --- */
+@media (max-width: 860px){
+  .wrap{padding:12px;}
+  .hd{flex-direction:column; align-items:flex-start; gap:10px;}
+  .kpis{grid-template-columns:1fr 1fr; gap:10px;}
+  .kpi .big{font-size:22px;}
+  .kpi .sub{font-size:12px;}
+  .content{grid-template-columns:1fr; gap:12px;}
+  #chart{height:360px !important;}
+  .panel{border-radius:14px;}
+  .controls{position:sticky; top:0; z-index:5;}
+  .checks{max-height:none;}
+  table{font-size:12px;}
+  .tableWrap{overflow:auto; -webkit-overflow-scrolling:touch;}
+}
+@media (max-width: 480px){
+  .kpis{grid-template-columns:1fr; }
+  #chart{height:320px !important;}
+  .btn, select, input[type="checkbox"]{touch-action:manipulation;}
+}
 
-    .card{
-      background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
-      border:1px solid var(--stroke);
-      border-radius:16px;
-      padding:14px 14px;
-      box-shadow: 0 10px 30px rgba(0,0,0,.22);
-      backdrop-filter: blur(6px);
-      min-width: 240px;
-      flex:1;
-    }
-
-    .kpiRow{
-      display:flex;
-      align-items:baseline;
-      gap:10px;
-      flex-wrap:wrap;
-    }
-
-    .kpiTitle{
-      font-size:12px;
-      letter-spacing:.08em;
-      text-transform:uppercase;
-      color:var(--muted);
-      margin-bottom:6px;
-    }
-
-    .kpiValue{
-      font-size:40px;
-      font-weight:800;
-      line-height:1;
-      margin:0;
-      white-space:nowrap;
-    }
-
-    .kpiSub{
-      color:var(--muted);
-      font-size:14px;
-      white-space:nowrap;
-    }
-
-    .controls{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:12px;
-      flex-wrap:wrap;
-      margin-top:12px;
-    }
-
-    select{
-      appearance:none;
-      -webkit-appearance:none;
-      -moz-appearance:none;
-      background: rgba(255,255,255,.06);
-      border:1px solid var(--stroke);
-      color:var(--text);
-      padding:10px 12px;
-      border-radius:12px;
-      font-size:14px;
-      outline:none;
-      min-width: 220px;
-    }
-
-    .chips{
-      display:flex;
-      gap:10px;
-      flex-wrap:wrap;
-      align-items:center;
-    }
-    .chip{
-      display:inline-flex;
-      gap:8px;
-      align-items:center;
-      padding:8px 10px;
-      border-radius:999px;
-      border:1px solid var(--stroke);
-      background: rgba(255,255,255,.04);
-      color:var(--muted);
-      font-size:13px;
-      user-select:none;
-    }
-    .chip input{ accent-color: #ffffff; }
-
-    .grid{
-      display:grid;
-      grid-template-columns: 1.4fr .6fr;
-      gap:12px;
-      margin-top:12px;
-    }
-
-    .chartCard{
-      background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
-      border:1px solid var(--stroke);
-      border-radius:16px;
-      padding:12px;
-      box-shadow: 0 10px 30px rgba(0,0,0,.22);
-      backdrop-filter: blur(6px);
-      min-height: 420px;
-      position:relative;
-      overflow:hidden;
-    }
-    .chartWrap{
-      height: 380px;  /* fixed, no scrolling */
-      position:relative;
-    }
-    canvas{ max-width:100%; }
-
-    .sideCard{
-      background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
-      border:1px solid var(--stroke);
-      border-radius:16px;
-      padding:12px;
-      box-shadow: 0 10px 30px rgba(0,0,0,.22);
-      backdrop-filter: blur(6px);
-      min-height: 420px;
-      overflow:hidden;
-    }
-
-    .sideTitle{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-      margin-bottom:10px;
-    }
-    .sideTitle h3{
-      margin:0;
-      font-size:14px;
-      color:var(--text);
-      font-weight:700;
-    }
-    .sideTitle a{
-      color:var(--muted);
-      text-decoration:none;
-      font-size:12px;
-      border-bottom:1px dashed rgba(255,255,255,.25);
-    }
-    .sideTitle a:hover{ color:var(--text); }
-
-    table{
-      width:100%;
-      border-collapse:collapse;
-      font-size:13px;
-    }
-    th,td{
-      padding:8px 6px;
-      border-bottom:1px solid var(--stroke);
-      text-align:left;
-      color:var(--muted);
-    }
-    th{ color:var(--text); font-weight:700; font-size:12px; letter-spacing:.06em; text-transform:uppercase; }
-    tr:last-child td{ border-bottom:none; }
-    .mono{ font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
-    .right{ text-align:right; }
-    .pill{
-      display:inline-block;
-      padding:2px 8px;
-      border-radius:999px;
-      border:1px solid var(--stroke);
-      color:var(--muted);
-      font-size:12px;
-      white-space:nowrap;
-    }
-
-    .footerRow{
-      margin-top:12px;
-      display:flex;
-      gap:12px;
-      flex-wrap:wrap;
-    }
-    .smallCard{
-      flex:1;
-      min-width: 260px;
-      background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
-      border:1px solid var(--stroke);
-      border-radius:16px;
-      padding:12px;
-      box-shadow: 0 10px 30px rgba(0,0,0,.22);
-      backdrop-filter: blur(6px);
-    }
-    .smallCard h4{
-      margin:0 0 8px 0;
-      font-size:13px;
-      color:var(--text);
-      font-weight:700;
-    }
-    .smallCard p{
-      margin:0;
-      color:var(--muted);
-      font-size:13px;
-      line-height:1.4;
-    }
-
-    /* Mobile */
-    @media (max-width: 860px){
-      .grid{ grid-template-columns: 1fr; }
-      .chartCard,.sideCard{ min-height: unset; }
-      .chartWrap{ height: 320px; }
-      .kpiValue{ font-size:32px; }
-      select{ min-width: 100%; }
-      .card{ min-width: 0; }
-    }
-  </style>
+</style>
 </head>
-
 <body>
-  <div class="container">
-    <div class="top">
-      <div class="card">
-        <div class="kpiTitle">Total revenue</div>
-        <div class="kpiRow">
-          <div class="kpiValue mono" id="kpiTotalRevenue">$—</div>
-          <div class="kpiSub mono" id="kpiMonths">Months —</div>
-        </div>
-        <div class="kpiSub" style="margin-top:8px;">
-          <span class="pill">訂閱</span> + <span class="pill">單片</span>（金額欄位：訂月營收就是總營收）
-        </div>
+<div class="wrap">
+  <div class="topbar">
+    <div class="title">
+      <h1>Fansone Report｜互動月報表</h1>
+      <div class="sub" id="status">Loading…</div>
+      <div class="sub">
+        資料來源：
+        <a class="sheetlink" href="https://docs.google.com/spreadsheets/d/e/2PACX-1vQiAPNDCD7qn6atO4VB6Ei63AacDK00AMKM16hK8c-wVWFadPPOj-P8olYQ-ofMFwy0maGU1A4CBneW/pub?gid=0&single=true&output=html" target="_blank" rel="noopener">訂閱試算表</a>
+        <a class="sheetlink" href="https://docs.google.com/spreadsheets/d/e/2PACX-1vQiAPNDCD7qn6atO4VB6Ei63AacDK00AMKM16hK8c-wVWFadPPOj-P8olYQ-ofMFwy0maGU1A4CBneW/pub?gid=1226262547&single=true&output=html" target="_blank" rel="noopener">單片試算表</a>
       </div>
+    </div>
+    <div class="kpis">
+      <div class="kpi small">
+        <div class="klabel">Months</div>
+        <div class="kvalue" id="months">–</div>
+      </div>
+      <div class="kpi">
+        <div class="klabel">Total revenue</div>
+        <div class="kvalue" id="totalRevenue">–</div>
+      </div>
+    </div>
+  </div>
 
-      <div class="card">
-        <div class="kpiTitle">Data sources</div>
-        <div class="kpiSub" style="line-height:1.6">
-          <div>訂閱彙總 CSV：<span class="mono" id="srcSubShort">—</span></div>
-          <div style="margin-top:6px;">單片彙總 CSV：<span class="mono" id="srcSingleShort">—</span></div>
-        </div>
+  <div class="grid">
+    <div class="panel">
+      <div class="hd"><h2>圖表切換</h2><span class="pill" id="orderTag">新 → 舊</span></div>
+      <div class="bd">
+        <select id="viewSelect" class="select">
+          <option value="money">金額（總/訂閱/單片）</option>
+          <option value="subs">訂閱人數（新/舊柱狀）</option>
+          <option value="mix">方案比例（1/3/6M 勾選）</option>
+          <option value="arpu">ARPU（折線）</option>
+        </select>
+        <div class="hint" id="viewHint"></div>
+
+        <div class="checks" id="checks"></div>
       </div>
     </div>
 
-    <div class="controls">
-      <select id="viewSelect" aria-label="view selector">
-        <option value="money">金額（訂閱 / 單片 / 總營收）</option>
-        <option value="subs">訂閱人數（新客 / 舊客）</option>
-        <option value="plans">方案比例（1 / 3 / 6 個月）</option>
-        <option value="arpu">ARPU（每人平均營收）</option>
-        <option value="users">用戶分析（Top）</option>
-      </select>
-
-      <div class="chips" id="chipsArea">
-        <!-- dynamic -->
-      </div>
+    <div class="panel" style="padding:10px">
+      <div id="chart"></div>
     </div>
+  </div>
 
-    <div class="grid">
-      <div class="chartCard">
-        <div class="chartWrap">
-          <canvas id="chart"></canvas>
+  <div class="tablesGrid">
+    <div class="panel">
+      <div class="hd">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <h2 style="margin:0;">月度總表</h2><span class="pill">訂閱 + 單片合計</span>
         </div>
       </div>
-
-      <div class="sideCard" id="sideCard">
-        <div class="sideTitle">
-          <h3 id="sideTitle">Top users</h3>
-          <a id="sideLink" href="#" target="_blank" rel="noopener">Open sheet</a>
-        </div>
-        <div style="overflow:auto; max-height:380px;">
-          <table id="sideTable">
-            <thead><tr><th>User</th><th class="right">Value</th></tr></thead>
-            <tbody></tbody>
+      <div class="bd" style="padding:0 0 10px 0;">
+        <div style="max-height:340px; overflow:auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>月份</th>
+                <th class="right">訂閱人數</th>
+                <th class="right">新客</th>
+                <th class="right">舊客</th>
+                <th class="right">訂閱營收</th>
+                <th class="right">單片營收</th>
+                <th class="right">總營收</th>
+                <th class="right">ARPU</th>
+              </tr>
+            </thead>
+            <tbody id="tbodyMonthly"></tbody>
           </table>
         </div>
       </div>
     </div>
 
-    <div class="footerRow">
-      <div class="smallCard">
-        <h4>Tips</h4>
-        <p>滑鼠停在任何點會顯示完整資訊；同時我把數字直接標在圖上（不用一個一個點 😌）。手機版已做自動換行，圖表固定高度、不支援拖曳/縮放。</p>
+    <div class="panel">
+      <div class="hd">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <h2 style="margin:0;">用戶分析</h2><span class="pill">Top 10</span>
+        </div>
+        <select id="userMetric" class="select" style="max-width:220px; padding:8px 10px;">
+          <option value="spend_total">付最多錢（總）</option>
+          <option value="spend_sub">付最多錢（訂閱）</option>
+          <option value="spend_single">付最多錢（單片）</option>
+          <option value="active_months">訂閱最久（活躍月數）</option>
+          <option value="tenure_span">時間跨度最久（首購→末購）</option>
+          <option value="orders_total">購買最多次（訂閱+單片）</option>
+        </select>
       </div>
-      <div class="smallCard">
-        <h4>Links</h4>
-        <p>
-          <a id="linkSubSheet" href="#" target="_blank" rel="noopener" style="color:var(--text); text-decoration:none; border-bottom:1px dashed rgba(255,255,255,.3)">訂閱試算表</a>
-          <span style="color:var(--muted2)"> / </span>
-          <a id="linkSingleSheet" href="#" target="_blank" rel="noopener" style="color:var(--text); text-decoration:none; border-bottom:1px dashed rgba(255,255,255,.3)">單片試算表</a>
-        </p>
+      <div class="bd" style="padding:0 0 10px 0;">
+        <div style="max-height:340px; overflow:auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>User ID</th>
+                <th class="right">指標</th>
+                <th class="right">訂閱$</th>
+                <th class="right">單片$</th>
+                <th class="right">總$</th>
+              </tr>
+            </thead>
+            <tbody id="tbodyUsers"></tbody>
+          </table>
+        </div>
       </div>
     </div>
   </div>
 
+  <div class="tablesGrid" style="grid-template-columns: 1fr; margin-top:14px;">
+    <div class="panel">
+      <div class="hd">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <h2 style="margin:0;">單片 TOP</h2><span class="pill">點標題可直達貼文</span>
+        </div>
+        <a class="sheetlink" href="https://docs.google.com/spreadsheets/d/e/2PACX-1vQiAPNDCD7qn6atO4VB6Ei63AacDK00AMKM16hK8c-wVWFadPPOj-P8olYQ-ofMFwy0maGU1A4CBneW/pub?gid=1226262547&single=true&output=html" target="_blank" rel="noopener">Open sheet</a>
+      </div>
+      <div class="bd" style="padding:0 0 10px 0;">
+        <div style="max-height:320px; overflow:auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>影片標題</th>
+                <th class="right">金額</th>
+                <th class="right">筆數</th>
+              </tr>
+            </thead>
+            <tbody id="tbodySingles"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
-/** =========================
- *  CONFIG (edit here only)
- *  ========================= */
 const SUB_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQiAPNDCD7qn6atO4VB6Ei63AacDK00AMKM16hK8c-wVWFadPPOj-P8olYQ-ofMFwy0maGU1A4CBneW/pub?gid=0&single=true&output=csv";
 const SINGLE_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQiAPNDCD7qn6atO4VB6Ei63AacDK00AMKM16hK8c-wVWFadPPOj-P8olYQ-ofMFwy0maGU1A4CBneW/pub?gid=1226262547&single=true&output=csv";
 
-// For your sheet hyperlinks (user asked for “clickable title to sheet”)
-const SUB_SHEET_LINK = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQiAPNDCD7qn6atO4VB6Ei63AacDK00AMKM16hK8c-wVWFadPPOj-P8olYQ-ofMFwy0maGU1A4CBneW/pubhtml?gid=0";
-const SINGLE_SHEET_LINK = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQiAPNDCD7qn6atO4VB6Ei63AacDK00AMKM16hK8c-wVWFadPPOj-P8olYQ-ofMFwy0maGU1A4CBneW/pubhtml?gid=1226262547";
-
-/** Colors */
-const C = {
-  new: getCss("--new"),
-  old: getCss("--old"),
-  rev: getCss("--rev"),
-  arpu: getCss("--arpu"),
-  single: getCss("--single"),
-  total: getCss("--total"),
-  m1: getCss("--m1"),
-  m3: getCss("--m3"),
-  m6: getCss("--m6"),
-  text: getCss("--text"),
-  muted: getCss("--muted"),
-  grid: "rgba(255,255,255,.10)"
-};
-
-function getCss(varName){
-  return getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+function el(id){ return document.getElementById(id); }
+function money(n){ if(!isFinite(n)) return "–"; return "$ " + Number(n).toLocaleString("en-US"); }
+function parseMoney(s){
+  if(s==null) return NaN;
+  const t = String(s);
+  const m = t.match(/-?\d+(?:,\d{3})*(?:\.\d+)?/);
+  if(!m) return NaN;
+  return Number(m[0].replace(/,/g,""));
 }
-
-/** =========================
- *  CSV helpers
- *  ========================= */
-function parseCSV(text){
-  // Handles commas + quoted fields
-  const rows = [];
-  let row = [], cur = "", inQ = false;
-  for (let i=0;i<text.length;i++){
-    const ch = text[i];
-    const nxt = text[i+1];
-    if (ch === '"' ){
-      if (inQ && nxt === '"'){ cur += '"'; i++; }
-      else inQ = !inQ;
-    } else if (ch === ',' && !inQ){
-      row.push(cur); cur = "";
-    } else if ((ch === '\n' || ch === '\r') && !inQ){
-      if (ch === '\r' && nxt === '\n') i++;
-      row.push(cur);
-      if (row.some(v => v !== "")) rows.push(row);
-      row = []; cur = "";
-    } else {
-      cur += ch;
-    }
-  }
-  row.push(cur);
-  if (row.some(v => v !== "")) rows.push(row);
-  return rows;
+function toMonthKey(v){
+  if(!v) return null;
+  const s = String(v).trim();
+  const m = s.match(/(\d{4})-(\d{2})/);
+  if(!m) return null;
+  return m[1] + "-" + m[2];
 }
-
-function normalizeHeader(h){
-  return (h || "")
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g,"")
-    .replace(/[%$₩¥€]/g,"")
-    .replace(/[()（）]/g,"");
-}
-
-function toNumber(x){
-  if (x == null) return 0;
-  const s = String(x).replace(/[, ]/g,"").replace(/[^\d.\-]/g,"");
-  const v = parseFloat(s);
-  return Number.isFinite(v) ? v : 0;
-}
-
-function fmtMoney(n){
-  const v = Math.round(n);
-  return "$" + v.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-}
-function fmtNum(n){
-  const v = Math.round(n);
-  return v.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-}
-function fmtPct(n){
-  if (!Number.isFinite(n)) return "0%";
-  return (n*100).toFixed(1) + "%";
-}
-
-/** =========================
- *  State
- *  ========================= */
-let monthly = [];   // merged monthly records
-let chart = null;
-
-const el = {
-  kpiTotalRevenue: document.getElementById("kpiTotalRevenue"),
-  kpiMonths: document.getElementById("kpiMonths"),
-  viewSelect: document.getElementById("viewSelect"),
-  chipsArea: document.getElementById("chipsArea"),
-  sideTitle: document.getElementById("sideTitle"),
-  sideLink: document.getElementById("sideLink"),
-  sideTbody: document.querySelector("#sideTable tbody"),
-  srcSubShort: document.getElementById("srcSubShort"),
-  srcSingleShort: document.getElementById("srcSingleShort"),
-  linkSubSheet: document.getElementById("linkSubSheet"),
-  linkSingleSheet: document.getElementById("linkSingleSheet"),
-};
-
-el.linkSubSheet.href = SUB_SHEET_LINK;
-el.linkSingleSheet.href = SINGLE_SHEET_LINK;
-
-/** =========================
- *  Load + Merge
- *  ========================= */
 async function fetchCSV(url){
-  const r = await fetch(url, { cache: "no-store" });
-  if (!r.ok) throw new Error("Fetch failed: " + r.status);
+  const r = await fetch(url, {cache:"no-store"});
+  if(!r.ok) throw new Error("Fetch failed: " + r.status);
   return await r.text();
 }
-
-function shortUrl(u){
-  try{
-    const x = new URL(u);
-    return x.host + x.pathname.slice(0, 28) + "…";
-  }catch(e){ return "—"; }
-}
-
-function monthSortKey(m){
-  // supports "2025-06" or "6" or "06" or "Jun"
-  const s = String(m).trim();
-  const m1 = s.match(/^(\d{4})[-\/](\d{1,2})/);
-  if (m1) return parseInt(m1[1])*100 + parseInt(m1[2]);
-  const m2 = s.match(/^(\d{1,2})$/);
-  if (m2) return 2025*100 + parseInt(m2[1]); // fallback year
-  return 0;
-}
-
-function unifyMonthLabel(m){
-  const s = String(m).trim();
-  const m1 = s.match(/^(\d{4})[-\/](\d{1,2})/);
-  if (m1) return `${m1[1]}-${String(m1[2]).padStart(2,"0")}`;
-  const m2 = s.match(/^(\d{1,2})$/);
-  if (m2) return `2025-${String(m2[1]).padStart(2,"0")}`;
-  return s || "—";
-}
-
-function rowsToObjects(rows){
-  if (!rows.length) return [];
-  const headers = rows[0].map(normalizeHeader);
-  const out = [];
-  for (let i=1;i<rows.length;i++){
-    const r = rows[i];
-    const obj = {};
-    for (let j=0;j<headers.length;j++){
-      obj[headers[j] || ("c"+j)] = (r[j] ?? "").trim();
-    }
-    out.push(obj);
+function splitCSVLine(line){
+  const out=[]; let cur=""; let inQ=false;
+  for(let i=0;i<line.length;i++) {
+    const c=line[i];
+    if(c==='"') {
+      if(inQ && line[i+1]==='"') { cur+='"'; i++; }
+      else inQ=!inQ;
+    } else if(c===',' && !inQ) { out.push(cur); cur=""; }
+    else cur+=c;
   }
+  out.push(cur);
   return out;
 }
+function csvToRows(csv){
+  const text = csv.replace(/^\uFEFF/, "");
+  const lines = text.replace(/\r/g,"").trim().split("\n");
+  if(lines.length<=1) return [];
+  const headers = splitCSVLine(lines[0]).map(h=>h.trim());
+  const rows=[];
+  for(let i=1;i<lines.length;i++) {
+    if(!lines[i].trim()) continue;
+    const cols = splitCSVLine(lines[i]);
+    const obj={};
+    headers.forEach((h,idx)=> obj[h] = (cols[idx] ?? "").trim());
+    rows.push(obj);
+  }
+  return rows;
+}
+function normalizePlan(plan){
+  const s = String(plan||"").toLowerCase();
+  if(s.includes("6") || s.includes("半年") || s.includes("6個月")) return "6M";
+  if(s.includes("3") || s.includes("三") || s.includes("3個月")) return "3M";
+  return "1M";
+}
+function pickKey(headers, candidates){
+  const lower = headers.map(h=>h.toLowerCase());
+  for(const cand of candidates){
+    const c = String(cand).toLowerCase();
+    const idx = lower.findIndex(h => h.includes(c));
+    if(idx>=0) return headers[idx];
+  }
+  return null;
+}
+function parseTimeToSortable(s){
+  // Accept: 2025-11-3001:09:28 or 2025-11-30 01:09:28
+  const t = String(s||"").trim();
+  const m = t.match(/^(\d{4})-(\d{2})-(\d{2})\s?(\d{2}):(\d{2})(?::(\d{2}))?/);
+  if(!m){
+    // try to insert space between date and time if missing
+    const m2 = t.match(/^(\d{4})-(\d{2})-(\d{2})(\d{2}):(\d{2})(?::(\d{2}))?/);
+    if(!m2) return null;
+    return `${m2[1]}-${m2[2]}-${m2[3]} ${m2[4]}:${m2[5]}:${m2[6]||"00"}`;
+  }
+  return `${m[1]}-${m[2]}-${m[3]} ${m[4]}:${m[5]}:${m[6]||"00"}`;
+}
 
-function guessMonthlyFields(obj){
-  // We try multiple header aliases to be robust.
-  const get = (...keys) => {
-    for (const k of keys){
-      if (obj[k] != null && obj[k] !== "") return obj[k];
+let STATE = { aggAsc:[], aggDesc:[], topSingles:[], users:[] };
+
+function buildAgg(subRows, singleRows){
+  const subHeaders = Object.keys(subRows[0]||{});
+  const timeKey  = pickKey(subHeaders, ["時間","time","date","datetime"]) || subHeaders[0];
+  const planKey  = pickKey(subHeaders, ["方案","plan","類型"]) || subHeaders[1];
+  const idKey    = pickKey(subHeaders, ["用戶id","user id","userid","id","用戶","user"]) || subHeaders[2];
+  const priceKey = pickKey(subHeaders, ["價格","price","金額","amount","收入"]) || subHeaders[Math.min(3, subHeaders.length-1)];
+
+  const monthMap = new Map();
+  const seenBefore = new Set();
+
+  const parsedSub = subRows.map(r=>({
+    month: toMonthKey(r[timeKey]),
+    time: parseTimeToSortable(r[timeKey]) || String(r[timeKey]||""),
+    id: String(r[idKey]||"").trim(),
+    plan: normalizePlan(r[planKey]),
+    price: parseMoney(r[priceKey]),
+  })).filter(x=>x.month && x.id);
+
+  parsedSub.sort((a,b)=> (a.month<b.month?-1:a.month>b.month?1: (a.time<b.time?-1:a.time>b.time?1:0)));
+
+  // user agg
+  const userMap = new Map();
+  function ensureUser(id){
+    if(!userMap.has(id)) userMap.set(id, {
+      id, subSpend:0, singleSpend:0, totalSpend:0,
+      subOrders:0, singleOrders:0, totalOrders:0,
+      firstTs:null, lastTs:null, activeMonths:new Set()
+    });
+    return userMap.get(id);
+  }
+  function updateTime(u, ts){
+    if(!ts) return;
+    if(!u.firstTs || ts < u.firstTs) u.firstTs = ts;
+    if(!u.lastTs  || ts > u.lastTs)  u.lastTs  = ts;
+  }
+
+  for(const rec of parsedSub){
+    if(!monthMap.has(rec.month)) monthMap.set(rec.month, {
+      month: rec.month,
+      subIds: new Set(),
+      newIds: new Set(),
+      oldIds: new Set(),
+      planCount: {"1M":0,"3M":0,"6M":0},
+      subRevenue: 0,
+      singleRevenue: 0,
+    });
+    const m = monthMap.get(rec.month);
+
+    if(!m.subIds.has(rec.id)){
+      m.subIds.add(rec.id);
+      if(seenBefore.has(rec.id)) m.oldIds.add(rec.id); else m.newIds.add(rec.id);
     }
-    return "";
+    m.planCount[rec.plan] = (m.planCount[rec.plan]||0) + 1;
+    if(isFinite(rec.price)) m.subRevenue += rec.price;
+    seenBefore.add(rec.id);
+
+    const u = ensureUser(rec.id);
+    if(isFinite(rec.price)) { u.subSpend += rec.price; u.totalSpend += rec.price; }
+    u.subOrders += 1; u.totalOrders += 1;
+    u.activeMonths.add(rec.month);
+    updateTime(u, rec.time);
+  }
+
+  const sHeaders = Object.keys(singleRows[0]||{});
+  const sTimeKey  = pickKey(sHeaders, ["時間","time","date","datetime"]) || sHeaders[0];
+  const sTitleKey = pickKey(sHeaders, ["影片標題","標題","title","影片","內容"]) || sHeaders[1];
+  const sUrlKey   = pickKey(sHeaders, ["網址","url","link"]) || sHeaders[2];
+  const sIdKey    = pickKey(sHeaders, ["用戶id","user id","userid","id","用戶","user"]) || sHeaders[3];
+  const sPriceKey = pickKey(sHeaders, ["價格","price","金額","amount","收入"]) || sHeaders[Math.min(4, sHeaders.length-1)];
+
+  const titleAgg = new Map();
+  for(const r of singleRows){
+    const title = String(r[sTitleKey]||"").trim();
+    const url = String(r[sUrlKey]||"").trim();
+    const price = parseMoney(r[sPriceKey]);
+    const uid = String(r[sIdKey]||"").trim();
+    if(title){
+      if(!titleAgg.has(title)) titleAgg.set(title, {title, url, sum:0, count:0});
+      const t = titleAgg.get(title);
+      if(!t.url && url) t.url=url;
+      if(isFinite(price)) t.sum += price;
+      t.count += 1;
+    }
+    if(uid){
+      const u = ensureUser(uid);
+      if(isFinite(price)) { u.singleSpend += price; u.totalSpend += price; }
+      u.singleOrders += 1; u.totalOrders += 1;
+      const ts = parseTimeToSortable(r[sTimeKey]) || String(r[sTimeKey]||"");
+      updateTime(u, ts);
+      const mo = toMonthKey(r[sTimeKey]);
+      if(mo) u.activeMonths.add(mo);
+    }
+  }
+
+  for(const r of singleRows){
+    const month = toMonthKey(r[sTimeKey]);
+    if(!month) continue;
+    const price = parseMoney(r[sPriceKey]);
+    if(!monthMap.has(month)) monthMap.set(month, {
+      month, subIds:new Set(), newIds:new Set(), oldIds:new Set(),
+      planCount: {"1M":0,"3M":0,"6M":0}, subRevenue:0, singleRevenue:0
+    });
+    const m = monthMap.get(month);
+    if(isFinite(price)) m.singleRevenue += price;
+  }
+
+  const monthsAsc = Array.from(monthMap.keys()).sort();
+  const aggAsc = monthsAsc.map(k=>{
+    const m = monthMap.get(k);
+    const subs = m.subIds.size;
+    const newUsers = m.newIds.size;
+    const oldUsers = m.oldIds.size;
+    const orders = (m.planCount["1M"] + m.planCount["3M"] + m.planCount["6M"]) || 0;
+    const p1 = orders? m.planCount["1M"]/orders : 0;
+    const p3 = orders? m.planCount["3M"]/orders : 0;
+    const p6 = orders? m.planCount["6M"]/orders : 0;
+    const subRevenue = m.subRevenue || 0;
+    const singleRevenue = m.singleRevenue || 0;
+    const totalRevenue = subRevenue + singleRevenue;
+    const arpu = subs? subRevenue/subs : NaN;
+    return { month:k, subs, newUsers, oldUsers, p1, p3, p6, subRevenue, singleRevenue, totalRevenue, arpu };
+  });
+
+  const topSingles = Array.from(titleAgg.values()).sort((a,b)=>b.sum-a.sum).slice(0,10);
+
+  const users = Array.from(userMap.values()).map(u=>{
+    const monthsActive = u.activeMonths.size;
+    let spanDays = null;
+    if(u.firstTs && u.lastTs){
+      const a = Date.parse(u.firstTs.replace(" ", "T") + "+08:00");
+      const b = Date.parse(u.lastTs.replace(" ", "T") + "+08:00");
+      if(isFinite(a) && isFinite(b)) spanDays = Math.round((b-a)/(1000*60*60*24));
+    }
+    return {...u, monthsActive, spanDays};
+  });
+
+  return { aggAsc, topSingles, users };
+}
+
+function renderTables(aggDesc, topSingles){
+  el("tbodyMonthly").innerHTML = aggDesc.map(x=>(
+    `<tr>
+      <td>${x.month}</td>
+      <td class="right">${x.subs}</td>
+      <td class="right">${x.newUsers}</td>
+      <td class="right">${x.oldUsers}</td>
+      <td class="right">${Math.round(x.subRevenue).toLocaleString("en-US")}</td>
+      <td class="right">${Math.round(x.singleRevenue).toLocaleString("en-US")}</td>
+      <td class="right">${Math.round(x.totalRevenue).toLocaleString("en-US")}</td>
+      <td class="right">${isFinite(x.arpu)?x.arpu.toFixed(1):"–"}</td>
+    </tr>`
+  )).join("");
+
+  el("tbodySingles").innerHTML = topSingles.map(t=>{
+    const safeTitle = t.title.replace(/</g,"&lt;").replace(/>/g,"&gt;");
+    const link = t.url ? `<a href="${t.url}" target="_blank" rel="noopener">${safeTitle}</a>` : safeTitle;
+    return `<tr>
+      <td>${link}</td>
+      <td class="right">${Math.round(t.sum).toLocaleString("en-US")}</td>
+      <td class="right">${t.count}</td>
+    </tr>`;
+  }).join("");
+}
+
+function renderUsers(metric){
+  const users = STATE.users || [];
+  const rows = [...users];
+  let getVal = (u)=>u.totalSpend;
+  let fmt = (v)=> Math.round(v).toLocaleString("en-US");
+  let label = "總$";
+  if(metric==="spend_sub"){ getVal=(u)=>u.subSpend; label="訂閱$"; }
+  else if(metric==="spend_single"){ getVal=(u)=>u.singleSpend; label="單片$"; }
+  else if(metric==="active_months"){ getVal=(u)=>u.monthsActive; fmt=(v)=>String(v); label="月數"; }
+  else if(metric==="tenure_span"){ getVal=(u)=> (u.spanDays==null?-1:u.spanDays); fmt=(v)=> (v<0?"–":(v+"d")); label="跨度"; }
+  else if(metric==="orders_total"){ getVal=(u)=>u.totalOrders; fmt=(v)=>String(v); label="次數"; }
+
+  rows.sort((a,b)=> (getVal(b) - getVal(a)));
+  const top = rows.filter(u=>getVal(u)>0).slice(0,10);
+
+  el("tbodyUsers").innerHTML = top.map(u=>(
+    `<tr>
+      <td>${u.id}</td>
+      <td class="right">${fmt(getVal(u))}</td>
+      <td class="right">${Math.round(u.subSpend).toLocaleString("en-US")}</td>
+      <td class="right">${Math.round(u.singleSpend).toLocaleString("en-US")}</td>
+      <td class="right">${Math.round(u.totalSpend).toLocaleString("en-US")}</td>
+    </tr>`
+  )).join("") || `<tr><td colspan="5" style="color:rgba(156,163,175,.9); padding:14px;">（目前沒有資料）</td></tr>`;
+}
+
+function makeChecksFor(view){
+  const css = getComputedStyle(document.documentElement);
+  const itemsByView = {
+    money: [
+      { id:"r_total",  color:css.getPropertyValue('--totalrev').trim(), title:"總營收", desc:"訂閱 + 單片" },
+      { id:"r_sub",    color:css.getPropertyValue('--rev').trim(),      title:"訂閱營收", desc:"訂閱金額" },
+      { id:"r_single", color:css.getPropertyValue('--single').trim(),   title:"單片營收", desc:"單片金額" },
+    ],
+    subs: [
+      { id:"s_new", color:css.getPropertyValue('--new').trim(), title:"新客", desc:"柱狀（新客）" },
+      { id:"s_old", color:css.getPropertyValue('--old').trim(), title:"舊客", desc:"柱狀（舊客）" },
+    ],
+    mix: [
+      { id:"p_1", color:"#22c55e", title:"1M", desc:"單月" },
+      { id:"p_3", color:"#60a5fa", title:"3M", desc:"三月" },
+      { id:"p_6", color:"#f97316", title:"6M", desc:"六月" },
+    ],
+    arpu: [],
   };
+  const items = itemsByView[view] || [];
+  const box = el("checks");
+  box.innerHTML = items.map(it=>(
+    `<label class="check">
+      <input type="checkbox" id="${it.id}" />
+      <span class="dot" style="background:${it.color}"></span>
+      <span class="label"><b>${it.title}</b><span>${it.desc}</span></span>
+    </label>`
+  )).join("");
+  box.style.display = (view==="arpu") ? "none" : "grid";
+}
 
-  const month = get("month","月份","time_month","時間月份","年月","ym","日期月份","monthlabel","月份month");
-  const subscribers = toNumber(get("subscribers","訂閱人數","訂閱數","subscriber","subs"));
-  const newUsers = toNumber(get("newusers","新客","新戶","new"));
-  const oldUsers = toNumber(get("oldusers","舊客","舊戶","old"));
-  const rev = toNumber(get("revenue","訂月營收","營收","rev","totalrevenue","總營收"));
-  const arpu = toNumber(get("arpu","每人平均營收","peruserrevenue"));
+function applyOrder(newestFirst){
+  const a = STATE.aggAsc;
+  STATE.aggDesc = newestFirst ? [...a].reverse() : [...a];
+  el("orderTag").textContent = newestFirst ? "新 → 舊" : "舊 → 新";
+}
 
-  const m1 = toNumber(get("1month","單月","單月%","單月比例","m1","one"));
-  const m3 = toNumber(get("3month","三月","三個月","三月%","m3","three"));
-  const m6 = toNumber(get("6month","六月","六個月","六月%","m6","six"));
+function buildTraces(view){
+  const agg = STATE.aggDesc;
+  const x = agg.map(d=>Number(d.month.split("-")[1]));
+  const xText = agg.map(d=>d.month);
 
-  // If plan values look like percent strings already in 0-100, normalize to 0-1.
-  const normPct = (v) => v > 1 ? v/100 : v;
+  const newY = agg.map(d=>d.newUsers);
+  const oldY = agg.map(d=>d.oldUsers);
+  const subRev = agg.map(d=>Math.round(d.subRevenue));
+  const singleRev = agg.map(d=>Math.round(d.singleRevenue));
+  const totalRev = agg.map(d=>Math.round(d.totalRevenue));
+  const arpu = agg.map(d=> (isFinite(d.arpu)? Number(d.arpu.toFixed(1)) : null));
+  const p1 = agg.map(d=> (d.p1*100));
+  const p3 = agg.map(d=> (d.p3*100));
+  const p6 = agg.map(d=> (d.p6*100));
 
+  const css = getComputedStyle(document.documentElement);
+  const CNEW = css.getPropertyValue('--new').trim();
+  const COLD = css.getPropertyValue('--old').trim();
+  const CREV = css.getPropertyValue('--rev').trim();
+  const CSIN = css.getPropertyValue('--single').trim();
+  const CTOT = css.getPropertyValue('--totalrev').trim();
+  const CARPU = css.getPropertyValue('--arpu').trim();
+
+  const xaxis = {
+    tickmode:"array",
+    tickvals:x,
+    ticktext:x.map(v=>String(v)),
+    gridcolor:"rgba(255,255,255,.08)",
+    zeroline:false,
+    tickfont:{color:"rgba(229,231,235,.9)", size:12},
+  };
+  const yCommon = {
+    gridcolor:"rgba(255,255,255,.10)",
+    zeroline:false,
+    tickfont:{color:"rgba(229,231,235,.9)", size:12},
+  };
+  const labelFont = {color:"rgba(229,231,235,.95)", size:12};
+  const labelFontSmall = {color:"rgba(229,231,235,.95)", size:11};
+
+  if(view==="subs"){
+    return {
+      traces: [
+        {name:"New users", type:"bar", x, y:newY, marker:{color:CNEW},
+          text:newY.map(v=>String(v)), textposition:"inside", insidetextanchor:"middle", textfont:labelFontSmall,
+          customdata:xText, hovertemplate:"%{customdata}<br>New: <b>%{y}</b><extra></extra>"},
+        {name:"Old users", type:"bar", x, y:oldY, marker:{color:COLD},
+          text:oldY.map(v=>String(v)), textposition:"inside", insidetextanchor:"middle", textfont:labelFontSmall,
+          customdata:xText, hovertemplate:"%{customdata}<br>Old: <b>%{y}</b><extra></extra>"},
+      ],
+      layout: { barmode:"stack", xaxis, yaxis: yCommon },
+      defaults: ["s_new","s_old"],
+      hint: "訂閱人數：新/舊客柱狀。",
+    };
+  }
+  if(view==="mix"){
+    return {
+      traces: [
+        {name:"1M", type:"bar", x, y:p1, marker:{color:"#22c55e"}, opacity:0.92,
+          text:p1.map(v=>v.toFixed(1)+"%"), textposition:"inside", textfont:labelFontSmall,
+          customdata:xText, hovertemplate:"%{customdata}<br>1M: <b>%{y:.1f}%</b><extra></extra>"},
+        {name:"3M", type:"bar", x, y:p3, marker:{color:"#60a5fa"}, opacity:0.92,
+          text:p3.map(v=>v.toFixed(1)+"%"), textposition:"inside", textfont:labelFontSmall,
+          customdata:xText, hovertemplate:"%{customdata}<br>3M: <b>%{y:.1f}%</b><extra></extra>"},
+        {name:"6M", type:"bar", x, y:p6, marker:{color:"#f97316"}, opacity:0.92,
+          text:p6.map(v=>v.toFixed(1)+"%"), textposition:"inside", textfont:labelFontSmall,
+          customdata:xText, hovertemplate:"%{customdata}<br>6M: <b>%{y:.1f}%</b><extra></extra>"},
+      ],
+      layout: { barmode:"stack", xaxis, yaxis: {...yCommon, range:[0,100], ticksuffix:"%"} },
+      defaults: ["p_1","p_3","p_6"],
+      hint: "方案比例：100% 堆疊柱狀（1/3/6M 勾選）。",
+    };
+  }
+  if(view==="arpu"){
+    return {
+      traces: [
+        {name:"ARPU", type:"scatter", mode:"lines+markers+text", x, y:arpu,
+          line:{color:CARPU,width:3}, marker:{size:8,color:CARPU},
+          text:arpu.map(v=> (v==null? "" : String(v))), textposition:"top center", textfont:labelFont,
+          customdata:xText, hovertemplate:"%{customdata}<br>ARPU: <b>%{y}</b><extra></extra>"},
+      ],
+      layout: { xaxis, yaxis: yCommon },
+      defaults: [],
+      hint: "ARPU：整頁只顯示它（不需要勾選）。",
+    };
+  }
   return {
-    month: unifyMonthLabel(month || get("時間","date","日期") || ""),
-    monthKey: monthSortKey(month || ""),
-    subscribers,
-    newUsers,
-    oldUsers,
-    revenue: rev,
-    arpu,
-    plan1: normPct(m1),
-    plan3: normPct(m3),
-    plan6: normPct(m6),
+    traces: [
+      {name:"Total revenue", type:"scatter", mode:"lines+markers+text", x, y:totalRev,
+        line:{color:CTOT,width:3}, marker:{size:8,color:CTOT},
+        text:totalRev.map(v=>String(v)), textposition:"top center", textfont:labelFont,
+        customdata:xText, hovertemplate:"%{customdata}<br>Total: <b>%{y}</b><extra></extra>"},
+      {name:"Sub revenue", type:"scatter", mode:"lines+markers+text", x, y:subRev,
+        line:{color:CREV,width:3}, marker:{size:8,color:CREV},
+        text:subRev.map(v=>String(v)), textposition:"top center", textfont:labelFont,
+        customdata:xText, hovertemplate:"%{customdata}<br>Sub: <b>%{y}</b><extra></extra>"},
+      {name:"Single revenue", type:"scatter", mode:"lines+markers+text", x, y:singleRev,
+        line:{color:CSIN,width:3,dash:"dot"}, marker:{size:8,color:CSIN},
+        text:singleRev.map(v=>String(v)), textposition:"top center", textfont:labelFont,
+        customdata:xText, hovertemplate:"%{customdata}<br>Single: <b>%{y}</b><extra></extra>"},
+    ],
+    layout: { xaxis, yaxis: yCommon },
+    defaults: ["r_total","r_sub","r_single"],
+    hint: "金額：總/訂閱/單片。",
   };
 }
 
-async function load(){
-  el.srcSubShort.textContent = shortUrl(SUB_CSV_URL);
-  el.srcSingleShort.textContent = shortUrl(SINGLE_CSV_URL);
-
-  const [subTxt, singleTxt] = await Promise.all([
-    fetchCSV(SUB_CSV_URL),
-    fetchCSV(SINGLE_CSV_URL)
-  ]);
-
-  const subRows = parseCSV(subTxt);
-  const singleRows = parseCSV(singleTxt);
-
-  const subObjs = rowsToObjects(subRows).map(guessMonthlyFields);
-  // single sheet likely has month + revenue only (we’ll try same field guessing)
-  const singleObjsRaw = rowsToObjects(singleRows);
-
-  const singleObjs = singleObjsRaw.map(o => {
-    const month = unifyMonthLabel(o["month"] || o["月份"] || o["時間月份"] || o["年月"] || o["ym"] || o["date"] || "");
-    const rev = toNumber(o["revenue"] || o["金額"] || o["單片購買金額"] || o["單片購買收入"] || o["price"] || o["總金額"] || o["amount"]);
-    return { month, monthKey: monthSortKey(month), singleRevenue: rev };
-  }).filter(x => x.month && x.month !== "—");
-
-  // Merge by month
-  const map = new Map();
-  for (const r of subObjs){
-    if (!r.month || r.month === "—") continue;
-    map.set(r.month, {...r, singleRevenue: 0});
-  }
-  for (const s of singleObjs){
-    const base = map.get(s.month) || { month: s.month, monthKey: s.monthKey, subscribers:0,newUsers:0,oldUsers:0,revenue:0,arpu:0,plan1:0,plan3:0,plan6:0, singleRevenue:0 };
-    base.singleRevenue = s.singleRevenue;
-    base.monthKey = base.monthKey || s.monthKey;
-    map.set(s.month, base);
-  }
-
-  monthly = Array.from(map.values()).sort((a,b) => a.monthKey - b.monthKey);
-
-  // If ARPU not provided, compute from revenue/subscribers when possible
-  for (const r of monthly){
-    if (!r.arpu && r.subscribers > 0 && r.revenue > 0){
-      r.arpu = r.revenue / r.subscribers;
-    }
-    // total revenue = subscription revenue (already "total") + single revenue
-    r.totalRevenue = (r.revenue || 0) + (r.singleRevenue || 0);
-    // If subscribers missing but new/old exist
-    if (!r.subscribers && (r.newUsers || r.oldUsers)){
-      r.subscribers = (r.newUsers || 0) + (r.oldUsers || 0);
-    }
-  }
-
-  // KPI
-  const totalAll = monthly.reduce((s,r)=>s+(r.totalRevenue||0),0);
-  el.kpiTotalRevenue.textContent = fmtMoney(totalAll);
-  el.kpiMonths.textContent = "Months " + monthly.length;
-
-  // default links in side panel
-  el.sideLink.href = SUB_SHEET_LINK;
-
-  // Render
-  Chart.register(ChartDataLabels);
-  render();
-}
-
-function baseChartOptions(){
+function layoutBase(){
   return {
-    responsive: true,
-    maintainAspectRatio: false,
-    animation: false,
-    interaction: { mode: "nearest", intersect: false },
-    plugins: {
-      legend: { display:false },
-      tooltip: {
-        enabled: true,
-        backgroundColor: "rgba(0,0,0,.75)",
-        titleColor: "#fff",
-        bodyColor: "#fff",
-        padding: 10,
-        displayColors: true,
-        callbacks: {
-          label: (ctx) => {
-            const label = ctx.dataset.label || "";
-            const v = ctx.parsed.y;
-            if (label.toLowerCase().includes("pct") || label.includes("%")) return `${label}: ${fmtPct(v)}`;
-            if (label.toLowerCase().includes("arpu")) return `${label}: ${fmtMoney(v)}`;
-            if (label.toLowerCase().includes("revenue") || label.toLowerCase().includes("amount") || label.toLowerCase().includes("total")) return `${label}: ${fmtMoney(v)}`;
-            return `${label}: ${fmtNum(v)}`;
-          }
-        }
-      },
-      datalabels: {
-        color: C.text,
-        font: (ctx) => ({ weight: "700", size: 11 }),
-        anchor: "end",
-        align: "end",
-        offset: 2,
-        clamp: true,
-        clip: false,
-        formatter: (v, ctx) => {
-          const label = (ctx.dataset.label || "").toLowerCase();
-          if (label.includes("pct")) return (v*100).toFixed(0) + "%";
-          if (label.includes("arpu")) return Math.round(v).toString();
-          if (label.includes("revenue") || label.includes("amount") || label.includes("total")) return Math.round(v).toString();
-          return Math.round(v).toString();
-        }
-      }
-    },
-    scales: {
-      x: {
-        ticks: { color: C.muted },
-        grid: { color: "rgba(255,255,255,.06)" }
-      },
-      y: {
-        ticks: { color: C.muted },
-        grid: { color: "rgba(255,255,255,.06)" }
-      }
-    }
+    dragmode:false,
+    paper_bgcolor:"rgba(0,0,0,0)",
+    plot_bgcolor:"rgba(255,255,255,0.02)",
+    margin:{l:56,r:40,t:22,b:46},
+    bargap:0.35,
+    legend:{orientation:"h", x:0, y:1.12, font:{color:"rgba(229,231,235,.9)"}},
+    hovermode:"x unified",
+    hoverlabel:{bgcolor:"rgba(15,23,42,.95)", bordercolor:"rgba(255,255,255,.14)", font:{color:"#e5e7eb"}},
   };
 }
 
-function destroyChart(){
-  if (chart){ chart.destroy(); chart = null; }
+function renderChart(view){
+  makeChecksFor(view);
+  const built = buildTraces(view);
+  el("viewHint").textContent = built.hint;
+
+  const layout = {...layoutBase(), ...built.layout};
+  const config = {responsive:true, displaylogo:false, scrollZoom:false, doubleClick:false};
+
+  Plotly.react("chart", built.traces, layout, config).then(()=>{
+    if(view!=="arpu"){
+      (built.defaults||[]).forEach(id=>{ const node=document.getElementById(id); if(node) node.checked=true; });
+      applyVisibility(view, built.traces);
+      document.querySelectorAll("#checks input[type=checkbox]").forEach(cb=> cb.addEventListener("change", ()=>applyVisibility(view, built.traces)));
+    } else {
+      Plotly.restyle("chart", "visible", built.traces.map(()=>true));
+    }
+  });
 }
 
-function setChips(chips){
-  // chips: [{id,label,checked,onChange}]
-  el.chipsArea.innerHTML = "";
-  for (const c of chips){
-    const wrap = document.createElement("label");
-    wrap.className = "chip";
-    const input = document.createElement("input");
-    input.type = "checkbox";
-    input.checked = c.checked;
-    input.id = c.id;
-    input.addEventListener("change", () => c.onChange(input.checked));
-    const span = document.createElement("span");
-    span.textContent = c.label;
-    wrap.appendChild(input);
-    wrap.appendChild(span);
-    el.chipsArea.appendChild(wrap);
+function applyVisibility(view, traces){
+  let vis = new Array(traces.length).fill(false);
+  const on = (id)=> { const n=document.getElementById(id); return n && n.checked; };
+
+  if(view==="money"){
+    if(on("r_total")) vis[0]=true;
+    if(on("r_sub")) vis[1]=true;
+    if(on("r_single")) vis[2]=true;
+  } else if(view==="subs"){
+    if(on("s_new")) vis[0]=true;
+    if(on("s_old")) vis[1]=true;
+  } else if(view==="mix"){
+    if(on("p_1")) vis[0]=true;
+    if(on("p_3")) vis[1]=true;
+    if(on("p_6")) vis[2]=true;
+  }
+  Plotly.restyle("chart", "visible", vis);
+}
+
+async function main(){
+  try{
+    if(location.protocol==="file:") {
+      el("status").textContent = "⚠️ 這頁要用網址開（Vercel/localhost），file:// 會被瀏覽器擋住抓CSV";
+      return;
+    }
+    el("status").textContent = "Loading… 正在抓 Google Sheets CSV";
+
+    const [subCSV, singleCSV] = await Promise.all([fetchCSV(SUB_CSV_URL), fetchCSV(SINGLE_CSV_URL)]);
+    const subRows = csvToRows(subCSV);
+    const singleRows = csvToRows(singleCSV);
+
+    if(!subRows.length) throw new Error("訂閱CSV 沒抓到資料（可能還沒 publish 或 gid 錯）");
+    if(!singleRows.length) throw new Error("單片CSV 沒抓到資料（可能還沒 publish 或 gid 錯）");
+
+    const built = buildAgg(subRows, singleRows);
+    STATE.aggAsc = built.aggAsc;
+    STATE.topSingles = built.topSingles;
+    STATE.users = built.users;
+
+    applyOrder(true);
+
+    el("months").textContent = String(STATE.aggAsc.length);
+    el("totalRevenue").textContent = money(Math.round(STATE.aggAsc.reduce((a,b)=>a+(b.totalRevenue||0),0)));
+
+    renderTables(STATE.aggDesc, STATE.topSingles);
+    renderUsers(el("userMetric").value);
+    el("userMetric").addEventListener("change", (e)=> renderUsers(e.target.value));
+
+    renderChart("money");
+    el("viewSelect").addEventListener("change", (e)=> renderChart(e.target.value));
+
+    el("status").textContent = "✅ 已載入 · 用下拉選單切換不同圖表";
+  } catch(err) {
+    el("status").textContent = "❌ Load failed: " + (err && err.message ? err.message : String(err));
   }
 }
-
-function renderMoney(){
-  const labels = monthly.map(r=>r.month);
-  const subRev = monthly.map(r=>r.revenue||0);
-  const singleRev = monthly.map(r=>r.singleRevenue||0);
-  const totalRev = monthly.map(r=>r.totalRevenue||0);
-
-  el.sideTitle.textContent = "單片購買";
-  el.sideLink.href = SINGLE_SHEET_LINK;
-
-  // Side table: show single revenue by month
-  el.sideTbody.innerHTML = "";
-  monthly.slice().reverse().forEach(r=>{
-    const tr = document.createElement("tr");
-    tr.innerHTML = `<td class="mono">${r.month}</td><td class="right mono">${fmtMoney(r.singleRevenue||0)}</td>`;
-    el.sideTbody.appendChild(tr);
-  });
-
-  // Toggles
-  const state = { sub:true, single:true, total:true };
-  setChips([
-    { id:"tSub", label:"訂閱營收", checked:true, onChange:(v)=>{state.sub=v; update();} },
-    { id:"tSingle", label:"單片營收", checked:true, onChange:(v)=>{state.single=v; update();} },
-    { id:"tTotal", label:"總營收", checked:true, onChange:(v)=>{state.total=v; update();} },
-  ]);
-
-  function buildDatasets(){
-    const ds = [];
-    if (state.sub){
-      ds.push({
-        label:"Subscription revenue",
-        type:"line",
-        data: subRev,
-        borderColor: C.rev,
-        backgroundColor: C.rev,
-        tension:.35,
-        borderWidth:2,
-        pointRadius:3,
-        pointHoverRadius:4,
-        yAxisID:"y"
-      });
-    }
-    if (state.single){
-      ds.push({
-        label:"Single purchase revenue",
-        type:"line",
-        data: singleRev,
-        borderColor: C.single,
-        backgroundColor: C.single,
-        tension:.35,
-        borderWidth:2,
-        pointRadius:3,
-        pointHoverRadius:4,
-        yAxisID:"y"
-      });
-    }
-    if (state.total){
-      ds.push({
-        label:"Total revenue",
-        type:"bar",
-        data: totalRev,
-        backgroundColor: "rgba(46,204,113,.85)",
-        borderColor: C.total,
-        borderWidth:1,
-        borderRadius: 8,
-        yAxisID:"y"
-      });
-    }
-    return ds;
-  }
-
-  destroyChart();
-  const ctx = document.getElementById("chart");
-  chart = new Chart(ctx, {
-    data: { labels, datasets: buildDatasets() },
-    options: {
-      ...baseChartOptions(),
-      scales: {
-        x: baseChartOptions().scales.x,
-        y: {
-          ...baseChartOptions().scales.y,
-          ticks: { ...baseChartOptions().scales.y.ticks, callback: (v)=>v }
-        }
-      }
-    }
-  });
-
-  function update(){
-    chart.data.datasets = buildDatasets();
-    chart.update();
-  }
-}
-
-function renderSubs(){
-  const labels = monthly.map(r=>r.month);
-  const newU = monthly.map(r=>r.newUsers||0);
-  const oldU = monthly.map(r=>r.oldUsers||0);
-
-  el.sideTitle.textContent = "訂閱試算表";
-  el.sideLink.href = SUB_SHEET_LINK;
-
-  // Side table: subscribers breakdown
-  el.sideTbody.innerHTML = "";
-  monthly.slice().reverse().forEach(r=>{
-    const tr = document.createElement("tr");
-    tr.innerHTML = `<td class="mono">${r.month}</td><td class="right mono">${fmtNum(r.subscribers||0)}</td>`;
-    el.sideTbody.appendChild(tr);
-  });
-
-  setChips([]); // no toggles
-
-  destroyChart();
-  const ctx = document.getElementById("chart");
-  chart = new Chart(ctx, {
-    type:"bar",
-    data:{
-      labels,
-      datasets:[
-        {
-          label:"New users",
-          data:newU,
-          backgroundColor: "rgba(52,152,219,.88)",
-          borderColor: C.new,
-          borderWidth:1,
-          borderRadius:8,
-          stack:"s"
-        },
-        {
-          label:"Old users",
-          data:oldU,
-          backgroundColor: "rgba(41,128,185,.88)",
-          borderColor: C.old,
-          borderWidth:1,
-          borderRadius:8,
-          stack:"s"
-        }
-      ]
-    },
-    options:{
-      ...baseChartOptions(),
-      scales:{
-        x:{ ...baseChartOptions().scales.x, stacked:true },
-        y:{ ...baseChartOptions().scales.y, stacked:true }
-      },
-      plugins:{
-        ...baseChartOptions().plugins,
-        datalabels:{
-          ...baseChartOptions().plugins.datalabels,
-          anchor:"center",
-          align:"center",
-          formatter:(v, ctx) => v ? Math.round(v).toString() : ""
-        }
-      }
-    }
-  });
-}
-
-function renderPlans(){
-  const labels = monthly.map(r=>r.month);
-  const p1 = monthly.map(r=>r.plan1||0);
-  const p3 = monthly.map(r=>r.plan3||0);
-  const p6 = monthly.map(r=>r.plan6||0);
-
-  el.sideTitle.textContent = "方案比例";
-  el.sideLink.href = SUB_SHEET_LINK;
-
-  // Side table: show plan ratios for last months
-  el.sideTbody.innerHTML = "";
-  monthly.slice().reverse().forEach(r=>{
-    const tr = document.createElement("tr");
-    const a = (r.plan1||0), b=(r.plan3||0), c=(r.plan6||0);
-    tr.innerHTML = `<td class="mono">${r.month}</td><td class="right mono">${Math.round((b+c)*100)}%</td>`;
-    el.sideTbody.appendChild(tr);
-  });
-
-  const state = { m1:true, m3:true, m6:true };
-  setChips([
-    { id:"p1", label:"1 month", checked:true, onChange:(v)=>{state.m1=v; update();} },
-    { id:"p3", label:"3 months", checked:true, onChange:(v)=>{state.m3=v; update();} },
-    { id:"p6", label:"6 months", checked:true, onChange:(v)=>{state.m6=v; update();} },
-  ]);
-
-  function build(){
-    const ds=[];
-    if (state.m1) ds.push({ label:"1m pct", data:p1, backgroundColor:"rgba(241,196,15,.85)", borderColor:C.m1, borderWidth:1, borderRadius:8, stack:"p" });
-    if (state.m3) ds.push({ label:"3m pct", data:p3, backgroundColor:"rgba(243,156,18,.85)", borderColor:C.m3, borderWidth:1, borderRadius:8, stack:"p" });
-    if (state.m6) ds.push({ label:"6m pct", data:p6, backgroundColor:"rgba(230,126,34,.85)", borderColor:C.m6, borderWidth:1, borderRadius:8, stack:"p" });
-    return ds;
-  }
-
-  destroyChart();
-  const ctx = document.getElementById("chart");
-  chart = new Chart(ctx, {
-    type:"bar",
-    data:{ labels, datasets: build() },
-    options:{
-      ...baseChartOptions(),
-      scales:{
-        x:{ ...baseChartOptions().scales.x, stacked:true },
-        y:{
-          ...baseChartOptions().scales.y,
-          stacked:true,
-          min:0,
-          max:1,
-          ticks:{ ...baseChartOptions().scales.y.ticks, callback:(v)=> (v*100).toFixed(0) }
-        }
-      },
-      plugins:{
-        ...baseChartOptions().plugins,
-        datalabels:{
-          ...baseChartOptions().plugins.datalabels,
-          formatter:(v)=> v ? (v*100).toFixed(0)+"%" : "",
-          anchor:"center",
-          align:"center",
-          offset:0
-        }
-      }
-    }
-  });
-
-  function update(){
-    chart.data.datasets = build();
-    chart.update();
-  }
-}
-
-function renderARPU(){
-  const labels = monthly.map(r=>r.month);
-  const arpu = monthly.map(r=>r.arpu||0);
-
-  el.sideTitle.textContent = "ARPU";
-  el.sideLink.href = SUB_SHEET_LINK;
-
-  // Side table: ARPU by month
-  el.sideTbody.innerHTML = "";
-  monthly.slice().reverse().forEach(r=>{
-    const tr = document.createElement("tr");
-    tr.innerHTML = `<td class="mono">${r.month}</td><td class="right mono">${fmtMoney(r.arpu||0)}</td>`;
-    el.sideTbody.appendChild(tr);
-  });
-
-  setChips([]); // no checkboxes
-
-  destroyChart();
-  const ctx = document.getElementById("chart");
-  chart = new Chart(ctx, {
-    type:"line",
-    data:{
-      labels,
-      datasets:[
-        {
-          label:"ARPU",
-          data: arpu,
-          borderColor: C.arpu,
-          backgroundColor: C.arpu,
-          borderWidth:2,
-          tension:.35,
-          pointRadius:3,
-          pointHoverRadius:4
-        }
-      ]
-    },
-    options:{
-      ...baseChartOptions(),
-      plugins:{
-        ...baseChartOptions().plugins,
-        datalabels:{
-          ...baseChartOptions().plugins.datalabels,
-          formatter:(v)=> v ? Math.round(v).toString() : "",
-          font:()=>({weight:"800", size:12}),
-          offset:6
-        }
-      }
-    }
-  });
-}
-
-function renderUsers(){
-  // We don't have per-user data from monthly sheets, so we infer “Top” from totals by month.
-  // If you later provide a user-level CSV, we can replace this with real rankings.
-  const labels = monthly.map(r=>r.month);
-  const total = monthly.map(r=>r.totalRevenue||0);
-
-  el.sideTitle.textContent = "用戶分析（示意）";
-  el.sideLink.href = SUB_SHEET_LINK;
-  el.sideTbody.innerHTML = `
-    <tr><td colspan="2" style="color:var(--muted); line-height:1.5">
-      目前你提供的兩個 CSV 是「月彙總」，沒有單一用戶層級資料，所以這頁先放<strong style="color:var(--text)">示意</strong>：<br/>
-      - 如果你之後再丟「明細 CSV（時間 / 方案 / userId / 金額）」我就能真的算 Top10：付最多、買最多次、訂閱最久…<br/>
-      （你之前的 FO 明細那種就行）
-    </td></tr>
-  `;
-
-  setChips([]);
-
-  destroyChart();
-  const ctx = document.getElementById("chart");
-  chart = new Chart(ctx, {
-    type:"bar",
-    data:{
-      labels,
-      datasets:[
-        {
-          label:"Total revenue",
-          data: total,
-          backgroundColor: "rgba(46,204,113,.85)",
-          borderColor: C.total,
-          borderWidth:1,
-          borderRadius:10
-        }
-      ]
-    },
-    options:{
-      ...baseChartOptions(),
-      plugins:{
-        ...baseChartOptions().plugins,
-        datalabels:{
-          ...baseChartOptions().plugins.datalabels,
-          formatter:(v)=> v ? Math.round(v).toString() : "",
-          anchor:"end",
-          align:"end",
-          offset:4
-        }
-      }
-    }
-  });
-}
-
-function render(){
-  const v = el.viewSelect.value;
-  if (v === "money") renderMoney();
-  else if (v === "subs") renderSubs();
-  else if (v === "plans") renderPlans();
-  else if (v === "arpu") renderARPU();
-  else renderUsers();
-}
-
-el.viewSelect.addEventListener("change", render);
-
-// boot
-load().catch(err=>{
-  console.error(err);
-  document.body.innerHTML = `<div style="padding:24px; color:#fff; font-family:system-ui">
-    <h2>Loading failed</h2>
-    <p style="opacity:.8">Could not load CSV. Please check your Google Sheet publish settings or the URL.</p>
-    <pre style="background:#000; padding:12px; border-radius:10px; overflow:auto">${String(err)}</pre>
-  </div>`;
-});
+main();
 </script>
-
 </body>
 </html>
