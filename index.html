@@ -380,931 +380,21 @@
   </div>
 </div>
 
-<script>
-const SUB_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQiAPNDCD7qn6atO4VB6Ei63AacDK00AMKM16hK8c-wVWFadPPOj-P8olYQ-ofMFwy0maGU1A4CBneW/pub?gid=0&single=true&output=csv";
-const SINGLE_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQiAPNDCD7qn6atO4VB6Ei63AacDK00AMKM16hK8c-wVWFadPPOj-P8olYQ-ofMFwy0maGU1A4CBneW/pub?gid=1226262547&single=true&output=csv";
 
-function el(id){ return document.getElementById(id); }
-function money(n){ if(!isFinite(n)) return "–"; return "$ " + Number(n).toLocaleString("en-US"); }
-function parseMoney(s){
-  if(s==null) return NaN;
-  const t = String(s);
-  const m = t.match(/-?\d+(?:,\d{3})*(?:\.\d+)?/);
-  if(!m) return NaN;
-  return Number(m[0].replace(/,/g,""));
-}
-function toMonthKey(v){
-  if(!v) return null;
-  const s = String(v).trim();
-  const m = s.match(/(\d{4})-(\d{2})/);
-  if(!m) return null;
-  return m[1] + "-" + m[2];
-}
-async function fetchCSV(url){
-  const r = await fetch(url, {cache:"no-store"});
-  if(!r.ok) throw new Error("Fetch failed: " + r.status);
-  return await r.text();
-}
-function splitCSVLine(line){
-  const out=[]; let cur=""; let inQ=false;
-  for(let i=0;i<line.length;i++) {
-    const c=line[i];
-    if(c==='"') {
-      if(inQ && line[i+1]==='"') { cur+='"'; i++; }
-      else inQ=!inQ;
-    } else if(c===',' && !inQ) { out.push(cur); cur=""; }
-    else cur+=c;
-  }
-  out.push(cur);
-  return out;
-}
-function csvToRows(csv){
-  const text = csv.replace(/^\uFEFF/, "");
-  const lines = text.replace(/\r/g,"").trim().split("\n");
-  if(lines.length<=1) return [];
-  const headers = splitCSVLine(lines[0]).map(h=>h.trim());
-  const rows=[];
-  for(let i=1;i<lines.length;i++) {
-    if(!lines[i].trim()) continue;
-    const cols = splitCSVLine(lines[i]);
-    const obj={};
-    headers.forEach((h,idx)=> obj[h] = (cols[idx] ?? "").trim());
-    rows.push(obj);
-  }
-  return rows;
-}
-function normalizePlan(plan){
-  const s = String(plan||"").toLowerCase();
-  if(s.includes("6") || s.includes("半年") || s.includes("6個月")) return "6M";
-  if(s.includes("3") || s.includes("三") || s.includes("3個月")) return "3M";
-  return "1M";
-}
-function pickKey(headers, candidates){
-  const lower = headers.map(h=>h.toLowerCase());
-  for(const cand of candidates){
-    const c = String(cand).toLowerCase();
-    const idx = lower.findIndex(h => h.includes(c));
-    if(idx>=0) return headers[idx];
-  }
-  return null;
-}
-function parseTimeToSortable(s){
-  // Accept: 2025-11-3001:09:28 or 2025-11-30 01:09:28
-  const t = String(s||"").trim();
-  const m = t.match(/^(\d{4})-(\d{2})-(\d{2})\s?(\d{2}):(\d{2})(?::(\d{2}))?/);
-  if(!m){
-    // try to insert space between date and time if missing
-    const m2 = t.match(/^(\d{4})-(\d{2})-(\d{2})(\d{2}):(\d{2})(?::(\d{2}))?/);
-    if(!m2) return null;
-    return `${m2[1]}-${m2[2]}-${m2[3]} ${m2[4]}:${m2[5]}:${m2[6]||"00"}`;
-  }
-  return `${m[1]}-${m[2]}-${m[3]} ${m[4]}:${m[5]}:${m[6]||"00"}`;
-}
 
-let STATE = { aggAsc:[], aggDesc:[], topSingles:[], users:[] };
 
-function buildAgg(subRows, singleRows){
-  const subHeaders = Object.keys(subRows[0]||{});
-  const timeKey  = pickKey(subHeaders, ["時間","time","date","datetime"]) || subHeaders[0];
-  const planKey  = pickKey(subHeaders, ["方案","plan","類型"]) || subHeaders[1];
-  const idKey    = pickKey(subHeaders, ["用戶id","user id","userid","id","用戶","user"]) || subHeaders[2];
-  const priceKey = pickKey(subHeaders, ["價格","price","金額","amount","收入"]) || subHeaders[Math.min(3, subHeaders.length-1)];
-
-  const monthMap = new Map();
-  const seenBefore = new Set();
-
-  const parsedSub = subRows.map(r=>({
-    month: toMonthKey(r[timeKey]),
-    time: parseTimeToSortable(r[timeKey]) || String(r[timeKey]||""),
-    id: String(r[idKey]||"").trim(),
-    plan: normalizePlan(r[planKey]),
-    price: parseMoney(r[priceKey]),
-  })).filter(x=>x.month && x.id);
-
-  parsedSub.sort((a,b)=> (a.month<b.month?-1:a.month>b.month?1: (a.time<b.time?-1:a.time>b.time?1:0)));
-
-  // user agg
-  const userMap = new Map();
-  function ensureUser(id){
-    if(!userMap.has(id)) userMap.set(id, {
-      id, subSpend:0, singleSpend:0, totalSpend:0,
-      subOrders:0, singleOrders:0, totalOrders:0,
-      firstTs:null, lastTs:null, activeMonths:new Set()
-    });
-    return userMap.get(id);
-  }
-  function updateTime(u, ts){
-    if(!ts) return;
-    if(!u.firstTs || ts < u.firstTs) u.firstTs = ts;
-    if(!u.lastTs  || ts > u.lastTs)  u.lastTs  = ts;
-  }
-
-  for(const rec of parsedSub){
-    if(!monthMap.has(rec.month)) monthMap.set(rec.month, {
-      month: rec.month,
-      subIds: new Set(),
-      newIds: new Set(),
-      oldIds: new Set(),
-      planCount: {"1M":0,"3M":0,"6M":0},
-      subRevenue: 0,
-      singleRevenue: 0,
-    });
-    const m = monthMap.get(rec.month);
-
-    if(!m.subIds.has(rec.id)){
-      m.subIds.add(rec.id);
-      if(seenBefore.has(rec.id)) m.oldIds.add(rec.id); else m.newIds.add(rec.id);
-    }
-    m.planCount[rec.plan] = (m.planCount[rec.plan]||0) + 1;
-    if(isFinite(rec.price)) m.subRevenue += rec.price;
-    seenBefore.add(rec.id);
-
-    const u = ensureUser(rec.id);
-    if(isFinite(rec.price)) { u.subSpend += rec.price; u.totalSpend += rec.price; }
-    u.subOrders += 1; u.totalOrders += 1;
-    u.activeMonths.add(rec.month);
-    updateTime(u, rec.time);
-  }
-
-  const sHeaders = Object.keys(singleRows[0]||{});
-  const sTimeKey  = pickKey(sHeaders, ["時間","time","date","datetime"]) || sHeaders[0];
-  const sTitleKey = pickKey(sHeaders, ["影片標題","標題","title","影片","內容"]) || sHeaders[1];
-  const sUrlKey   = pickKey(sHeaders, ["網址","url","link"]) || sHeaders[2];
-  const sIdKey    = pickKey(sHeaders, ["用戶id","user id","userid","id","用戶","user"]) || sHeaders[3];
-  const sPriceKey = pickKey(sHeaders, ["價格","price","金額","amount","收入"]) || sHeaders[Math.min(4, sHeaders.length-1)];
-
-  const titleAgg = new Map();
-  for(const r of singleRows){
-    const title = String(r[sTitleKey]||"").trim();
-    const url = String(r[sUrlKey]||"").trim();
-    const price = parseMoney(r[sPriceKey]);
-    const uid = String(r[sIdKey]||"").trim();
-    if(title){
-      if(!titleAgg.has(title)) titleAgg.set(title, {title, url, sum:0, count:0});
-      const t = titleAgg.get(title);
-      if(!t.url && url) t.url=url;
-      if(isFinite(price)) t.sum += price;
-      t.count += 1;
-    }
-    if(uid){
-      const u = ensureUser(uid);
-      if(isFinite(price)) { u.singleSpend += price; u.totalSpend += price; }
-      u.singleOrders += 1; u.totalOrders += 1;
-      const ts = parseTimeToSortable(r[sTimeKey]) || String(r[sTimeKey]||"");
-      updateTime(u, ts);
-      const mo = toMonthKey(r[sTimeKey]);
-      if(mo) u.activeMonths.add(mo);
-    }
-  }
-
-  for(const r of singleRows){
-    const month = toMonthKey(r[sTimeKey]);
-    if(!month) continue;
-    const price = parseMoney(r[sPriceKey]);
-    if(!monthMap.has(month)) monthMap.set(month, {
-      month, subIds:new Set(), newIds:new Set(), oldIds:new Set(),
-      planCount: {"1M":0,"3M":0,"6M":0}, subRevenue:0, singleRevenue:0
-    });
-    const m = monthMap.get(month);
-    if(isFinite(price)) m.singleRevenue += price;
-  }
-
-  const monthsAsc = Array.from(monthMap.keys()).sort();
-  const aggAsc = monthsAsc.map(k=>{
-    const m = monthMap.get(k);
-    const subs = m.subIds.size;
-    const newUsers = m.newIds.size;
-    const oldUsers = m.oldIds.size;
-    const orders = (m.planCount["1M"] + m.planCount["3M"] + m.planCount["6M"]) || 0;
-    const p1 = orders? m.planCount["1M"]/orders : 0;
-    const p3 = orders? m.planCount["3M"]/orders : 0;
-    const p6 = orders? m.planCount["6M"]/orders : 0;
-    const subRevenue = m.subRevenue || 0;
-    const singleRevenue = m.singleRevenue || 0;
-    const totalRevenue = subRevenue + singleRevenue;
-    const arpu = subs? subRevenue/subs : NaN;
-    return { month:k, subs, newUsers, oldUsers, p1, p3, p6, subRevenue, singleRevenue, totalRevenue, arpu };
-  });
-
-  const topSingles = Array.from(titleAgg.values()).sort((a,b)=>b.sum-a.sum).slice(0,10);
-
-  const users = Array.from(userMap.values()).map(u=>{
-    const monthsActive = u.activeMonths.size;
-    let spanDays = null;
-    if(u.firstTs && u.lastTs){
-      const a = Date.parse(u.firstTs.replace(" ", "T") + "+08:00");
-      const b = Date.parse(u.lastTs.replace(" ", "T") + "+08:00");
-      if(isFinite(a) && isFinite(b)) spanDays = Math.round((b-a)/(1000*60*60*24));
-    }
-    return {...u, monthsActive, spanDays};
-  });
-
-  return { aggAsc, topSingles, users };
-}
-
-function renderTables(aggDesc, topSingles){
-  el("tbodyMonthly").innerHTML = aggDesc.map(x=>(
-    `<tr>
-      <td>${x.month}</td>
-      <td class="right">${x.subs}</td>
-      <td class="right">${x.newUsers}</td>
-      <td class="right">${x.oldUsers}</td>
-      <td class="right">${Math.round(x.subRevenue).toLocaleString("en-US")}</td>
-      <td class="right">${Math.round(x.singleRevenue).toLocaleString("en-US")}</td>
-      <td class="right">${Math.round(x.totalRevenue).toLocaleString("en-US")}</td>
-      <td class="right">${isFinite(x.arpu)?x.arpu.toFixed(1):"–"}</td>
-    </tr>`
-  )).join("");
-
-  el("tbodySingles").innerHTML = topSingles.map(t=>{
-    const safeTitle = t.title.replace(/</g,"&lt;").replace(/>/g,"&gt;");
-    const link = t.url ? `<a href="${t.url}" target="_blank" rel="noopener">${safeTitle}</a>` : safeTitle;
-    return `<tr>
-      <td>${link}</td>
-      <td class="right">${Math.round(t.sum).toLocaleString("en-US")}</td>
-      <td class="right">${t.count}</td>
-    </tr>`;
-  }).join("");
-}
-
-function renderUsers(metric){
-  const users = STATE.users || [];
-  const rows = [...users];
-  let getVal = (u)=>u.totalSpend;
-  let fmt = (v)=> Math.round(v).toLocaleString("en-US");
-  let label = "總$";
-  if(metric==="spend_sub"){ getVal=(u)=>u.subSpend; label="訂閱$"; }
-  else if(metric==="spend_single"){ getVal=(u)=>u.singleSpend; label="單片$"; }
-  else if(metric==="active_months"){ getVal=(u)=>u.monthsActive; fmt=(v)=>String(v); label="月數"; }
-  else if(metric==="tenure_span"){ getVal=(u)=> (u.spanDays==null?-1:u.spanDays); fmt=(v)=> (v<0?"–":(v+"d")); label="跨度"; }
-  else if(metric==="orders_total"){ getVal=(u)=>u.totalOrders; fmt=(v)=>String(v); label="次數"; }
-
-  rows.sort((a,b)=> (getVal(b) - getVal(a)));
-  const top = rows.filter(u=>getVal(u)>0).slice(0,10);
-
-  el("tbodyUsers").innerHTML = top.map(u=>(
-    `<tr>
-      <td>${u.id}</td>
-      <td class="right">${fmt(getVal(u))}</td>
-      <td class="right">${Math.round(u.subSpend).toLocaleString("en-US")}</td>
-      <td class="right">${Math.round(u.singleSpend).toLocaleString("en-US")}</td>
-      <td class="right">${Math.round(u.totalSpend).toLocaleString("en-US")}</td>
-    </tr>`
-  )).join("") || `<tr><td colspan="5" style="color:rgba(156,163,175,.9); padding:14px;">（目前沒有資料）</td></tr>`;
-}
-
-function makeChecksFor(view){
-  const css = getComputedStyle(document.documentElement);
-  const itemsByView = {
-    money: [
-      { id:"r_total",  color:css.getPropertyValue('--totalrev').trim(), title:"總營收", desc:"訂閱 + 單片" },
-      { id:"r_sub",    color:css.getPropertyValue('--rev').trim(),      title:"訂閱營收", desc:"訂閱金額" },
-      { id:"r_single", color:css.getPropertyValue('--single').trim(),   title:"單片營收", desc:"單片金額" },
-    ],
-    subs: [
-      { id:"s_new", color:css.getPropertyValue('--new').trim(), title:"新客", desc:"柱狀（新客）" },
-      { id:"s_old", color:css.getPropertyValue('--old').trim(), title:"舊客", desc:"柱狀（舊客）" },
-    ],
-    mix: [
-      { id:"p_1", color:"#22c55e", title:"1M", desc:"單月" },
-      { id:"p_3", color:"#60a5fa", title:"3M", desc:"三月" },
-      { id:"p_6", color:"#f97316", title:"6M", desc:"六月" },
-    ],
-    arpu: [],
-  };
-  const items = itemsByView[view] || [];
-  const box = el("checks");
-  box.innerHTML = items.map(it=>(
-    `<label class="check">
-      <input type="checkbox" id="${it.id}" />
-      <span class="dot" style="background:${it.color}"></span>
-      <span class="label"><b>${it.title}</b><span>${it.desc}</span></span>
-    </label>`
-  )).join("");
-  box.style.display = (view==="arpu") ? "none" : "grid";
-}
-
-function applyOrder(newestFirst){
-  const a = STATE.aggAsc;
-  STATE.aggDesc = newestFirst ? [...a].reverse() : [...a];
-  el("orderTag").textContent = newestFirst ? "新 → 舊" : "舊 → 新";
-}
-
-function buildTraces(view){
-  const agg = STATE.aggDesc;
-  const x = agg.map(d=>Number(d.month.split("-")[1]));
-  const xText = agg.map(d=>d.month);
-
-  const newY = agg.map(d=>d.newUsers);
-  const oldY = agg.map(d=>d.oldUsers);
-  const subRev = agg.map(d=>Math.round(d.subRevenue));
-  const singleRev = agg.map(d=>Math.round(d.singleRevenue));
-  const totalRev = agg.map(d=>Math.round(d.totalRevenue));
-  const arpu = agg.map(d=> (isFinite(d.arpu)? Number(d.arpu.toFixed(1)) : null));
-  const p1 = agg.map(d=> (d.p1*100));
-  const p3 = agg.map(d=> (d.p3*100));
-  const p6 = agg.map(d=> (d.p6*100));
-
-  const css = getComputedStyle(document.documentElement);
-  const CNEW = css.getPropertyValue('--new').trim();
-  const COLD = css.getPropertyValue('--old').trim();
-  const CREV = css.getPropertyValue('--rev').trim();
-  const CSIN = css.getPropertyValue('--single').trim();
-  const CTOT = css.getPropertyValue('--totalrev').trim();
-  const CARPU = css.getPropertyValue('--arpu').trim();
-
-  const xaxis = {
-    tickmode:"array",
-    tickvals:x,
-    ticktext:x.map(v=>String(v)),
-    gridcolor:"rgba(255,255,255,.08)",
-    zeroline:false,
-    tickfont:{color:"rgba(229,231,235,.9)", size:12},
-  };
-  const yCommon = {
-    gridcolor:"rgba(255,255,255,.10)",
-    zeroline:false,
-    tickfont:{color:"rgba(229,231,235,.9)", size:12},
-  };
-  const labelFont = {color:"rgba(229,231,235,.95)", size:12};
-  const labelFontSmall = {color:"rgba(229,231,235,.95)", size:11};
-
-  if(view==="subs"){
-    return {
-      traces: [
-        {name:"New users", type:"bar", x, y:newY, marker:{color:CNEW},
-          text:newY.map(v=>String(v)), textposition:"inside", insidetextanchor:"middle", textfont:labelFontSmall,
-          customdata:xText, hovertemplate:"%{customdata}<br>New: <b>%{y}</b><extra></extra>"},
-        {name:"Old users", type:"bar", x, y:oldY, marker:{color:COLD},
-          text:oldY.map(v=>String(v)), textposition:"inside", insidetextanchor:"middle", textfont:labelFontSmall,
-          customdata:xText, hovertemplate:"%{customdata}<br>Old: <b>%{y}</b><extra></extra>"},
-      ],
-      layout: { barmode:"stack", xaxis, yaxis: yCommon },
-      defaults: ["s_new","s_old"],
-};
-  }
-  if(view==="mix"){
-    return {
-      traces: [
-        {name:"1M", type:"bar", x, y:p1, marker:{color:"#22c55e"}, opacity:0.92,
-          text:p1.map(v=>v.toFixed(1)+"%"), textposition:"inside", textfont:labelFontSmall,
-          customdata:xText, hovertemplate:"%{customdata}<br>1M: <b>%{y:.1f}%</b><extra></extra>"},
-        {name:"3M", type:"bar", x, y:p3, marker:{color:"#60a5fa"}, opacity:0.92,
-          text:p3.map(v=>v.toFixed(1)+"%"), textposition:"inside", textfont:labelFontSmall,
-          customdata:xText, hovertemplate:"%{customdata}<br>3M: <b>%{y:.1f}%</b><extra></extra>"},
-        {name:"6M", type:"bar", x, y:p6, marker:{color:"#f97316"}, opacity:0.92,
-          text:p6.map(v=>v.toFixed(1)+"%"), textposition:"inside", textfont:labelFontSmall,
-          customdata:xText, hovertemplate:"%{customdata}<br>6M: <b>%{y:.1f}%</b><extra></extra>"},
-      ],
-      layout: { barmode:"stack", xaxis, yaxis: {...yCommon, range:[0,100], ticksuffix:"%"} },
-      defaults: ["p_1","p_3","p_6"],
-};
-  }
-  if(view==="arpu"){
-    return {
-      traces: [
-        {name:"ARPU", type:"scatter", mode:"lines+markers+text", x, y:arpu,
-          line:{color:CARPU,width:3}, marker:{size:8,color:CARPU},
-          text:arpu.map(v=> (v==null? "" : String(v))), textposition:"top center", textfont:labelFont,
-          customdata:xText, hovertemplate:"%{customdata}<br>ARPU: <b>%{y}</b><extra></extra>"},
-      ],
-      layout: { xaxis, yaxis: yCommon },
-      defaults: [],
-};
-  }
-  return {
-    traces: [
-      {name:"Total revenue", type:"scatter", mode:"lines+markers+text", x, y:totalRev,
-        line:{color:CTOT,width:3}, marker:{size:8,color:CTOT},
-        text:totalRev.map(v=>String(v)), textposition:"top center", textfont:labelFont,
-        customdata:xText, hovertemplate:"%{customdata}<br>Total: <b>%{y}</b><extra></extra>"},
-      {name:"Sub revenue", type:"scatter", mode:"lines+markers+text", x, y:subRev,
-        line:{color:CREV,width:3}, marker:{size:8,color:CREV},
-        text:subRev.map(v=>String(v)), textposition:"top center", textfont:labelFont,
-        customdata:xText, hovertemplate:"%{customdata}<br>Sub: <b>%{y}</b><extra></extra>"},
-      {name:"Single revenue", type:"scatter", mode:"lines+markers+text", x, y:singleRev,
-        line:{color:CSIN,width:3,dash:"dot"}, marker:{size:8,color:CSIN},
-        text:singleRev.map(v=>String(v)), textposition:"top center", textfont:labelFont,
-        customdata:xText, hovertemplate:"%{customdata}<br>Single: <b>%{y}</b><extra></extra>"},
-    ],
-    layout: { xaxis, yaxis: yCommon },
-    defaults: ["r_total","r_sub","r_single"],
-};
-}
-
-function layoutBase(){
-  return {
-    dragmode:false,
-    paper_bgcolor:"rgba(0,0,0,0)",
-    plot_bgcolor:"rgba(255,255,255,0.02)",
-    margin:{l:56,r:40,t:22,b:46},
-    bargap:0.35,
-    legend:{orientation:"h", x:0, y:1.12, font:{color:"rgba(229,231,235,.9)"}},
-    hovermode:"x unified",
-    hoverlabel:{bgcolor:"rgba(15,23,42,.95)", bordercolor:"rgba(255,255,255,.14)", font:{color:"#e5e7eb"}},
-  };
-}
-
-function renderChart(view){
-  makeChecksFor(view);
-  const built = buildTraces(view);
-  const layout = {...layoutBase(), ...built.layout};
-  const config = {responsive:true, displaylogo:false, displayModeBar:false, scrollZoom:false, doubleClick:false};
-
-  Plotly.react("chart", built.traces, layout, config).then(()=>{
-    if(view!=="arpu"){
-      (built.defaults||[]).forEach(id=>{ const node=document.getElementById(id); if(node) node.checked=true; });
-      applyVisibility(view, built.traces);
-      document.querySelectorAll("#checks input[type=checkbox]").forEach(cb=> cb.addEventListener("change", ()=>applyVisibility(view, built.traces)));
-    } else {
-      Plotly.restyle("chart", "visible", built.traces.map(()=>true));
-    }
-  });
-}
-
-function applyVisibility(view, traces){
-  let vis = new Array(traces.length).fill(false);
-  const on = (id)=> { const n=document.getElementById(id); return n && n.checked; };
-
-  if(view==="money"){
-    if(on("r_total")) vis[0]=true;
-    if(on("r_sub")) vis[1]=true;
-    if(on("r_single")) vis[2]=true;
-  } else if(view==="subs"){
-    if(on("s_new")) vis[0]=true;
-    if(on("s_old")) vis[1]=true;
-  } else if(view==="mix"){
-    if(on("p_1")) vis[0]=true;
-    if(on("p_3")) vis[1]=true;
-    if(on("p_6")) vis[2]=true;
-  }
-  Plotly.restyle("chart", "visible", vis);
-}
-
-async function main(){
-  try{
-    if(location.protocol==="file:") {
-      el("status").className = "sub err"; el("status").textContent = "● Open via URL (Vercel/localhost). file:// blocks CSV requests.";
-      return;
-    }
-    el("status").className = "sub"; el("status").textContent = "Loading… Fetching data";
-
-    const [subCSV, singleCSV] = await Promise.all([fetchCSV(SUB_CSV_URL), fetchCSV(SINGLE_CSV_URL)]);
-    const subRows = csvToRows(subCSV);
-    const singleRows = csvToRows(singleCSV);
-
-    if(!subRows.length) throw new Error("訂閱CSV 沒抓到資料（可能還沒 publish 或 gid 錯）");
-    if(!singleRows.length) throw new Error("單片CSV 沒抓到資料（可能還沒 publish 或 gid 錯）");
-
-    const built = buildAgg(subRows, singleRows);
-    STATE.aggAsc = built.aggAsc;
-    STATE.topSingles = built.topSingles;
-    STATE.users = built.users;
-
-    applyOrder(true);
-
-    el("months").textContent = String(STATE.aggAsc.length);
-    el("totalRevenue").textContent = money(Math.round(STATE.aggAsc.reduce((a,b)=>a+(b.totalRevenue||0),0)));
-
-    renderTables(STATE.aggDesc, STATE.topSingles);
-    renderUsers(el("userMetric").value);
-    el("userMetric").addEventListener("change", (e)=> renderUsers(e.target.value));
-
-    renderChart("money");
-    el("viewSelect").addEventListener("change", (e)=> renderChart(e.target.value));
-
-    el("status").className = "sub ok"; el("status").textContent = "● Data loaded • Last updated: " + new Date().toLocaleString();
-  } catch(err) {
-    el("status").textContent = "❌ Load failed: " + (err && err.message ? err.message : String(err));
-  }
-}
-main();
-</script>
-
-<script>
+<script id="customHoverScript">
 (function(){
-  const sel = document.getElementById('viewSelect');
-  const buttons = Array.from(document.querySelectorAll('.seg-btn'));
-  if(!sel || buttons.length===0) return;
-
-  function setActive(val){
-    buttons.forEach(b=>b.classList.toggle('active', b.dataset.value===val));
-  }
-
-  // Initialize from default render (script uses renderChart("money"))
-  setActive(sel.value || 'money');
-
-  buttons.forEach(btn=>{
-    btn.addEventListener('click', ()=>{
-      const val = btn.dataset.value;
-      sel.value = val;
-      setActive(val);
-      sel.dispatchEvent(new Event('change', {bubbles:true}));
-    });
-  });
-})();
-</script>
-
-<script>
-(function(){
-  // Sync user insights segmented buttons to hidden select
-  const userSel = document.getElementById("userMetric");
-  const userBtns = document.querySelectorAll(".userseg .userseg-btn");
-  if(userSel && userBtns.length){
-    userBtns.forEach(btn=>{
-      btn.addEventListener("click", ()=>{
-        userBtns.forEach(b=>b.classList.remove("active"));
-        btn.classList.add("active");
-        const v = btn.getAttribute("data-metric");
-        if(v){
-          userSel.value = v;
-          userSel.dispatchEvent(new Event("change", {bubbles:true}));
-        }
-      });
-    });
-  }
-
-  // Prev month total revenue: read from Monthly summary table (tbodyMonthly)
-  // (patched) prevent legacy Prev logic from running
-  return;
-
-  function moneyFmt(n){
-    if(typeof window.money==="function") return window.money(n);
-    return "NT$ " + n.toLocaleString("en-US");
-  }
-  function readPrevFromMonthly(){
-    if(!prevEl) return;
-    const tbody = document.getElementById("tbodyMonthly");
-    const rows = tbody.querySelectorAll("tr");
-    const prevRow = rows[rows.length-2];
-    const cells = prevRow.querySelectorAll("td");
-    const lastCell = cells[cells.length-1]; // total revenue column
-    const num = parseInt((lastCell.textContent||"").replace(/[^0-9]/g,""),10);
-    if(!isNaN(num) && num>0){
-    } else {
+  function ensureTooltip(){
+    let tt = document.getElementById('customTooltip');
+    if(!tt){
+      tt = document.createElement('div');
+      tt.id = 'customTooltip';
+      tt.style.display = 'none';
+      document.body.appendChild(tt);
     }
+    return tt;
   }
-  // retry a few times after render
-  setTimeout(readPrevFromMonthly, 200);
-  setTimeout(readPrevFromMonthly, 600);
-  setTimeout(readPrevFromMonthly, 1200);
-})();
-</script>
-
-
-<script>
-// --- Prev: compute from monthly table header (robust + observer) ---
-(function(){
-  if(!prevEl) return;
-
-  function moneyFmt(n){
-    if(typeof window.money==="function") return window.money(n);
-    return "NT$ " + n.toLocaleString("en-US");
-  }
-
-  function parseMonthCell(text){
-    const t = (text||"").trim();
-    let m = t.match(/(\d{4})\D(\d{1,2})/);
-    if(m) return {y:parseInt(m[1],10), mo:parseInt(m[2],10)};
-    m = t.match(/^\s*(\d{1,2})\s*$/);
-    if(m) return {y:null, mo:parseInt(m[1],10)};
-    const nums = t.match(/(\d{1,2})/g);
-    if(nums && nums.length) return {y:null, mo:parseInt(nums[nums.length-1],10)};
-    return null;
-  }
-
-  function getTotalIdx(table){
-    const ths = Array.from(table.querySelectorAll("thead th")).map(th => (th.textContent||"").trim().toLowerCase());
-    // strict: prefer "總營收" / "總收入" first
-    let idx = ths.findIndex(t => t.includes("總營收") || t.includes("總收入"));
-    if(idx >= 0) return idx;
-    // strict english: "total revenue"
-    idx = ths.findIndex(t => t.includes("total revenue"));
-    if(idx >= 0) return idx;
-    // fallback: if there is "subscription revenue" and "single" columns, take the column named "total"
-    idx = ths.findIndex(t => t === "total" || t === "totalrevenue" || t === "total revenue");
-    return idx;
-  }
-
-  function computePrev(){
-    const tbody = document.getElementById("tbodyMonthly") || document.querySelector("#monthlyTable tbody");
-    const table = tbody ? tbody.closest("table") : null;
-
-    const totalIdx = getTotalIdx(table);
-
-    const rows = Array.from(tbody.querySelectorAll("tr"));
-    const parsed = rows.map(r=>{
-      const tds = Array.from(r.querySelectorAll("td"));
-      if(!tds.length || totalIdx >= tds.length) return null;
-      const mi = parseMonthCell(tds[0].textContent);
-      const total = parseInt((tds[totalIdx].textContent||"").replace(/[^0-9]/g,""),10);
-      if(!mi || isNaN(total)) return null;
-      return {y:mi.y, mo:mi.mo, total};
-    }).filter(Boolean);
-
-
-    parsed.sort((a,b)=>{
-      const ay = (a.y ?? 0), by = (b.y ?? 0);
-      if(ay !== by) return ay - by;
-      return a.mo - b.mo;
-    });
-
-    const latest = parsed[parsed.length-1];
-    let target = null;
-    if(latest.y != null){
-      const prevMo = latest.mo - 1;
-      const prevY = prevMo >= 1 ? latest.y : (latest.y - 1);
-      const wantMo = prevMo >= 1 ? prevMo : 12;
-      target = parsed.slice().reverse().find(p => p.y === prevY && p.mo === wantMo);
-    } else {
-      const wantMo = latest.mo - 1;
-      target = parsed.slice().reverse().find(p => p.mo === wantMo);
-    }
-    if(!target) target = parsed[parsed.length-2];
-
-  }
-
-  // run + observe table updates
-  computePrev();
-  setTimeout(computePrev, 500);
-  setTimeout(computePrev, 1500);
-  setTimeout(computePrev, 3000);
-
-  const tbody = document.getElementById("tbodyMonthly");
-  if(tbody && window.MutationObserver){
-    const obs = new MutationObserver(()=>computePrev());
-    obs.observe(tbody, {childList:true, subtree:true});
-  }
-})();
-</script>
-
-
-<script>
-(function(){
-  function moneyFmt(n){
-    if(typeof window.money==="function") return window.money(n);
-    return "NT$ " + n.toLocaleString("en-US");
-  }
-  function parseMonth(s){
-    s = (s||"").trim();
-    let m = s.match(/(\d{4})\D(\d{1,2})/);
-    if(m) return {y:+m[1], mo:+m[2]};
-    m = s.match(/^\s*(\d{1,2})\s*$/);
-    if(m) return {y:0, mo:+m[1]};
-    const nums = s.match(/(\d{1,2})/g);
-    if(nums && nums.length) return {y:0, mo:+nums[nums.length-1]};
-    return null;
-  }
-  function findTotalColIndex(){
-    // try table header labels
-    const table = document.querySelector("#tbodyMonthly")?.closest("table");
-    if(!table) return null;
-    const ths = Array.from(table.querySelectorAll("thead th"));
-    const labels = ths.map(th=>th.textContent.trim().toLowerCase());
-    const candidates = ["total","total revenue","總營收","總收入","營收","revenue"];
-    for(const c of candidates){
-      const idx = labels.findIndex(t=>t.includes(c));
-      if(idx>=0) return idx;
-    }
-    return null;
-  }
-  function setLatest(){
-    const monthsEl = document.getElementById("months");
-    const tbody = document.getElementById("tbodyMonthly");
-    if(!tbody) return;
-    const rows = Array.from(tbody.querySelectorAll("tr"));
-    if(!rows.length) return;
-
-    const totalIdx = findTotalColIndex();
-    // if can't find, fallback to second last cell
-    let best = null;
-    for(const r of rows){
-      const tds = Array.from(r.querySelectorAll("td"));
-      if(!tds.length) continue;
-      const mi = parseMonth(tds[0].textContent);
-      if(!mi) continue;
-      let cell = null;
-      if(totalIdx != null && tds[totalIdx]) cell = tds[totalIdx];
-      else cell = tds[Math.max(0, tds.length-2)];
-      const val = parseInt((cell.textContent||"").replace(/[^0-9]/g,""),10);
-      if(isNaN(val)) continue;
-      const key = mi.y*100 + mi.mo;
-      if(!best || key > best.key) best = {key, val};
-    }
-    if(!best) return;
-
-    if(monthsEl) monthsEl.textContent = moneyFmt(best.val);
-    if(latestEl) latestEl.textContent = "Latest " + moneyFmt(best.val);
-  }
-
-  // Run and observe updates
-  setLatest();
-  setTimeout(setLatest, 400);
-  setTimeout(setLatest, 1200);
-  setTimeout(setLatest, 2400);
-
-  const tbody = document.getElementById("tbodyMonthly");
-  if(tbody && window.MutationObserver){
-    const obs = new MutationObserver(()=>setLatest());
-    obs.observe(tbody, {childList:true, subtree:true});
-  }
-})();
-</script>
-
-
-<script>
-// Ensure Latest KPI uses same emphasis class as Total Revenue
-(function(){
-  function syncKpiStyles(){
-    const totalCard = document.querySelector('.kpi-card[data-kpi="total"], #kpiTotal, #totalKpi, [data-kpi="totalRevenue"]');
-    const latestCard = document.querySelector('.kpi-card[data-kpi="latest"], #kpiLatest, #latestKpi, [data-kpi="latestRevenue"]');
-    if(totalCard && latestCard){
-      // copy key classes if present
-      ["kpi-primary","kpi-big","primary","big"].forEach(cls=>{
-        if(totalCard.classList.contains(cls)) latestCard.classList.add(cls);
-      });
-    }
-  }
-  setTimeout(syncKpiStyles, 0);
-  setTimeout(syncKpiStyles, 300);
-})();
-</script>
-
-
-<script>
-(function(){
-  function smartTemplate(name){
-    const n=(name||"").toLowerCase();
-    if(n.includes('revenue')||n.includes('營收')||n.includes('total')){
-      return "<b>%{x}</b><br>"+(name||"Value")+": NT$ %{y:,.0f}<extra></extra>";
-    }
-    if(n.includes('arpu')){
-      return "<b>%{x}</b><br>"+(name||"ARPU")+": %{y:,.0f}<extra></extra>";
-    }
-    if(n.includes('%')||n.includes('rate')||n.includes('ratio')||n.includes('比例')||n.includes('成長')){
-      return "<b>%{x}</b><br>"+(name||"Rate")+": %{y:.1f}%<extra></extra>";
-    }
-    if(n.includes('user')||n.includes('subscriber')||n.includes('客')||n.includes('人數')){
-      return "<b>%{x}</b><br>"+(name||"Users")+": %{y:,.0f}<extra></extra>";
-    }
-    return "<b>%{x}</b><br>"+(name||"Value")+": %{y:,.0f}<extra></extra>";
-  }
-
-  function enhanceDiv(div){
-    try{
-      const gd = (typeof div === "string") ? document.getElementById(div) : div;
-      if(!gd || !window.Plotly || !gd.data) return;
-      // unified tooltip + crosshair
-      Plotly.relayout(gd,{
-        hovermode:"x unified",
-        spikedistance:-1,
-        hoverdistance:20,
-        xaxis:{showgrid:false,zeroline:false,
-          showspikes:false,
-          
-          
-          255,255,0.35)",
-          },
-        hoverlabel:{
-          bgcolor:"rgba(15,15,15,0.92)",
-          bordercolor:"rgba(255,255,255,0.12)",
-          font:{color:"#fff", size:12},
-          namelength:-1,
-          align:"left"
-        }
-      ,yaxis:{showgrid:true,gridcolor:'rgba(255,255,255,0.10)',zeroline:false}});
-
-      // per-trace templates + easier hit targets
-      const hovertemplates = gd.data.map(tr => smartTemplate(tr.name));
-      Plotly.restyle(gd, {hovertemplate: hovertemplates});
-
-      const modes = gd.data.map(tr => {
-        const m = (tr.mode||"");
-        if(m.includes("lines") && !m.includes("markers")) return m + "+markers";
-        return tr.mode;
-      });
-      Plotly.restyle(gd, {mode: modes});
-
-      const sizes = gd.data.map(tr => ((tr.mode||"").includes("markers")) ? 7 : (tr.marker && tr.marker.size) );
-      Plotly.restyle(gd, {"marker.size": sizes});
-    }catch(e){}
-  }
-
-  function install(){
-    if(!window.Plotly || window.__fansoneHoverPatched) return;
-    window.__fansoneHoverPatched = true;
-
-    const origReact = Plotly.react;
-    Plotly.react = function(div, data, layout, config){
-      // force layout defaults even if caller forgets
-      try{
-        layout = layout || {};
-        layout.hovermode = "x unified";
-        layout.hoverlabel = layout.hoverlabel || {};
-        layout.hoverlabel.bgcolor = layout.hoverlabel.bgcolor || "rgba(15,15,15,0.92)";
-        layout.hoverlabel.bordercolor = layout.hoverlabel.bordercolor || "rgba(255,255,255,0.12)";
-        layout.hoverlabel.font = layout.hoverlabel.font || {color:"#fff", size:12};
-        layout.hoverlabel.namelength = -1;
-        layout.hoverlabel.align = "left";
-        layout.xaxis = layout.xaxis || {};
-        layout.xaxis.showspikes = true;
-        layout.xaxis.spikemode = "across";
-        layout.xaxis.spikesnap = "cursor";
-        layout.xaxis.spikecolor = "rgba(255,255,255,0.35)";
-        layout.xaxis.spikethickness = 1;
-      }catch(e){}
-
-      // set hovertemplate on data up-front
-      try{
-        if(Array.isArray(data)){
-          data = data.map(tr=>{
-            if(!tr) return tr;
-            if(!tr.hovertemplate) tr.hovertemplate = smartTemplate(tr.name);
-            if(tr.mode && tr.mode.includes("lines") && !tr.mode.includes("markers")) tr.mode = tr.mode + "+markers";
-            if(tr.mode && tr.mode.includes("markers")){
-              tr.marker = tr.marker || {};
-              if(!tr.marker.size) tr.marker.size = 7;
-            }
-            return tr;
-          });
-        }
-      }catch(e){}
-
-      return origReact.call(this, div, data, layout, config).then(()=>{
-        enhanceDiv(div);
-      });
-    };
-
-    // if chart already rendered
-    setTimeout(()=>enhanceDiv("chart"), 600);
-  }
-
-  if(document.readyState === "complete"){
-    install();
-  }else{
-    window.addEventListener("load", install);
-  }
-})();
-</script>
-
-
-<script>
-(function(){
-  function bindSpikeToggle(gd){
-    if(!gd || gd.__spikeToggleBound) return;
-    gd.__spikeToggleBound = true;
-    gd.on('plotly_hover', function(){
-      try{
-        }catch(e){}
-    });
-    gd.on('plotly_unhover', function(){
-      try{
-        }catch(e){}
-    });
-    // start clean
-    try{ }catch(e){}
-    try{ Plotly.Fx.unhover(gd); }catch(e){}
-  }
-  function bindAll(){
-    document.querySelectorAll('.js-plotly-plot').forEach(bindSpikeToggle);
-  }
-  window.addEventListener('load', ()=>setTimeout(bindAll, 500));
-})();
-</script>
-
-
-<script>
-(function(){
-  function roundNow(gd){
-    try{
-      const rects = gd.querySelectorAll('.hoverlayer .hovertext rect');
-      rects.forEach(r=>{
-        r.setAttribute('rx','14');
-        r.setAttribute('ry','14');
-      });
-      const paths = gd.querySelectorAll('.hoverlayer .hovertext path');
-      paths.forEach(p=>p.style.opacity='0');
-    }catch(e){}
-  }
-  function bind(gd){
-    if(!gd || gd.__roundBind) return;
-    gd.__roundBind = true;
-    gd.on('plotly_hover', ()=>roundNow(gd));
-    gd.on('plotly_unhover', ()=>roundNow(gd));
-    gd.on('plotly_afterplot', ()=>roundNow(gd));
-    setTimeout(()=>roundNow(gd), 400);
-  }
-  window.addEventListener('load', ()=>{
-    document.querySelectorAll('.js-plotly-plot').forEach(bind);
-  });
-})();
-</script>
-
-<div id="customTooltip" style="display:none"></div>
-
-<script>
-(function(){
-  const tt = document.getElementById('customTooltip');
 
   function fmt(v, kind){
     if(v==null || isNaN(v)) return '-';
@@ -1323,20 +413,20 @@ main();
     return 'num';
   }
   function colorFor(pt){
-    // try trace line/marker color
     try{
-      const tr = pt.data || {};
-      return (tr.line && tr.line.color) || (tr.marker && tr.marker.color) || '#fff';
+      const tr = pt.data || pt.fullData || {};
+      const c = (tr.line && tr.line.color) || (tr.marker && tr.marker.color);
+      if(Array.isArray(c)) return c[0] || '#fff';
+      return c || '#fff';
     }catch(e){ return '#fff'; }
   }
 
-  function render(points){
+  function render(tt, points){
     if(!points || !points.length) return;
     const x = points[0].x;
-    let title = String(x);
-    // if looks like 2025-08 keep as is; if month number, show as is
+    const title = String(x);
     const rows = points.map(pt=>{
-      const name = pt.data && pt.data.name ? pt.data.name : (pt.fullData && pt.fullData.name) || 'Value';
+      const name = (pt.fullData && pt.fullData.name) || (pt.data && pt.data.name) || 'Value';
       const kind = kindFor(name);
       const val = fmt(pt.y, kind);
       const dot = colorFor(pt);
@@ -1355,49 +445,75 @@ main();
     `;
   }
 
-  function place(ev){
-    if(!ev) return;
+  function place(tt, gd, evt, pt){
     const pad = 14;
-    let x = ev.clientX + 18;
-    let y = ev.clientY + 18;
-
     tt.style.display = 'block';
-    // measure
+
+    // Default near mouse, but fallback to point pixel position if no event
+    let x = 0, y = 0;
+    const hasMouse = evt && typeof evt.clientX === 'number' && typeof evt.clientY === 'number';
+    if(hasMouse){
+      x = evt.clientX + 18;
+      y = evt.clientY + 18;
+    } else if(pt && pt.xaxis && pt.yaxis && typeof pt.xaxis.l2p === 'function' && typeof pt.yaxis.l2p === 'function'){
+      const bb = gd.getBoundingClientRect();
+      x = bb.left + (pt.xaxis._offset || 0) + pt.xaxis.l2p(pt.x) + 18;
+      y = bb.top  + (pt.yaxis._offset || 0) + pt.yaxis.l2p(pt.y) + 18;
+    } else {
+      const bb = gd.getBoundingClientRect();
+      x = bb.left + bb.width*0.6;
+      y = bb.top + bb.height*0.25;
+    }
+
+    // measure & keep in viewport
     const r = tt.getBoundingClientRect();
     const vw = window.innerWidth, vh = window.innerHeight;
 
-    if(x + r.width + pad > vw) x = ev.clientX - r.width - 18;
-    if(y + r.height + pad > vh) y = ev.clientY - r.height - 18;
+    if(x + r.width + pad > vw) x = x - r.width - 36;
+    if(y + r.height + pad > vh) y = y - r.height - 36;
 
-    tt.style.left = x + 'px';
-    tt.style.top  = y + 'px';
+    tt.style.left = Math.max(8, x) + 'px';
+    tt.style.top  = Math.max(8, y) + 'px';
   }
 
-  function bind(gd){
+  function bindOne(gd){
     if(!gd || gd.__customTTBound) return;
+    if(!gd.on) return; // not a plotly gd yet
     gd.__customTTBound = true;
+
+    const tt = ensureTooltip();
 
     gd.on('plotly_hover', function(e){
       try{
-        const pts = e.points || [];
-        // group by x: if multiple traces share same x, include them all
-        render(pts);
-        place(e.event);
+        const pts = (e && e.points) ? e.points : [];
+        if(!pts.length) return;
+        render(tt, pts);
+        place(tt, gd, e.event, pts[0]);
       }catch(err){}
     });
 
     gd.on('plotly_unhover', function(){
-      tt.style.display = 'none';
+      try{ tt.style.display = 'none'; }catch(e){}
     });
 
-    gd.on('plotly_relayout', function(){
-      // keep hidden unless hovering
-      if(tt.style.display!=='none') tt.style.display='none';
+    gd.on('plotly_afterplot', function(){
+      // keep hidden unless user hovers
+      try{ tt.style.display = 'none'; }catch(e){}
     });
   }
 
+  function scanAndBind(){
+    document.querySelectorAll('.js-plotly-plot').forEach(bindOne);
+  }
+
+  // MutationObserver: data loads async so plots may appear later
+  const obs = new MutationObserver(()=>scanAndBind());
+  obs.observe(document.documentElement, {childList:true, subtree:true});
+
   window.addEventListener('load', ()=>{
-    document.querySelectorAll('.js-plotly-plot').forEach(bind);
+    setTimeout(scanAndBind, 200);
+    setTimeout(scanAndBind, 800);
+    setTimeout(scanAndBind, 1500);
   });
 })();
 </script>
