@@ -168,6 +168,14 @@
 #monthlyTable thead th.right, #monthlyTable tbody td.right{text-align:right !important;}
 
 </style>
+
+<style id="hoverCardStyle">
+/* Rounder, softer Plotly hover card */
+.js-plotly-plot .hoverlayer .hovertext rect { rx: 12px; ry: 12px; }
+.js-plotly-plot .hoverlayer .hovertext path { opacity: 0.0; } /* hide pointer notch for cleaner card */
+.js-plotly-plot .hoverlayer .hovertext { filter: drop-shadow(0 8px 18px rgba(0,0,0,0.35)); }
+</style>
+
 </head>
 <body>
 <div class="wrap">
