@@ -1065,5 +1065,41 @@ main();
 })();
 </script>
 
+
+<script>
+(function(){
+  function enhancePlot(gd){
+    if(!gd || !gd.layout) return;
+    Plotly.relayout(gd,{
+      hovermode:'x unified',
+      spikedistance:-1,
+      xaxis:{
+        showspikes:true,
+        spikemode:'across',
+        spikesnap:'cursor',
+        spikecolor:'rgba(200,200,200,0.4)',
+        spikethickness:1
+      },
+      hoverlabel:{
+        bgcolor:'rgba(20,20,20,0.92)',
+        bordercolor:'rgba(255,255,255,0.15)',
+        font:{color:'#fff',size:12},
+        namelength:-1
+      }
+    });
+  }
+
+  function formatAll(){
+    document.querySelectorAll('.js-plotly-plot').forEach(enhancePlot);
+  }
+
+  if(document.readyState==='complete'){
+    setTimeout(formatAll,300);
+  }else{
+    window.addEventListener('load',()=>setTimeout(formatAll,300));
+  }
+})();
+</script>
+
 </body>
 </html>
