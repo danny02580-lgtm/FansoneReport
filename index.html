@@ -132,11 +132,18 @@
 .select.hidden{display:none!important;}
 
 
-  .twoline{display:inline-block; line-height:1.05; text-align:center;}
-  .kprev{margin-top:6px; font-size:12px; opacity:.85;}
-  @media (max-width:720px){
-    .twoline{font-size:12px;}
-  }
+/* --- UX tweaks requested --- */
+#orderTag{ display:none !important; } /* hide 新→舊 label */
+
+.twoline{display:inline-block; line-height:1.05; text-align:center;}
+@media (max-width:720px){
+  .twoline{font-size:12px;}
+}
+
+/* User insights segmented */
+.userseg{ margin-top:10px; }
+
+.kprev{margin-top:6px; font-size:12px; opacity:.85;}
 
 </style>
 </head>
@@ -154,14 +161,14 @@
       </div>
       <div class="kpi">
         <div class="klabel">Total revenue</div>
-        <div class="kvalue" id="totalRevenue">–</div><div class="kprev" id="prevTotalRevenue">–</div>
+        <div class="kvalue" id="totalRevenue">–</div><div class="kprev" id="prevTotalRevenue">Prev –</div>
       </div>
     </div>
   </div>
 
   <div class="grid">
     <div class="panel">
-      <div class="hd"><h2>圖表切換</h2></div>
+      <div class="hd"><h2>圖表切換</h2><span class="pill" id="orderTag">新 → 舊</span></div>
       <div class="bd">
         
 <div class="segmented" role="tablist" aria-label="Chart views">
@@ -219,15 +226,12 @@
         <div style="display:flex; align-items:center; gap:10px;">
           <h2 style="margin:0;">用戶分析</h2><span class="pill">Top 10</span>
         </div>
-        <div class="segmented userseg" role="tablist" aria-label="User insights metric">
-  <button class="seg-btn active" type="button" data-metric="spend_total">付最多錢</button>
-  <button class="seg-btn" type="button" data-metric="spend_sub">付最多錢</button>
-  <button class="seg-btn" type="button" data-metric="spend_single">付最多錢</button>
-  <button class="seg-btn" type="button" data-metric="active_months">訂閱最久</button>
-  <button class="seg-btn" type="button" data-metric="tenure_span">時間跨度最久</button>
-  <button class="seg-btn" type="button" data-metric="orders_total">購買最多次</button>
+        
+<div class="segmented userseg" role="tablist" aria-label="User insights metric">
+  <button class="seg-btn active" type="button" data-metric="spend_total">付最多錢</button><button class="seg-btn" type="button" data-metric="spend_sub">付最多錢</button><button class="seg-btn" type="button" data-metric="spend_single">付最多錢</button><button class="seg-btn" type="button" data-metric="active_months">訂閱最久</button><button class="seg-btn" type="button" data-metric="tenure_span">時間跨度最久</button><button class="seg-btn" type="button" data-metric="orders_total">購買最多次</button>
 </div>
-<select id="userMetric" class="select" style="display:none" style="max-width:220px; padding:8px 10px;">
+
+<select id="userMetric" style="display:none" class="select" style="max-width:220px; padding:8px 10px;">
           <option value="spend_total">付最多錢（總）</option>
           <option value="spend_sub">付最多錢（訂閱）</option>
           <option value="spend_single">付最多錢（單片）</option>
@@ -766,19 +770,7 @@ async function main(){
     el("months").textContent = String(STATE.aggAsc.length);
     el("totalRevenue").textContent = money(Math.round(STATE.aggAsc.reduce((a,b)=>a+(b.totalRevenue||0),0)));
 
-    
-    // Prev month total revenue (sum of subscription + single)
-    try{
-      const asc = STATE.aggAsc;
-      if(asc && asc.length>=2){
-        const prev = asc[asc.length-2];
-        const prevTot = (prev.totalRevenue||0);
-        el("prevTotalRevenue").textContent = "Prev " + money(Math.round(prevTot));
-      } else {
-        el("prevTotalRevenue").textContent = "Prev –";
-      }
-    }catch(e){ /* noop */ }
-renderTables(STATE.aggDesc, STATE.topSingles);
+    renderTables(STATE.aggDesc, STATE.topSingles);
     renderUsers(el("userMetric").value);
     el("userMetric").addEventListener("change", (e)=> renderUsers(e.target.value));
 
@@ -817,5 +809,52 @@ main();
 })();
 </script>
 
+<script>
+
+// --- Added: user insights segmented sync + prev month total revenue ---
+(function(){
+  // User insights segmented -> hidden select
+  const userSel = document.getElementById("userMetric");
+  const userBtns = document.querySelectorAll(".userseg .seg-btn");
+  if(userSel && userBtns.length){
+    userBtns.forEach(btn=>{
+      btn.addEventListener("click", ()=>{
+        userBtns.forEach(b=>b.classList.remove("active"));
+        btn.classList.add("active");
+        const v = btn.getAttribute("data-metric");
+        if(v){
+          userSel.value = v;
+          userSel.dispatchEvent(new Event("change", {bubbles:true}));
+        }
+      });
+    });
+  }
+
+  // Prev month total revenue: after charts/data loaded, try to read from STATE if available
+  function updatePrev(){
+    const prevEl = document.getElementById("prevTotalRevenue");
+    if(!prevEl) return;
+    try{
+      if(window.STATE && Array.isArray(window.STATE.aggAsc) && window.STATE.aggAsc.length>=2){
+        const asc = window.STATE.aggAsc;
+        const prev = asc[asc.length-2];
+        const prevTot = (prev.totalRevenue ?? prev.total ?? 0);
+        if(typeof window.money === "function"){
+          prevEl.textContent = "Prev " + window.money(Math.round(prevTot));
+        }else{
+          prevEl.textContent = "Prev NT$ " + Math.round(prevTot).toLocaleString("en-US");
+        }
+        return;
+      }
+    }catch(e){}
+    prevEl.textContent = "Prev –";
+  }
+  // run a few times to catch async load
+  updatePrev();
+  setTimeout(updatePrev, 400);
+  setTimeout(updatePrev, 1200);
+})();
+
+</script>
 </body>
 </html>
