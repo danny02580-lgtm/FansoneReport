@@ -33,12 +33,15 @@
   }
   .title h1{margin:0; font-size:18px}
   .title .sub{margin-top:6px; font-size:12px; color:var(--muted); line-height:1.4}
-  .chips{display:flex; flex-wrap:wrap; gap:10px; justify-content:flex-end; align-items:flex-start}
-  .chip{padding:10px 12px; border:1px solid var(--stroke); border-radius:999px; background:rgba(255,255,255,.04); font-size:12px; color:var(--muted); display:flex; gap:8px; align-items:center}
-  .chip b{color:var(--text); font-weight:800}
-  .chip.big{padding:12px 14px; border-radius:16px; min-width:220px; justify-content:space-between}
-  .chip.big span{font-size:12px}
-  .chip.big b{font-size:22px; letter-spacing:.2px}
+  .kpis{display:flex; flex-wrap:wrap; gap:10px; justify-content:flex-end; align-items:stretch}
+  .kpi{
+    padding:12px 14px; border:1px solid var(--stroke); border-radius:16px; background:rgba(255,255,255,.04);
+    min-width:210px; display:flex; flex-direction:column; gap:6px;
+  }
+  .kpi .klabel{font-size:12px; color:var(--muted)}
+  .kpi .kvalue{font-size:22px; font-weight:850; letter-spacing:.2px; color:var(--text)}
+  .kpi.small{min-width:170px}
+  .kpi.small .kvalue{font-size:22px}
 
   .grid{display:grid; grid-template-columns: 360px 1fr; gap:14px; margin-top:14px}
   @media (max-width: 980px){ .grid{grid-template-columns: 1fr} }
@@ -100,9 +103,15 @@
         <a class="sheetlink" href="https://docs.google.com/spreadsheets/d/e/2PACX-1vQiAPNDCD7qn6atO4VB6Ei63AacDK00AMKM16hK8c-wVWFadPPOj-P8olYQ-ofMFwy0maGU1A4CBneW/pub?gid=1226262547&single=true&output=html" target="_blank" rel="noopener">單片試算表</a>
       </div>
     </div>
-    <div class="chips">
-      <div class="chip"><span>Months</span> <b id="months">–</b></div>
-      <div class="chip big"><span>Total revenue</span> <b id="totalRevenue">–</b></div>
+    <div class="kpis">
+      <div class="kpi small">
+        <div class="klabel">Months</div>
+        <div class="kvalue" id="months">–</div>
+      </div>
+      <div class="kpi">
+        <div class="klabel">Total revenue</div>
+        <div class="kvalue" id="totalRevenue">–</div>
+      </div>
     </div>
   </div>
 
@@ -111,10 +120,10 @@
       <div class="hd"><h2>圖表切換</h2><span class="pill" id="orderTag">新 → 舊</span></div>
       <div class="bd">
         <select id="viewSelect" class="select">
-          <option value="money">金額（總/訂閱/單片 + ARPU）</option>
-          <option value="subs">訂閱人數（新/舊柱狀 + ARPU）</option>
+          <option value="money">金額（總/訂閱/單片）</option>
+          <option value="subs">訂閱人數（新/舊柱狀）</option>
           <option value="mix">方案比例（100% 堆疊）</option>
-          <option value="single">單片購買（金額折線）</option>
+          <option value="arpu">ARPU（折線）</option>
         </select>
         <div class="hint" id="viewHint">選擇一個圖表類型後，下方勾選可再微調顯示內容。</div>
 
@@ -372,18 +381,16 @@ function makeChecksFor(view){
       { id:"r_total",  color:"var(--totalrev)", title:"總營收", desc:"訂閱 + 單片" },
       { id:"r_sub",    color:"var(--rev)",      title:"訂閱營收", desc:"訂閱金額" },
       { id:"r_single", color:"var(--single)",   title:"單片營收", desc:"單片金額" },
-      { id:"r_arpu",   color:"var(--arpu)",     title:"ARPU", desc:"訂閱營收 / 訂閱人數（右軸）" },
     ],
     subs: [
       { id:"s_new", color:"var(--new)", title:"新客", desc:"柱狀圖（新客）" },
       { id:"s_old", color:"var(--old)", title:"舊客", desc:"柱狀圖（舊客）" },
-      { id:"r_arpu", color:"var(--arpu)", title:"ARPU", desc:"右軸折線" },
     ],
     mix: [
       { id:"p_mix", color:"#fbbf24", title:"方案比例", desc:"1M / 3M / 6M（100% 堆疊）" },
     ],
-    single: [
-      { id:"r_single", color:"var(--single)", title:"單片營收", desc:"單片金額折線" },
+    arpu: [
+      { id:"r_arpu", color:"var(--arpu)", title:"ARPU", desc:"訂閱營收 / 訂閱人數" },
     ],
   };
   const items = itemsByView[view] || [];
@@ -457,21 +464,10 @@ function buildTraces(view){
           text:oldY.map(v=>String(v)), textposition:"inside", insidetextanchor:"middle", textfont:labelFontSmall,
           customdata:xText, hovertemplate:"%{customdata}<br>Old: <b>%{y}</b><extra></extra>"
         },
-        {
-          name:"ARPU", type:"scatter", mode:"lines+markers+text", x, y:arpu, yaxis:"y2",
-          line:{color:CARPU,width:3}, marker:{size:8,color:CARPU},
-          text:arpu.map(v=> (v==null? "" : String(v))), textposition:"top center", textfont:labelFont,
-          customdata:xText, hovertemplate:"%{customdata}<br>ARPU: <b>%{y}</b><extra></extra>"
-        },
       ],
-      layout: {
-        barmode:"stack",
-        xaxis,
-        yaxis: yCommon,
-        yaxis2: {overlaying:"y", side:"right", showgrid:false, zeroline:false, tickfont:{color:"rgba(229,231,235,.85)", size:12}},
-      },
-      defaults: ["s_new","s_old","r_arpu"],
-      hint: '訂閱人數：新/舊客柱狀（左軸），ARPU 折線（右軸）。',
+      layout: { barmode:"stack", xaxis, yaxis: yCommon },
+      defaults: ["s_new","s_old"],
+      hint: '訂閱人數：新/舊客柱狀。',
     };
   }
   if(view==="mix"){
@@ -487,60 +483,42 @@ function buildTraces(view){
           text:p6.map(v=>v.toFixed(1)+"%"), textposition:"inside", textfont:labelFontSmall,
           customdata:xText, hovertemplate:"%{customdata}<br>6M: <b>%{y:.1f}%</b><extra></extra>"},
       ],
-      layout: {
-        barmode:"stack",
-        xaxis,
-        yaxis: {...yCommon, range:[0,100], ticksuffix:"%"},
-        yaxis2: {visible:false}
-      },
+      layout: { barmode:"stack", xaxis, yaxis: {...yCommon, range:[0,100], ticksuffix:"%"} },
       defaults: ["p_mix"],
       hint: '方案比例：100% 堆疊柱狀（1M/3M/6M）。',
     };
   }
-  if(view==="single"){
+  if(view==="arpu"){
     return {
       traces: [
-        {name:"Single revenue", type:"scatter", mode:"lines+markers+text", x, y:singleRev,
-          line:{color:CSIN,width:3}, marker:{size:8,color:CSIN},
-          text:singleRev.map(v=>String(v)), textposition:"top center", textfont:labelFont,
-          customdata:xText, hovertemplate:"%{customdata}<br>Single revenue: <b>%{y}</b><extra></extra>"},
+        {name:"ARPU", type:"scatter", mode:"lines+markers+text", x, y:arpu,
+          line:{color:CARPU,width:3}, marker:{size:8,color:CARPU},
+          text:arpu.map(v=> (v==null? "" : String(v))), textposition:"top center", textfont:labelFont,
+          customdata:xText, hovertemplate:"%{customdata}<br>ARPU: <b>%{y}</b><extra></extra>"},
       ],
-      layout: {
-        xaxis,
-        yaxis: yCommon,
-        yaxis2: {visible:false}
-      },
-      defaults: ["r_single"],
-      hint: '單片購買：金額折線。',
+      layout: { xaxis, yaxis: yCommon },
+      defaults: ["r_arpu"],
+      hint: 'ARPU：折線。',
     };
   }
-  // money default
   return {
     traces: [
       {name:"Total revenue", type:"scatter", mode:"lines+markers+text", x, y:totalRev,
         line:{color:CTOT,width:3}, marker:{size:8,color:CTOT},
         text:totalRev.map(v=>String(v)), textposition:"top center", textfont:labelFont,
-        customdata:xText, hovertemplate:"%{customdata}<br>Total revenue: <b>%{y}</b><extra></extra>"},
+        customdata:xText, hovertemplate:"%{customdata}<br>Total: <b>%{y}</b><extra></extra>"},
       {name:"Sub revenue", type:"scatter", mode:"lines+markers+text", x, y:subRev,
         line:{color:CREV,width:3}, marker:{size:8,color:CREV},
         text:subRev.map(v=>String(v)), textposition:"top center", textfont:labelFont,
-        customdata:xText, hovertemplate:"%{customdata}<br>Sub revenue: <b>%{y}</b><extra></extra>"},
+        customdata:xText, hovertemplate:"%{customdata}<br>Sub: <b>%{y}</b><extra></extra>"},
       {name:"Single revenue", type:"scatter", mode:"lines+markers+text", x, y:singleRev,
         line:{color:CSIN,width:3,dash:"dot"}, marker:{size:8,color:CSIN},
         text:singleRev.map(v=>String(v)), textposition:"top center", textfont:labelFont,
-        customdata:xText, hovertemplate:"%{customdata}<br>Single revenue: <b>%{y}</b><extra></extra>"},
-      {name:"ARPU", type:"scatter", mode:"lines+markers+text", x, y:arpu, yaxis:"y2",
-        line:{color:CARPU,width:3}, marker:{size:8,color:CARPU},
-        text:arpu.map(v=> (v==null? "" : String(v))), textposition:"top center", textfont:labelFont,
-        customdata:xText, hovertemplate:"%{customdata}<br>ARPU: <b>%{y}</b><extra></extra>"},
+        customdata:xText, hovertemplate:"%{customdata}<br>Single: <b>%{y}</b><extra></extra>"},
     ],
-    layout: {
-      xaxis,
-      yaxis: yCommon,
-      yaxis2: {overlaying:"y", side:"right", showgrid:false, zeroline:false, tickfont:{color:"rgba(229,231,235,.85)", size:12}},
-    },
-    defaults: ["r_total","r_sub","r_single","r_arpu"],
-    hint: '金額：總/訂閱/單片 + ARPU（右軸）。',
+    layout: { xaxis, yaxis: yCommon },
+    defaults: ["r_total","r_sub","r_single"],
+    hint: '金額：總/訂閱/單片。',
   };
 }
 
@@ -548,12 +526,11 @@ function layoutBase(){
   return {
     paper_bgcolor:"rgba(0,0,0,0)",
     plot_bgcolor:"rgba(255,255,255,0.02)",
-    margin:{l:56,r:60,t:22,b:46},
+    margin:{l:56,r:40,t:22,b:46},
     bargap:0.35,
     legend:{orientation:"h", x:0, y:1.12, font:{color:"rgba(229,231,235,.9)"}},
     hovermode:"x unified",
     hoverlabel:{bgcolor:"rgba(15,23,42,.95)", bordercolor:"rgba(255,255,255,.14)", font:{color:"#e5e7eb"}},
-    uniformtext: {mode:"hide", minsize:10},
   };
 }
 
@@ -563,13 +540,9 @@ function renderChart(view){
   el("viewHint").textContent = built.hint;
 
   const layout = {...layoutBase(), ...built.layout};
-  const config = {responsive:true, displaylogo:false, toImageButtonOptions:{format:"png", filename:"fansone_report", scale:2}};
+  const config = {responsive:true, displaylogo:false};
   Plotly.react("chart", built.traces, layout, config).then(()=>{
-    const ids = (Array.isArray(built.defaults)? built.defaults : []);
-    ids.forEach(id=> {
-      const node = document.getElementById(id);
-      if(node) node.checked = true;
-    });
+    (built.defaults||[]).forEach(id=>{ const node=document.getElementById(id); if(node) node.checked=true; });
     applyVisibility(view, built.traces);
     document.querySelectorAll("#checks input[type=checkbox]").forEach(cb=> cb.addEventListener("change", ()=>applyVisibility(view, built.traces)));
   });
@@ -583,19 +556,16 @@ function applyVisibility(view, traces){
     if(on("r_total")) vis[0]=true;
     if(on("r_sub")) vis[1]=true;
     if(on("r_single")) vis[2]=true;
-    if(on("r_arpu")) vis[3]=true;
   } else if(view==="subs"){
     if(on("s_new")) vis[0]=true;
     if(on("s_old")) vis[1]=true;
-    if(on("r_arpu")) vis[2]=true;
   } else if(view==="mix"){
     const m = on("p_mix");
     vis = vis.map(()=>m);
-  } else if(view==="single"){
-    vis[0] = on("r_single") || true;
+  } else if(view==="arpu"){
+    vis[0] = on("r_arpu") || true;
   }
-  const idx = [...Array(vis.length).keys()];
-  Plotly.restyle("chart", "visible", vis, idx);
+  Plotly.restyle("chart", "visible", vis);
 }
 
 async function main(){
