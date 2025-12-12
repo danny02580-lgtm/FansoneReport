@@ -33,8 +33,6 @@
   }
   .title h1{margin:0; font-size:18px}
   .title .sub{margin-top:6px; font-size:12px; color:var(--muted); line-height:1.4}
-  #status.ok{color:#34d399}
-  #status.err{color:#fb7185}
   .kpis{display:flex; flex-wrap:wrap; gap:10px; justify-content:flex-end; align-items:stretch}
   .kpi{
     padding:12px 14px; border:1px solid var(--stroke); border-radius:16px; background:rgba(255,255,255,.04);
@@ -91,36 +89,19 @@
   .sheetlink{color: var(--muted); border:1px solid var(--stroke); padding:7px 9px; border-radius:999px; background:rgba(255,255,255,.04)}
   .sheetlink:hover{color:var(--text)}
   .pill{padding:5px 8px; border:1px solid var(--stroke); border-radius:999px; font-size:11px; color:var(--muted); background:rgba(255,255,255,.03)}
-
-/* --- Mobile polish (no layout break) --- */
-@media (max-width: 860px){
-  .wrap{padding:12px;}
-  .hd{flex-direction:column; align-items:flex-start; gap:10px;}
-  .kpis{grid-template-columns:1fr 1fr; gap:10px;}
-  .kpi .big{font-size:22px;}
-  .kpi .sub{font-size:12px;}
-  .content{grid-template-columns:1fr; gap:12px;}
-  #chart{height:360px !important;}
-  .panel{border-radius:14px;}
-  .controls{position:sticky; top:0; z-index:5;}
-  .checks{max-height:none;}
-  table{font-size:12px;}
-  .tableWrap{overflow:auto; -webkit-overflow-scrolling:touch;}
-}
-@media (max-width: 480px){
-  .kpis{grid-template-columns:1fr; }
-  #chart{height:320px !important;}
-  .btn, select, input[type="checkbox"]{touch-action:manipulation;}
-}
-
 </style>
 </head>
 <body>
 <div class="wrap">
   <div class="topbar">
     <div class="title">
-      <h1>Fansone Report</h1>
+      <h1>Fansone Report｜互動月報表</h1>
       <div class="sub" id="status">Loading…</div>
+      <div class="sub">
+        資料來源：
+        <a class="sheetlink" href="https://docs.google.com/spreadsheets/d/e/2PACX-1vQiAPNDCD7qn6atO4VB6Ei63AacDK00AMKM16hK8c-wVWFadPPOj-P8olYQ-ofMFwy0maGU1A4CBneW/pub?gid=0&single=true&output=html" target="_blank" rel="noopener">訂閱試算表</a>
+        <a class="sheetlink" href="https://docs.google.com/spreadsheets/d/e/2PACX-1vQiAPNDCD7qn6atO4VB6Ei63AacDK00AMKM16hK8c-wVWFadPPOj-P8olYQ-ofMFwy0maGU1A4CBneW/pub?gid=1226262547&single=true&output=html" target="_blank" rel="noopener">單片試算表</a>
+      </div>
     </div>
     <div class="kpis">
       <div class="kpi small">
@@ -144,7 +125,9 @@
           <option value="mix">方案比例（1/3/6M 勾選）</option>
           <option value="arpu">ARPU（折線）</option>
         </select>
-<div class="checks" id="checks"></div>
+        <div class="hint" id="viewHint"></div>
+
+        <div class="checks" id="checks"></div>
       </div>
     </div>
 
@@ -220,7 +203,8 @@
         <div style="display:flex; align-items:center; gap:10px;">
           <h2 style="margin:0;">單片 TOP</h2><span class="pill">點標題可直達貼文</span>
         </div>
-</div>
+        <a class="sheetlink" href="https://docs.google.com/spreadsheets/d/e/2PACX-1vQiAPNDCD7qn6atO4VB6Ei63AacDK00AMKM16hK8c-wVWFadPPOj-P8olYQ-ofMFwy0maGU1A4CBneW/pub?gid=1226262547&single=true&output=html" target="_blank" rel="noopener">Open sheet</a>
+      </div>
       <div class="bd" style="padding:0 0 10px 0;">
         <div style="max-height:320px; overflow:auto;">
           <table>
@@ -600,7 +584,8 @@ function buildTraces(view){
       ],
       layout: { barmode:"stack", xaxis, yaxis: yCommon },
       defaults: ["s_new","s_old"],
-};
+      hint: "訂閱人數：新/舊客柱狀。",
+    };
   }
   if(view==="mix"){
     return {
@@ -617,7 +602,8 @@ function buildTraces(view){
       ],
       layout: { barmode:"stack", xaxis, yaxis: {...yCommon, range:[0,100], ticksuffix:"%"} },
       defaults: ["p_1","p_3","p_6"],
-};
+      hint: "方案比例：100% 堆疊柱狀（1/3/6M 勾選）。",
+    };
   }
   if(view==="arpu"){
     return {
@@ -629,7 +615,8 @@ function buildTraces(view){
       ],
       layout: { xaxis, yaxis: yCommon },
       defaults: [],
-};
+      hint: "ARPU：整頁只顯示它（不需要勾選）。",
+    };
   }
   return {
     traces: [
@@ -648,12 +635,12 @@ function buildTraces(view){
     ],
     layout: { xaxis, yaxis: yCommon },
     defaults: ["r_total","r_sub","r_single"],
-};
+    hint: "金額：總/訂閱/單片。",
+  };
 }
 
 function layoutBase(){
   return {
-    dragmode:false,
     paper_bgcolor:"rgba(0,0,0,0)",
     plot_bgcolor:"rgba(255,255,255,0.02)",
     margin:{l:56,r:40,t:22,b:46},
@@ -667,8 +654,10 @@ function layoutBase(){
 function renderChart(view){
   makeChecksFor(view);
   const built = buildTraces(view);
+  el("viewHint").textContent = built.hint;
+
   const layout = {...layoutBase(), ...built.layout};
-  const config = {responsive:true, displaylogo:false, displayModeBar:false, scrollZoom:false, doubleClick:false};
+  const config = {responsive:true, displaylogo:false};
 
   Plotly.react("chart", built.traces, layout, config).then(()=>{
     if(view!=="arpu"){
@@ -703,10 +692,10 @@ function applyVisibility(view, traces){
 async function main(){
   try{
     if(location.protocol==="file:") {
-      el("status").className = "sub err"; el("status").textContent = "● Open via URL (Vercel/localhost). file:// blocks CSV requests.";
+      el("status").textContent = "⚠️ 這頁要用網址開（Vercel/localhost），file:// 會被瀏覽器擋住抓CSV";
       return;
     }
-    el("status").className = "sub"; el("status").textContent = "Loading… Fetching data";
+    el("status").textContent = "Loading… 正在抓 Google Sheets CSV";
 
     const [subCSV, singleCSV] = await Promise.all([fetchCSV(SUB_CSV_URL), fetchCSV(SINGLE_CSV_URL)]);
     const subRows = csvToRows(subCSV);
@@ -732,7 +721,7 @@ async function main(){
     renderChart("money");
     el("viewSelect").addEventListener("change", (e)=> renderChart(e.target.value));
 
-    el("status").className = "sub ok"; el("status").textContent = "● Data loaded";
+    el("status").textContent = "✅ 已載入 · 用下拉選單切換不同圖表";
   } catch(err) {
     el("status").textContent = "❌ Load failed: " + (err && err.message ? err.message : String(err));
   }
