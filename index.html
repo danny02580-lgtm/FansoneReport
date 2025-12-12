@@ -856,5 +856,63 @@ main();
 })();
 
 </script>
+<script>
+// --- Improved prev month total revenue (robust) ---
+(function(){
+  const prevEl = document.getElementById("prevTotalRevenue");
+  if(!prevEl) return;
+
+  function moneyFmt(n){
+    if(typeof window.money==="function") return window.money(Math.round(n));
+    return "NT$ " + Math.round(n).toLocaleString("en-US");
+  }
+
+  function tryFromState(){
+    try{
+      if(window.STATE){
+        const cand = window.STATE.aggAsc || window.STATE.agg || window.STATE.months;
+        if(Array.isArray(cand) && cand.length>=2){
+          const prev = cand[cand.length-2];
+          const val = prev.totalRevenue ?? prev.total ?? (prev.subRevenue ?? 0) + (prev.singleRevenue ?? 0);
+          if(val>0){ prevEl.textContent = "Prev " + moneyFmt(val); return true; }
+        }
+      }
+    }catch(e){}
+    return false;
+  }
+
+  function tryFromTable(){
+    try{
+      const rows = document.querySelectorAll("#monthlyTable tbody tr");
+      if(rows.length>=2){
+        const prevRow = rows[rows.length-2];
+        const cells = prevRow.querySelectorAll("td");
+        // assume subscription + single + total present
+        let totalCell = null;
+        cells.forEach(td=>{
+          if(td.dataset && td.dataset.key==="total") totalCell = td;
+        });
+        if(!totalCell){
+          // fallback: last numeric cell
+          totalCell = cells[cells.length-1];
+        }
+        const num = parseInt(totalCell.textContent.replace(/[^0-9]/g,""),10);
+        if(num>0){ prevEl.textContent = "Prev " + moneyFmt(num); return true; }
+      }
+    }catch(e){}
+    return false;
+  }
+
+  function run(){
+    if(tryFromState()) return;
+    if(tryFromTable()) return;
+    prevEl.textContent = "Prev –";
+  }
+
+  run();
+  setTimeout(run, 600);
+  setTimeout(run, 1500);
+})();
+</script>
 </body>
 </html>
