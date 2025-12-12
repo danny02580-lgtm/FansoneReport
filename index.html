@@ -140,6 +140,11 @@
 }
 .kprev{margin-top:6px; font-size:12px; opacity:.85;}
 
+
+/* Map user insights buttons to segmented style without triggering chart view handlers */
+.userseg .userseg-btn{ all:unset; cursor:pointer; padding:10px 12px; border-radius:999px; font-weight:600; letter-spacing:.2px; }
+.userseg .userseg-btn.active{ background:rgba(255,255,255,.12); box-shadow:inset 0 0 0 1px rgba(255,255,255,.14); }
+
 </style>
 </head>
 <body>
@@ -222,8 +227,8 @@
           <h2 style="margin:0;">用戶分析</h2><span class="pill">Top 10</span>
         </div>
         <div class="segmented userseg" role="tablist" aria-label="User insights metric">
-  <button class="seg-btn active" type="button" data-metric="spend_total">付最多錢</button>
-  <button class="seg-btn" type="button" data-metric="active_months">訂閱最久</button>
+  <button class="userseg-btn active" type="button" data-metric="spend_total">付最多錢</button>
+  <button class="userseg-btn" type="button" data-metric="active_months">訂閱最久</button>
 </div>
 <select id="userMetric" style="display:none" class="select" style="max-width:220px; padding:8px 10px;">
 <option value="spend_total">付最多錢（總）</option>
@@ -811,7 +816,7 @@ main();
 (function(){
   // Sync user insights segmented buttons to hidden select
   const userSel = document.getElementById("userMetric");
-  const userBtns = document.querySelectorAll(".userseg .seg-btn");
+  const userBtns = document.querySelectorAll(".userseg .userseg-btn");
   if(userSel && userBtns.length){
     userBtns.forEach(btn=>{
       btn.addEventListener("click", ()=>{
@@ -856,5 +861,74 @@ main();
 })();
 
 </script>
+
+<script>
+// --- Prev month total revenue (month-aware, from monthly table) ---
+(function(){
+  const prevEl = document.getElementById("prevTotalRevenue");
+  if(!prevEl) return;
+
+  function moneyFmt(n){
+    if(typeof window.money==="function") return window.money(n);
+    return "NT$ " + n.toLocaleString("en-US");
+  }
+
+  function parseMonthCell(text){
+    const t = (text||"").trim();
+    let m = t.match(/(\d{4})\D(\d{1,2})/);
+    if(m) return {y:parseInt(m[1],10), mo:parseInt(m[2],10)};
+    m = t.match(/^\s*(\d{1,2})\s*$/);
+    if(m) return {y:null, mo:parseInt(m[1],10)};
+    const nums = t.match(/(\d{1,2})/g);
+    if(nums && nums.length) return {y:null, mo:parseInt(nums[nums.length-1],10)};
+    return null;
+  }
+
+  function readPrev(){
+    const tbody = document.getElementById("tbodyMonthly") || document.querySelector("#monthlyTable tbody");
+    if(!tbody){ prevEl.textContent = "Prev –"; return; }
+    const rows = Array.from(tbody.querySelectorAll("tr"));
+    if(rows.length < 2){ prevEl.textContent = "Prev –"; return; }
+
+    const parsed = rows.map(r=>{
+      const tds = r.querySelectorAll("td");
+      if(!tds.length) return null;
+      const mi = parseMonthCell(tds[0].textContent);
+      const total = parseInt((tds[tds.length-1].textContent||"").replace(/[^0-9]/g,""),10);
+      if(!mi || isNaN(total)) return null;
+      return {y:mi.y, mo:mi.mo, total};
+    }).filter(Boolean);
+
+    if(parsed.length < 2){ prevEl.textContent = "Prev –"; return; }
+
+    parsed.sort((a,b)=>{
+      const ay = (a.y ?? 0), by = (b.y ?? 0);
+      if(ay !== by) return ay - by;
+      return a.mo - b.mo;
+    });
+
+    const latest = parsed[parsed.length-1];
+    let target = null;
+    if(latest.y != null){
+      const prevMo = latest.mo - 1;
+      const prevY = prevMo >= 1 ? latest.y : (latest.y - 1);
+      const wantMo = prevMo >= 1 ? prevMo : 12;
+      target = parsed.slice().reverse().find(p => p.y === prevY && p.mo === wantMo);
+    } else {
+      const wantMo = latest.mo - 1;
+      target = parsed.slice().reverse().find(p => p.mo === wantMo);
+    }
+    if(!target) target = parsed[parsed.length-2];
+
+    prevEl.textContent = "Prev " + moneyFmt(target.total);
+  }
+
+  readPrev();
+  setTimeout(readPrev, 400);
+  setTimeout(readPrev, 1200);
+  setTimeout(readPrev, 2200);
+})();
+</script>
+
 </body>
 </html>
