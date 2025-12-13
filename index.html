@@ -845,14 +845,17 @@ async function main(){
     setText("months", String(STATE.aggAsc.length));
     setText("totalRevenue", money(Math.round(STATE.aggAsc.reduce((a,b)=>a+(b.totalRevenue||0),0))));
 
-    // Hide skeletons, show content
-    document.querySelectorAll(".skeleton-container").forEach(e=>e.classList.add("loading-hide"));
-    document.querySelectorAll(".loading-hide").forEach(e=>e.classList.remove("loading-hide"));
+    // --- 修正開始：正確移除骨架屏並顯示內容 ---
+    // 1. 先把所有骨架屏 (Loading 動畫) 直接從畫面上移除
+    document.querySelectorAll(".skeleton-container").forEach(e => e.remove());
+
+    // 2. 把原本隱藏的真實內容 (class="loading-hide") 顯示出來
+    document.querySelectorAll(".loading-hide").forEach(e => e.classList.remove("loading-hide"));
+    // --- 修正結束 ---
 
     renderTables();
     renderUsers(el("userMetric").value);
     el("userMetric").addEventListener("change", (e)=> {
-        // Reset sort for users when metric changes
         STATE.sort.users.col = 'metricVal';
         STATE.sort.users.dir = 'desc';
         renderUsers(e.target.value);
