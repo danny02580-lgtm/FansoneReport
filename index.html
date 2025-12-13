@@ -236,6 +236,12 @@
 #customTooltipCard .value{margin-left:auto;font-size:16px;font-weight:850;white-space:nowrap}
 </style>
 
+
+<style id="customTip_css">
+  .no-plotly-hover .hoverlayer{display:none !important;}
+  .no-plotly-hover .spikelines{display:none !important;}
+</style>
+
 </head>
 <body>
 <div class="wrap">
@@ -1773,6 +1779,263 @@ main();
   const obs = new MutationObserver(()=>scan());
   obs.observe(document.documentElement,{childList:true,subtree:true});
   window.addEventListener('load', ()=>{ setTimeout(scan,600); setTimeout(scan,1600); setTimeout(scan,3200); });
+})();
+</script>
+
+
+<script id="customTip_singlepoint_barsafe">
+(function(){
+  function anyName(gd, re){
+    try{ return (gd.data||[]).some(t=>t && typeof t.name==='string' && re.test(t.name)); }catch(e){ return false; }
+  }
+  function titleText(gd){
+    try{
+      const t = gd?._fullLayout?.title;
+      const s = (typeof t === 'string') ? t : (t?.text || '');
+      return String(s||'');
+    }catch(e){ return ''; }
+  }
+  function isUsersChart(gd){
+    const t = titleText(gd).toLowerCase();
+    return t.includes('user') || t.includes('用戶') || anyName(gd, /(new users|old users|new user|old user|新客|舊客)/i);
+  }
+  function isPlanChart(gd){
+    const t = titleText(gd).toLowerCase();
+    return t.includes('plan') || t.includes('方案') || anyName(gd, /(^|\s)(1m|3m|6m|1\s*month|3\s*month|6\s*month|單月|三月|六月)(\s|$)/i);
+  }
+  function isSensitive(gd){ return isUsersChart(gd) || isPlanChart(gd); }
+
+  // Tooltip card
+  const tip = document.createElement('div');
+  Object.assign(tip.style,{
+    position:'fixed', zIndex:9999, pointerEvents:'none', display:'none',
+    padding:'14px 16px', borderRadius:'22px',
+    background:'rgba(10,14,20,0.68)', backdropFilter:'blur(14px)', WebkitBackdropFilter:'blur(14px)',
+    border:'1px solid rgba(255,255,255,0.12)', boxShadow:'0 18px 44px rgba(0,0,0,0.55)',
+    color:'#e8eefc', fontFamily:'ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial',
+    fontSize:'16px', lineHeight:'1.25', maxWidth:'360px'
+  });
+  function mount(){ if(!tip.parentNode) document.body.appendChild(tip); }
+  function hide(){ tip.style.display='none'; }
+  function show(x,y,html){
+    mount(); tip.innerHTML=html; tip.style.display='block';
+    tip.style.left='0px'; tip.style.top='0px';
+    const r = tip.getBoundingClientRect();
+    const pad=14;
+    let left=x+14, top=y+14;
+    if(left+r.width+pad>innerWidth) left=x-r.width-14;
+    if(top+r.height+pad>innerHeight) top=y-r.height-14;
+    tip.style.left=Math.max(pad,left)+'px';
+    tip.style.top =Math.max(pad,top )+'px';
+  }
+
+  // Plot coords helpers
+  function origin(gd){
+    const r = gd.getBoundingClientRect();
+    const sz = gd?._fullLayout?._size;
+    if(!sz) return null;
+    return {ox:r.left+sz.l, oy:r.top+sz.t, w:sz.w, h:sz.h, l:sz.l, t:sz.t};
+  }
+  function pickNearest(gd, cx, cy){
+    const fl=gd._fullLayout, xa=fl?.xaxis, ya=fl?.yaxis;
+    const org = origin(gd);
+    if(!xa||!ya||!org||typeof xa.d2p!=='function'||typeof ya.d2p!=='function') return null;
+
+    let best=null;
+    for(const tr of (gd.data||[])){
+      if(!tr) continue;
+      const xArr=tr.x||[], yArr=tr.y||[];
+      if(!xArr.length||!yArr.length) continue;
+
+      // nearest x by pixel
+      let idx=0, bestDx=Infinity;
+      for(let i=0;i<xArr.length;i++){
+        const px=org.ox+xa.d2p(xArr[i]);
+        const dx=Math.abs(px-cx);
+        if(dx<bestDx){bestDx=dx; idx=i;}
+      }
+      const x=xArr[idx], y=yArr[idx];
+      if(y==null || Number.isNaN(y)) continue;
+
+      const px=org.ox+xa.d2p(x);
+      const py=org.oy+ya.d2p(y);
+      const d=Math.hypot(px-cx, py-cy);
+      if(!best || d<best.d) best={tr, idx, x, y, px, py, d};
+    }
+    return best;
+  }
+
+  // Formatting
+  const fmtInt = (n)=> new Intl.NumberFormat('en-US',{maximumFractionDigits:0}).format(n);
+  const fmt1 = (n)=> new Intl.NumberFormat('en-US',{maximumFractionDigits:1, minimumFractionDigits:1}).format(n);
+  function isPlanName(s){
+    return /(^|\s)(1m|3m|6m|1\s*month|3\s*month|6\s*month|單月|三月|六月)(\s|$)/i.test(String(s||''));
+  }
+  function formatValue(tr, y){
+    const name = (tr?.name||'').toLowerCase();
+    if(name.includes('revenue')||name.includes('營收')||name.includes('nt$')) return `NT$ ${fmtInt(Math.round(y))}`;
+    if(isPlanName(tr?.name||'')) return `${fmt1(y)}%`;
+    if(name.includes('user')||name.includes('新客')||name.includes('舊客')) return fmtInt(Math.round(y));
+    if(Math.abs(y)<=100 && (name.includes('%')||name.includes('rate'))) return `${fmt1(y)}%`;
+    return fmtInt(Math.round(y));
+  }
+
+  // Highlight overlay
+  function ensureOverlay(gd){
+    const id='__customOverlay';
+    let svg=gd.querySelector('svg#'+id);
+    const fl=gd._fullLayout;
+    if(!fl) return null;
+    const container = gd.querySelector('.svg-container') || gd;
+    container.style.position = container.style.position || 'relative';
+    if(!svg){
+      svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+      svg.setAttribute('id',id);
+      svg.style.position='absolute';
+      svg.style.left=fl._size.l+'px';
+      svg.style.top =fl._size.t+'px';
+      svg.style.width=fl._size.w+'px';
+      svg.style.height=fl._size.h+'px';
+      svg.style.pointerEvents='none';
+      container.appendChild(svg);
+    }
+    while(svg.firstChild) svg.removeChild(svg.firstChild);
+    return svg;
+  }
+
+  function highlightUsersBar(gd, picked){
+    const fl=gd._fullLayout, xa=fl?.xaxis, ya=fl?.yaxis;
+    const org=origin(gd);
+    if(!picked||!fl||!xa||!ya||!org) return;
+
+    let total=0;
+    for(const tr of (gd.data||[])){
+      if(tr?.type==='bar' && tr.x && tr.y && tr.x[picked.idx]===picked.x){
+        const v=tr.y[picked.idx];
+        if(typeof v==='number' && !Number.isNaN(v)) total += v;
+      }
+    }
+    const xs = (gd.data?.[0]?.x||[]).filter(v=>v!=null);
+    let stepPx=60;
+    if(xs.length>=2){
+      const px0=xa.d2p(xs[0]), px1=xa.d2p(xs[1]);
+      stepPx=Math.max(40, Math.abs(px1-px0));
+    }
+    const bw=stepPx*0.62;
+
+    const xCenter=xa.d2p(picked.x);
+    const x0=xCenter-bw/2;
+    const yTop=ya.d2p(total);
+    const y0=ya.d2p(0);
+
+    const svg=ensureOverlay(gd);
+    if(!svg) return;
+    const rect=document.createElementNS('http://www.w3.org/2000/svg','rect');
+    rect.setAttribute('x',x0);
+    rect.setAttribute('y',yTop);
+    rect.setAttribute('width',bw);
+    rect.setAttribute('height',Math.max(2, y0-yTop));
+    rect.setAttribute('rx','10');
+    rect.setAttribute('ry','10');
+    rect.setAttribute('fill','rgba(255,255,255,0.00)');
+    rect.setAttribute('stroke','rgba(255,255,255,0.92)');
+    rect.setAttribute('stroke-width','2.4');
+    svg.appendChild(rect);
+  }
+
+  function highlightPointGlow(gd, picked){
+    const fl=gd._fullLayout, xa=fl?.xaxis, ya=fl?.yaxis;
+    const org=origin(gd);
+    if(!picked||!fl||!xa||!ya||!org) return;
+    const svg=ensureOverlay(gd); if(!svg) return;
+
+    const cx=xa.d2p(picked.x);
+    const cy=ya.d2p(picked.y);
+    const color = (picked.tr?.marker?.color) || (picked.tr?.line?.color) || '#ffffff';
+
+    const c1=document.createElementNS('http://www.w3.org/2000/svg','circle');
+    c1.setAttribute('cx',cx); c1.setAttribute('cy',cy); c1.setAttribute('r','11');
+    c1.setAttribute('fill',color); c1.setAttribute('opacity','0.22');
+    const c2=document.createElementNS('http://www.w3.org/2000/svg','circle');
+    c2.setAttribute('cx',cx); c2.setAttribute('cy',cy); c2.setAttribute('r','6.2');
+    c2.setAttribute('fill',color); c2.setAttribute('opacity','0.55');
+    const c3=document.createElementNS('http://www.w3.org/2000/svg','circle');
+    c3.setAttribute('cx',cx); c3.setAttribute('cy',cy); c3.setAttribute('r','3.3');
+    c3.setAttribute('fill','#ffffff'); c3.setAttribute('opacity','0.88');
+    svg.appendChild(c1); svg.appendChild(c2); svg.appendChild(c3);
+  }
+
+  function cardHTML(p){
+    const month = p.x;
+    const name = p.tr?.name || 'Value';
+    const val  = formatValue(p.tr, p.y);
+    return `
+      <div style="font-weight:900;font-size:26px;margin-bottom:8px">${month}</div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <span style="width:16px;height:16px;border-radius:999px;background:${(p.tr?.marker?.color)||(p.tr?.line?.color)||'#fff'};box-shadow:0 0 0 4px rgba(255,255,255,0.08)"></span>
+        <div style="font-weight:800;opacity:.95">${name}</div>
+        <div style="margin-left:auto;font-weight:950;font-size:26px;letter-spacing:.2px">${val}</div>
+      </div>
+    `;
+  }
+
+  function disablePlotlyHover(gd){
+    try{
+      gd.classList.add('no-plotly-hover');
+      const dl = gd.querySelector('.draglayer');
+      if(dl) dl.style.pointerEvents = 'none';
+      const hl = gd.querySelector('.hoverlayer');
+      if(hl) hl.style.display='none';
+      Plotly.relayout(gd, {hovermode:false, hoverdistance:0, spikedistance:-1}).catch(()=>{});
+      const idx = gd.data.map((_,i)=>i);
+      Plotly.restyle(gd, {hoverinfo:'skip', hovertemplate:null}, idx).catch(()=>{});
+    }catch(e){}
+  }
+
+  function attach(gd){
+    if(!window.Plotly || !gd || !gd._fullLayout || gd.__customTipAttached) return;
+    if(!isSensitive(gd)) return;
+    gd.__customTipAttached=true;
+    disablePlotlyHover(gd);
+
+    function update(clientX, clientY){
+      const p = pickNearest(gd, clientX, clientY);
+      const svg = ensureOverlay(gd);
+      if(!p){ hide(); if(svg) while(svg.firstChild) svg.removeChild(svg.firstChild); return; }
+      show(clientX, clientY, cardHTML(p));
+      if(isUsersChart(gd)) highlightUsersBar(gd, p);
+      else highlightPointGlow(gd, p);
+    }
+
+    gd.addEventListener('mousemove', (e)=>{ update(e.clientX, e.clientY); }, {passive:true});
+    gd.addEventListener('mouseleave', ()=>{ hide(); ensureOverlay(gd); }, {passive:true});
+
+    // Mobile: tap to show, drag to update
+    let active=false;
+    gd.addEventListener('touchstart', (e)=>{
+      const t=e.touches?.[0]; if(!t) return;
+      active=true;
+      update(t.clientX, t.clientY);
+    }, {passive:true});
+    gd.addEventListener('touchmove', (e)=>{
+      if(!active) return;
+      const t=e.touches?.[0]; if(!t) return;
+      update(t.clientX, t.clientY);
+    }, {passive:true});
+    gd.addEventListener('touchend', ()=>{
+      active=false;
+      setTimeout(()=>{ hide(); ensureOverlay(gd); }, 250);
+    }, {passive:true});
+  }
+
+  function scan(){
+    document.querySelectorAll('.js-plotly-plot, .plotly-graph-div').forEach(gd=>{
+      try{ if(gd?._fullLayout) attach(gd); }catch(e){}
+    });
+  }
+  const obs=new MutationObserver(()=>scan());
+  obs.observe(document.documentElement,{childList:true,subtree:true});
+  addEventListener('load', ()=>{ setTimeout(scan,600); setTimeout(scan,1600); setTimeout(scan,3200); });
 })();
 </script>
 
