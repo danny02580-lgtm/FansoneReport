@@ -189,15 +189,14 @@
   /* GHOST OVERLAY for Bar Chart */
   #ghost-overlay {
     position: fixed;
-    pointer-events: none;
+    pointer-events: none; /* Allows click-through */
     z-index: 9999;
     border: 2px solid white;
     box-shadow: 0 0 4px rgba(0,0,0,0.3);
     display: none;
     border-radius: 2px;
     transition: all 0.08s ease-out;
-    /* 關鍵修正：預設把它踢到螢幕外面，防止左上角出現白點 */
-    top: -9999px;
+    top: -9999px; /* Init off-screen */
     left: -9999px;
   }
 </style>
@@ -948,33 +947,46 @@ main();
 <script id="safeHoverEnhancer">
 (function(){
   let lastEl = null;
+  // Saved state to restore original styles
   let saved = { stroke:'', strokeWidth:'', paintOrder:'', opacity:'', cursor:'', transform:'', transition:'', transformBox:'', transformOrigin:'' };
-  let ghostOverlay = document.getElementById('ghost-overlay');
 
+  let ghostOverlay = document.getElementById('ghost-overlay');
   if(!ghostOverlay) {
     ghostOverlay = document.createElement('div');
     ghostOverlay.id = 'ghost-overlay';
     document.body.appendChild(ghostOverlay);
   }
 
+  // --- NEW LOGIC: Use elementsFromPoint to pierce through the drag layer ---
   function enhance(gd){
     if(!gd || gd.__enhancerBound || !gd.on) return;
     gd.__enhancerBound = true;
 
+    // Listen to mousemove globally to get true screen coordinates
+    let globalX = 0, globalY = 0;
+    document.addEventListener('mousemove', function(e){
+        globalX = e.clientX;
+        globalY = e.clientY;
+    });
+
     gd.on('plotly_hover', function(e){
-      if(!e || !e.points || !e.points.length) return;
-      const pt = e.points[0];
-      const curveIdx = pt.curveNumber;
-      const pointIdx = pt.pointNumber;
+      // Use the global mouse coordinates or the event's coordinates
+      const cx = (e.event && e.event.clientX) || globalX;
+      const cy = (e.event && e.event.clientY) || globalY;
 
-      const traces = gd.querySelectorAll('.trace');
-      const traceEl = traces[curveIdx];
-      if(!traceEl) return;
+      // Pierce through layers!
+      const els = document.elementsFromPoint(cx, cy);
+      // Find the first SVG element that is a point (scatter or bar)
+      // Usually Plotly points are <path class="point ...">
+      const target = els.find(el => el.classList && el.classList.contains('point'));
 
-      const points = traceEl.querySelectorAll('.point');
-      const target = points[pointIdx];
       if(!target) return;
 
+      // Determine if it's Bar or Scatter based on the event data (safer)
+      // or try to guess from DOM properties (less safe).
+      // We use the event data `pt` just to know the type.
+      if(!e.points || !e.points.length) return;
+      const pt = e.points[0];
       const isBar = pt.data.type === 'bar';
 
       if(isBar) {
@@ -990,14 +1002,14 @@ main();
       } else {
         // --- SCATTER CHART: SCALE + GLOW ---
         ghostOverlay.style.display = 'none';
-        ghostOverlay.style.top = '-9999px'; // Move off-screen
+        ghostOverlay.style.top = '-9999px';
         ghostOverlay.style.left = '-9999px';
 
         if(lastEl !== target) {
             if(lastEl) reset(lastEl);
             lastEl = target;
 
-            // Save styles
+            // Save original styles
             saved.stroke = target.style.stroke;
             saved.strokeWidth = target.style.strokeWidth;
             saved.paintOrder = target.style.paintOrder;
@@ -1013,12 +1025,14 @@ main();
             target.style.transition = "all 0.1s ease-out";
             target.style.transform = "scale(1.5)";
 
-            target.style.stroke = '#ffffff';
-            target.style.strokeWidth = '8px';
-            target.style.paintOrder = 'stroke';
+            // Outer Glow effect using stroke (behind fill)
+            target.style.stroke = 'rgba(255,255,255,0.6)';
+            target.style.strokeWidth = '6px'; // Thick stroke
+            target.style.paintOrder = 'stroke'; // Draw stroke BEHIND fill
             target.style.opacity = '1';
             target.style.cursor = 'pointer';
 
+            // Bring to front
             if(target.parentNode) target.parentNode.appendChild(target);
         }
       }
@@ -1026,7 +1040,7 @@ main();
 
     gd.on('plotly_unhover', function(){
       ghostOverlay.style.display = 'none';
-      ghostOverlay.style.top = '-9999px'; // Move off-screen
+      ghostOverlay.style.top = '-9999px';
       ghostOverlay.style.left = '-9999px';
 
       if(lastEl) {
