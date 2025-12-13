@@ -146,7 +146,6 @@
     #chart{height:480px!important;}
 
     .tablesGrid{grid-template-columns:1fr; gap:16px;}
-
     .hd{gap:8px;} .hd h2{font-size:15px;}
     th, td{padding:12px 10px; font-size:14px;}
     .check{padding:12px;}
@@ -170,7 +169,7 @@
   }
   #customTooltipCard .tt-title{font-weight:700;font-size:14px;opacity:1;margin-bottom:6px;}
   #customTooltipCard .tt-row{display:flex;align-items:center;gap:10px}
-  #customTooltipCard .dot{width:10px;height:10px;border-radius:99px;flex:0 0 10px;box-shadow:0 0 0 2px rgba(255,255,255,.1)}
+  #customTooltipCard .dot{width:10px;height:10px;border-radius:999px;flex:0 0 10px;box-shadow:0 0 0 2px rgba(255,255,255,.1)}
   #customTooltipCard .name{font-size:13px;font-weight:600;opacity:.9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   #customTooltipCard .value{margin-left:auto;font-size:16px;font-weight:700;white-space:nowrap;font-feature-settings:"tnum"}
 
@@ -521,7 +520,7 @@ function buildAgg(subRows, singleRows){
     const p6 = orders? m.planCount["6M"]/orders : 0;
     const subRevenue = m.subRevenue || 0;
     const singleRevenue = m.singleRevenue || 0;
-    const totalRevenue = subRevenue + singleRevenue; // Fixed the 'Revenue' typo
+    const totalRevenue = subRevenue + singleRevenue; // Fixed typo: Revenue -> subRevenue
     const arpu = subs? subRevenue/subs : NaN;
     return { month:k, subs, newUsers, oldUsers, p1, p3, p6, subRevenue, singleRevenue, totalRevenue, arpu };
   });
@@ -955,6 +954,7 @@ main();
         const pt = e.points[0];
         const curveIdx = pt.curveNumber;
         const pointIdx = pt.pointNumber;
+
         const traceType = gd.data[curveIdx].type || 'scatter';
 
         let target = null;
@@ -1002,7 +1002,7 @@ main();
              ghostOverlay.style.display = 'block';
           }
         } else {
-          // SCATTER: UNIFIED GHOST OVERLAY (NO DIRECT DOM MANIPULATION)
+          // UNIFIED GHOST OVERLAY for SCATTER
           if(lastEl) { reset(lastEl); lastEl = null; }
 
           const rect = target.getBoundingClientRect();
@@ -1016,7 +1016,7 @@ main();
              ghostOverlay.style.top = (cy - size/2) + 'px';
              ghostOverlay.style.left = (cx - size/2) + 'px';
              ghostOverlay.style.borderRadius = "50%";
-             ghostOverlay.style.boxShadow = "0 0 0 6px rgba(255,255,255,0.6)"; // White Halo
+             ghostOverlay.style.boxShadow = "0 0 0 6px rgba(255,255,255,0.6)";
              ghostOverlay.style.display = 'block';
           }
         }
