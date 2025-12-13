@@ -80,32 +80,24 @@
     max-height: 400px;
   }
 
-  /* --- 修正開始：Chart Controls & Segmented --- */
-
-  /* 基礎容器樣式 */
+  /* --- 上方 Chart Controls (維持上一版修正) --- */
   .segmented {
     background: rgba(0,0,0,.2);
     border: 1px solid rgba(255,255,255,.1);
     border-radius: 14px;
-    padding: 4px; /* 保留內距 */
+    padding: 4px;
     overflow: hidden;
   }
-
-  /* 針對上方主控台的設定 (不是 userseg 的時候) */
   .segmented:not(.userseg) {
-    display: flex; /* Flex 佈局 */
-    width: 100%;   /* 強制全寬，不滑動 */
+    display: flex;
+    width: 100%;
     margin: 0 0 12px 0;
   }
-
-  /* 上方按鈕樣式 */
   .seg-btn {
-    flex: 1; /* 平分寬度 */
-    min-width: 0; /* 允許壓縮 */
-
-    padding: 8px 0; /* 左右不留白，最大化文字空間 */
+    flex: 1;
+    min-width: 0;
+    padding: 8px 0;
     margin: 0;
-
     border-radius: 10px;
     border: 0;
     background: transparent;
@@ -114,15 +106,11 @@
     font-size: 14px;
     cursor: pointer;
     font-family: inherit;
-
     white-space: nowrap;
     text-align: center;
     transition: all 0.2s cubic-bezier(0.4,0,0.2,1);
-
-    /* 關鍵：拿掉 ellipsis，強制不顯示點點點 */
     text-overflow: clip;
   }
-
   .seg-btn.active {
     background: var(--accent);
     color: #fff;
@@ -134,13 +122,12 @@
     background: rgba(255,255,255,0.05);
   }
 
-  /* 針對下方 Top Users 的 User Seg (覆蓋上面的設定) */
+  /* --- 下方 Top Users 切換按鈕 --- */
   .segmented.userseg {
-    display: inline-flex; /* 恢復成 inline，不佔滿整行 */
-    width: auto;          /* 自動寬度 */
+    display: inline-flex;
+    width: auto;
     margin: 0;
   }
-  /* 下方按鈕樣式 (維持原本設計) */
   .userseg .userseg-btn {
     all: unset;
     cursor: pointer;
@@ -156,8 +143,6 @@
     color: #fff;
     box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1);
   }
-
-  /* --- 修正結束 --- */
 
   .select.hidden{display:none!important;}
   .select{width:100%; padding:12px; border:1px solid var(--stroke); border-radius:14px; background:rgba(255,255,255,.04); color:var(--text); font-size:14px; outline:none;}
@@ -177,6 +162,7 @@
   .tablesGrid{display:grid; grid-template-columns:1.3fr 1fr; gap:16px; margin-top:16px; width: 100%;}
   @media(max-width:980px){.tablesGrid{grid-template-columns:1fr}}
 
+  /* --- 通用表格樣式 --- */
   table{width:100%; border-collapse:separate; border-spacing:0; font-size:14px}
   th,td{padding:14px 14px; border-bottom:1px solid rgba(255,255,255,.06); white-space:nowrap;}
   th{
@@ -186,6 +172,26 @@
   td.right, th.right{text-align:right;}
   tbody tr:nth-child(even) td{background:rgba(255,255,255,0.01)}
   tr:hover td{background:rgba(255,255,255,.06)!important; transition:background 0.1s}
+
+  /* --- 修正開始：Top Users 表格固定欄寬 --- */
+  .fixed-table {
+    table-layout: fixed; /* 強制固定寬度，不隨內容伸縮 */
+    min-width: 600px;    /* 手機上保持最小寬度，避免擠壓，允許橫向滑動 */
+  }
+
+  /* 第一欄 User ID：給予 30% 寬度 */
+  .fixed-table th:nth-child(1) {
+    width: 30%;
+  }
+
+  /* 後面四欄 (Metric, Sub, Single, Total)：平均分配剩下的 70% (各 17.5%) */
+  .fixed-table th:nth-child(2),
+  .fixed-table th:nth-child(3),
+  .fixed-table th:nth-child(4),
+  .fixed-table th:nth-child(5) {
+    width: 17.5%;
+  }
+  /* --- 修正結束 --- */
 
   .sheetlink{color:var(--muted); border:1px solid var(--stroke); padding:7px 9px; border-radius:999px; background:rgba(255,255,255,.04)}
   .sheetlink:hover{color:var(--text)}
@@ -207,10 +213,10 @@
     .tablesGrid{grid-template-columns:1fr; gap:16px;}
     .check{padding:12px;}
 
-    /* 手機版：針對上方按鈕做極限優化 */
+    /* 手機版按鈕微調 */
     .seg-btn {
-      font-size: 11px; /* 縮小字體 */
-      padding: 7px 0;  /* 高度稍微修飾，左右不留空 */
+      font-size: 13px; /* 改回 Subs 後，字體可以稍微大一點點回來，比較好看 */
+      padding: 8px 0;
     }
   }
 
@@ -271,7 +277,7 @@
       <div class="bd">
         <div class="segmented" role="tablist">
           <button class="seg-btn active" type="button" data-value="money">Revenue</button>
-          <button class="seg-btn" type="button" data-value="subs">Subscribers</button>
+          <button class="seg-btn" type="button" data-value="subs">Subs</button>
           <button class="seg-btn" type="button" data-value="mix">Plans</button>
           <button class="seg-btn" type="button" data-value="arpu">ARPU</button>
         </div>
@@ -334,7 +340,7 @@
       </div>
       <div class="bd" style="padding:0;">
         <div class="table-scroll-container">
-          <table>
+          <table class="fixed-table">
             <thead>
               <tr>
                 <th>User ID</th>
