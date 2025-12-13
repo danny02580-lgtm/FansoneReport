@@ -180,16 +180,19 @@
   #customTooltipCard .name{font-size:13px;font-weight:650;opacity:.92;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   #customTooltipCard .value{margin-left:auto;font-size:16px;font-weight:850;white-space:nowrap}
 
-  /* Bar Chart Overlay (The White Box) */
-  #bar-overlay {
+  /* GHOST OVERLAY:
+     This div sits on top of everything (z-index 9999) to provide the white border.
+     It mimics the position of the bar exactly.
+  */
+  #ghost-overlay {
     position: fixed;
-    pointer-events: none;
+    pointer-events: none; /* Allows click-through */
     z-index: 9999;
     border: 2px solid white;
-    box-shadow: 0 0 0 1px rgba(0,0,0,0.3);
+    box-shadow: 0 0 2px rgba(0,0,0,0.5); /* Slight shadow to pop */
     display: none;
-    border-radius: 1px;
-    transition: all 0.05s ease-out;
+    border-radius: 2px;
+    transition: all 0.08s ease-out; /* Smooth follow */
   }
 </style>
 </head>
@@ -322,7 +325,7 @@
   </div>
 </div>
 
-<div id="bar-overlay"></div>
+<div id="ghost-overlay"></div>
 <div id="customTooltip" style="display:none"></div>
 
 <script>
@@ -940,11 +943,11 @@ main();
 (function(){
   let lastEl = null;
   let saved = { stroke:'', strokeWidth:'', paintOrder:'', opacity:'' };
-  let overlayDiv = document.getElementById('bar-overlay');
+  let overlayDiv = document.getElementById('ghost-overlay');
 
   if(!overlayDiv) {
     overlayDiv = document.createElement('div');
-    overlayDiv.id = 'bar-overlay';
+    overlayDiv.id = 'ghost-overlay';
     document.body.appendChild(overlayDiv);
   }
 
@@ -956,66 +959,51 @@ main();
       if(!e || !e.points || !e.points.length) return;
       const pt = e.points[0];
 
-      // Determine type
+      const curveIdx = pt.curveNumber;
+      const pointIdx = pt.pointNumber;
+
+      // Select the bar element from the DOM using its index
+      // Structure: .trace.bars (container) -> .points (group) -> path (element)
+      // Or for Scatter: .trace.scatter -> .points -> path
+
+      const traces = gd.querySelectorAll('.trace');
+      if(!traces[curveIdx]) return;
+
+      const points = traces[curveIdx].querySelectorAll('path.point');
+      const target = points[pointIdx];
+
+      if(!target) return;
+
       const isBar = pt.data.type === 'bar';
-      const isScatter = ['scatter','scattergl'].includes(pt.data.type);
 
       if(isBar) {
-        // --- BAR CHART: CSS OVERLAY STRATEGY ---
-        // Find the DOM element using the point index
-        const curveIdx = pt.curveNumber;
-        const pointIdx = pt.pointNumber;
+        // --- Bar Chart: Ghost Overlay ---
+        // Get the position of the underlying SVG element
+        const rect = target.getBoundingClientRect();
 
-        // Selector logic specific to Plotly's structure
-        // .trace.bars -> .points -> path
-        const traces = gd.querySelectorAll('.trace.bars');
-        if(!traces[curveIdx]) return;
-
-        const points = traces[curveIdx].querySelectorAll('path.point');
-        const target = points[pointIdx];
-
-        if(target) {
-           // Get exact screen coordinates of the SVG element
-           // This works even with draglayer on top
-           const rect = target.getBoundingClientRect();
-
-           if(rect.width > 0 && rect.height > 0) {
-             overlayDiv.style.top = rect.top + 'px';
-             overlayDiv.style.left = rect.left + 'px';
-             overlayDiv.style.width = rect.width + 'px';
-             overlayDiv.style.height = rect.height + 'px';
-             overlayDiv.style.display = 'block';
-           }
+        if(rect.width > 0 && rect.height > 0) {
+           overlayDiv.style.display = 'block';
+           overlayDiv.style.top = rect.top + 'px';
+           overlayDiv.style.left = rect.left + 'px';
+           overlayDiv.style.width = rect.width + 'px';
+           overlayDiv.style.height = rect.height + 'px';
         }
+      } else {
+        // --- Scatter Chart: Scale + Stroke ---
+        overlayDiv.style.display = 'none'; // Hide overlay
 
-      } else if (isScatter) {
-        // --- SCATTER CHART: SVG STROKE STRATEGY ---
-        const curveIdx = pt.curveNumber;
-        const pointIdx = pt.pointNumber;
+        if(lastEl !== target) {
+            if(lastEl) reset(lastEl);
+            lastEl = target;
+            saved.stroke = target.style.stroke;
+            saved.strokeWidth = target.style.strokeWidth;
+            saved.paintOrder = target.style.paintOrder;
 
-        const traces = gd.querySelectorAll('.trace.scatter');
-        if(!traces || !traces[curveIdx]) return;
-
-        // Scatter points can be complex (paths or grouped).
-        // For 'scatter' with 'markers', usually it's path.point
-        const points = traces[curveIdx].querySelectorAll('.point');
-        const target = points[pointIdx];
-
-        if(target) {
-            if(lastEl !== target) {
-                if(lastEl) reset(lastEl);
-                lastEl = target;
-                saved.stroke = target.style.stroke;
-                saved.strokeWidth = target.style.strokeWidth;
-                saved.paintOrder = target.style.paintOrder;
-
-                target.style.stroke = 'rgba(255,255,255,0.95)';
-                target.style.strokeWidth = '3px';
-                target.style.paintOrder = 'stroke';
-            }
+            // Apply highlighting style
+            target.style.stroke = 'rgba(255,255,255,0.9)';
+            target.style.strokeWidth = '3px';
+            target.style.paintOrder = 'stroke';
         }
-        // Hide bar overlay if we moved to a scatter point
-        overlayDiv.style.display = 'none';
       }
     });
 
@@ -1029,7 +1017,6 @@ main();
   }
 
   function reset(el){
-    if(!el) return;
     el.style.stroke = saved.stroke;
     el.style.strokeWidth = saved.strokeWidth;
     el.style.paintOrder = saved.paintOrder;
