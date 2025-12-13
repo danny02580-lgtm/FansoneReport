@@ -9,566 +9,1496 @@
   :root{
     --bg0:#0b1220; --bg1:#0f1a2e; --panel:rgba(255,255,255,.06); --stroke:rgba(255,255,255,.14);
     --text:#e5e7eb; --muted:#9ca3af;
-    --new:#3498db; --old:#2980b9; --rev:#e74c3c; --single:#a78bfa; --totalrev:#f59e0b; --arpu:#d35400;
+    --new:#3498db; --old:#2980b9;
+    --rev:#e74c3c; --single:#a78bfa; --totalrev:#f59e0b;
+    --arpu:#d35400;
   }
   *{box-sizing:border-box}
   body{
-    margin:0; font-family: system-ui,-apple-system,sans-serif; color:var(--text);
-    background: radial-gradient(1200px 600px at 20% 10%, rgba(52,152,219,.18), transparent 60%),
-                radial-gradient(900px 500px at 85% 25%, rgba(231,76,60,.16), transparent 60%),
-                linear-gradient(180deg, var(--bg0), var(--bg1));
+    margin:0;
+    font-family: system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
+    color:var(--text);
+    background:
+      radial-gradient(1200px 600px at 20% 10%, rgba(52,152,219,.18), transparent 60%),
+      radial-gradient(900px 500px at 85% 25%, rgba(231,76,60,.16), transparent 60%),
+      radial-gradient(800px 500px at 60% 90%, rgba(245,158,11,.14), transparent 60%),
+      linear-gradient(180deg, var(--bg0), var(--bg1));
     min-height:100vh;
   }
   a{color:inherit; text-decoration:none}
   .wrap{max-width:1200px; margin:0 auto; padding:20px 16px 36px}
-
-  /* Topbar & KPI */
-  .topbar{ display:flex; justify-content:space-between; gap:14px; padding:14px; border:1px solid var(--stroke); border-radius:16px; background:var(--panel); backdrop-filter:blur(10px); }
+  .topbar{
+    display:flex; align-items:flex-start; justify-content:space-between; gap:14px;
+    padding:14px; border:1px solid var(--stroke); border-radius:16px; background:var(--panel); backdrop-filter: blur(10px);
+  }
   .title h1{margin:0; font-size:18px}
-  .title .sub{margin-top:6px; font-size:12px; color:var(--muted)}
-  #status.ok{color:#34d399} #status.err{color:#fb7185}
+  .title .sub{margin-top:6px; font-size:12px; color:var(--muted); line-height:1.4}
+  #status.ok{color:#34d399}
+  #status.err{color:#fb7185}
+  .kpis{display:flex; flex-wrap:wrap; gap:10px; justify-content:flex-end; align-items:stretch}
+  .kpi{
+    padding:12px 14px; border:1px solid var(--stroke); border-radius:16px; background:rgba(255,255,255,.04);
+    min-width:220px; display:flex; flex-direction:column; gap:6px;
+  }
+  .kpi .klabel{font-size:12px; color:var(--muted)}
+  .kpi .kvalue{font-size:24px; font-weight:850; letter-spacing:.2px; color:var(--text)}
+  .kpi.small{min-width:140px}
+  .kpi.small .kvalue{font-size:24px}
 
-  .kpis{display:flex; gap:10px;}
-  .kpi{ padding:12px 14px; border:1px solid var(--stroke); border-radius:16px; background:rgba(255,255,255,.04); min-width:140px; }
-  .kpi .klabel{font-size:12px; color:var(--muted); letter-spacing:.5px;}
-  .kpi .kvalue{font-size:24px; font-weight:800; margin-top:4px; color:var(--text);}
-
-  /* Grid Layout */
   .grid{display:grid; grid-template-columns: 360px 1fr; gap:14px; margin-top:14px}
-  .panel{border:1px solid var(--stroke); border-radius:16px; background:var(--panel); backdrop-filter:blur(10px); overflow:hidden}
-  .hd{padding:12px; border-bottom:1px solid rgba(255,255,255,.10); display:flex; align-items:center; justify-content:space-between}
+  @media (max-width: 980px){ .grid{grid-template-columns: 1fr} }
+  .panel{border:1px solid var(--stroke); border-radius:16px; background:var(--panel); backdrop-filter: blur(10px); overflow:hidden}
+  .hd{padding:12px; border-bottom:1px solid rgba(255,255,255,.10); display:flex; align-items:center; justify-content:space-between; gap:10px}
   .hd h2{margin:0; font-size:13px}
   .bd{padding:12px}
 
-  /* Controls */
-  .segmented{display:flex; gap:4px; padding:4px; background:rgba(255,255,255,.05); border-radius:12px; margin-bottom:12px;}
-  .seg-btn{flex:1; padding:8px; border-radius:8px; border:0; background:transparent; color:var(--muted); font-weight:700; cursor:pointer; transition:.2s;}
-  .seg-btn:hover{color:var(--text);}
-  .seg-btn.active{background:rgba(255,255,255,.12); color:#fff; box-shadow:0 2px 5px rgba(0,0,0,.1);}
+  .select{
+    width:100%;
+    padding:12px 12px;
+    border:1px solid var(--stroke);
+    border-radius:14px;
+    background:rgba(255,255,255,.04);
+    color:var(--text);
+    font-size:13px;
+    outline:none;
+  }
+  .hint{margin-top:8px; font-size:11px; color:var(--muted); line-height:1.45}
 
-  .checks{display:grid; gap:8px; margin-top:10px}
-  .check{ display:flex; gap:10px; align-items:center; padding:10px; border:1px solid var(--stroke); border-radius:14px; background:rgba(255,255,255,.03); cursor:pointer; }
-  .check input{width:16px; height:16px; accent-color:var(--new)}
-  .dot{width:10px; height:10px; border-radius:50%;}
-  .label b{font-size:12px; display:block}
+  .checks{display:grid; grid-template-columns: 1fr; gap:8px; margin-top:10px}
+  .check{
+    display:flex; gap:10px; align-items:center;
+    padding:10px 10px;
+    border:1px solid var(--stroke);
+    border-radius:14px;
+    background:rgba(255,255,255,.03);
+  }
+  .check input{width:18px; height:18px; accent-color: var(--new)}
+  .dot{width:10px; height:10px; border-radius:999px; background:#fff; box-shadow:0 0 0 3px rgba(255,255,255,.07)}
+  .label{display:flex; flex-direction:column; gap:2px}
+  .label b{font-size:12px; font-weight:750}
   .label span{font-size:11px; color:var(--muted)}
 
-  /* Chart & Tables */
-  #chart{width:100%; height:500px}
+  #chart{width:100%; height:560px}
+  @media (max-width: 980px){ #chart{height:520px} }
+
   .tablesGrid{display:grid; grid-template-columns: 1.3fr 1fr; gap:14px; margin-top:14px}
-  .scroll-box{max-height:340px; overflow:auto;}
+  @media (max-width: 980px){ .tablesGrid{grid-template-columns: 1fr} }
   table{width:100%; border-collapse:separate; border-spacing:0; font-size:12px}
-  th,td{padding:10px; border-bottom:1px solid rgba(255,255,255,.08)}
-  th{text-align:left; color:var(--muted); font-weight:700; background:rgba(15, 26, 46, 0.95); position:sticky; top:0; z-index:2;}
-  .right{text-align:right}
-  tr:hover td{background:rgba(255,255,255,.05)}
-  .pill{padding:4px 8px; border:1px solid var(--stroke); border-radius:20px; font-size:11px; color:var(--muted); background:rgba(255,255,255,.03)}
+  th,td{padding:10px 10px; border-bottom:1px solid rgba(255,255,255,.08)}
+  th{text-align:left; color:var(--muted); font-weight:700; background:rgba(255,255,255,.03); position:sticky; top:0; backdrop-filter: blur(10px)}
+  td.right, th.right{text-align:right}
+  tr:hover td{background:rgba(255,255,255,.03)}
+  .sheetlink{color: var(--muted); border:1px solid var(--stroke); padding:7px 9px; border-radius:999px; background:rgba(255,255,255,.04)}
+  .sheetlink:hover{color:var(--text)}
+  .pill{padding:5px 8px; border:1px solid var(--stroke); border-radius:999px; font-size:11px; color:var(--muted); background:rgba(255,255,255,.03)}
 
-  /* Custom Tooltip */
-  #ttCard{
-    position:fixed; z-index:9999; pointer-events:none; display:none;
-    padding:12px 14px; border-radius:12px; background:rgba(12,16,24,.85);
-    border:1px solid rgba(255,255,255,.14); box-shadow:0 10px 30px rgba(0,0,0,.5);
-    backdrop-filter:blur(8px); color:#fff; min-width:160px;
-  }
-  #ttCard .tt-head{font-weight:800; font-size:13px; margin-bottom:6px; opacity:.9;}
-  #ttCard .tt-row{display:flex; align-items:center; gap:8px; font-size:13px;}
-  #ttCard .tt-val{margin-left:auto; font-weight:700;}
+/* --- Mobile polish (no layout break) --- */
+@media (max-width: 860px){
+  .wrap{padding:12px;}
+  .hd{flex-direction:column; align-items:flex-start; gap:10px;}
+  .kpis{grid-template-columns:1fr 1fr; gap:10px;}
+  .kpi .big{font-size:22px;}
+  .kpi .sub{font-size:12px;}
+  .content{grid-template-columns:1fr; gap:12px;}
+  #chart{height:360px !important;}
+  .panel{border-radius:14px;}
+  .controls{position:sticky; top:0; z-index:5;}
+  .checks{max-height:none;}
+  table{font-size:12px;}
+  .tableWrap{overflow:auto; -webkit-overflow-scrolling:touch;}
+}
+@media (max-width: 480px){
+  .kpis{grid-template-columns:1fr; }
+  #chart{height:320px !important;}
+  .btn, select, input[type="checkbox"]{touch-action:manipulation;}
+}
 
-  @media (max-width: 900px){
-    .grid, .tablesGrid{grid-template-columns: 1fr}
-    .topbar{flex-direction:column;}
-    .kpis{width:100%; display:grid; grid-template-columns:1fr 1fr;}
-    #chart{height:350px}
-  }
+
+/* === KPI premium cards (A) === */
+.kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:12px 0 14px;}
+.kpi{background:linear-gradient(135deg,rgba(255,255,255,.08),rgba(255,255,255,.03));border:1px solid rgba(255,255,255,.14);
+     border-radius:16px;padding:14px 14px;box-shadow:0 14px 34px rgba(0,0,0,.22);}
+.kpi .klabel{font-size:12px;color:rgba(255,255,255,.70);letter-spacing:.12em;}
+.kpi .kvalue{margin-top:6px;font-size:32px;font-weight:850;letter-spacing:.02em;}
+@media(max-width:520px){.kpis{grid-template-columns:1fr;}.kpi .kvalue{font-size:28px;}}
+
+
+/* === Segmented control (B) === */
+.segmented{display:flex;gap:6px;padding:6px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.14);border-radius:14px;
+           overflow-x:auto;-webkit-overflow-scrolling:touch;margin:10px 0 10px;}
+.segmented::-webkit-scrollbar{height:0}
+.seg-btn{flex:1 0 auto;padding:10px 12px;border-radius:12px;border:0;background:transparent;color:rgba(255,255,255,.72);font-weight:750;cursor:pointer;white-space:nowrap;}
+.seg-btn.active{background:rgba(255,255,255,.12);color:rgba(255,255,255,.96);}
+.select.hidden{display:none!important;}
+
+
+/* --- Requested UX patches (v3_8 based) --- */
+#orderTag{display:none !important;}
+.twoline{display:inline-block; line-height:1.05; text-align:center;}
+@media (max-width:720px){
+  .twoline{font-size:12px;}
+}
+.kprev{margin-top:6px; font-size:12px; opacity:.85;}
+
+
+/* Map user insights buttons to segmented style without triggering chart view handlers */
+.userseg .userseg-btn{ all:unset; cursor:pointer; padding:10px 12px; border-radius:999px; font-weight:600; letter-spacing:.2px; }
+.userseg .userseg-btn.active{ background:rgba(255,255,255,.12); box-shadow:inset 0 0 0 1px rgba(255,255,255,.14); }
+
+
+/* Hide legacy Prev label */
+#prevTotalRevenue{display:none !important;}
+
+
+/* Match Latest KPI typography to Total Revenue */
+.kpi-card[data-kpi="latest"] .kpi-title,
+#kpiLatest .kpi-title, #latestKpi .kpi-title, #kpiLatestTitle, #latestKpiTitle{
+  font-size: inherit;
+}
+.kpi-card[data-kpi="latest"] .kpi-value,
+#kpiLatest .kpi-value, #latestKpi .kpi-value, #kpiLatestValue, #latestKpiValue{
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+
+/* Monthly table header: single line + alignment */
+#monthlyTable thead th{white-space:nowrap !important; vertical-align:middle !important;}
+#monthlyTable thead th:first-child, #monthlyTable tbody td:first-child{white-space:nowrap !important; text-align:left !important;}
+#monthlyTable thead th.right, #monthlyTable tbody td.right{text-align:right !important;}
+
 </style>
+
+<style id="customHoverStyle">
+/* Hide Plotly default hover label box (keep events) */
+.js-plotly-plot .hoverlayer{ opacity:0 !important; pointer-events:none !important; }
+
+/* Custom tooltip card */
+#customTooltip{
+  position:fixed;
+  z-index:9999;
+  pointer-events:none;
+  min-width: 220px;
+  max-width: 340px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(18, 22, 32, 0.78);
+  border: 1px solid rgba(255,255,255,0.10);
+  box-shadow: 0 16px 48px rgba(0,0,0,0.50);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: #fff;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Noto Sans", "PingFang TC", "Microsoft JhengHei", sans-serif;
+}
+#customTooltip .tt-title{
+  font-weight: 850;
+  letter-spacing: .3px;
+  margin-bottom: 8px;
+  opacity: .95;
+}
+#customTooltip .tt-row{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin: 7px 0;
+}
+#customTooltip .tt-dot{
+  width:10px;height:10px;border-radius:999px;flex:0 0 10px;
+  box-shadow: 0 0 0 2px rgba(255,255,255,0.10);
+}
+#customTooltip .tt-name{
+  flex:1;
+  opacity:.92;
+  font-weight:650;
+}
+#customTooltip .tt-val{
+  font-weight:850;
+  letter-spacing:.2px;
+}
+</style>
+
+
+<style id="customTooltipCardStyles">
+.js-plotly-plot .hoverlayer .hovertext{display:none!important;}
+#customTooltipCard{
+  position:fixed; z-index:99999; display:none; pointer-events:none;
+  padding:14px 16px; border-radius:18px;
+  background:rgba(12,16,24,.68);
+  border:1px solid rgba(255,255,255,.14);
+  box-shadow:0 18px 60px rgba(0,0,0,.45);
+  backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+  color:#eef3ff; max-width:min(320px, calc(100vw - 24px));
+}
+#customTooltipCard .tt-title{font-weight:800;font-size:14px;opacity:.9;margin-bottom:6px;letter-spacing:.2px}
+#customTooltipCard .tt-row{display:flex;align-items:center;gap:10px}
+#customTooltipCard .dot{width:10px;height:10px;border-radius:999px;flex:0 0 10px;box-shadow:0 0 0 3px rgba(255,255,255,.08)}
+#customTooltipCard .name{font-size:13px;font-weight:650;opacity:.92;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#customTooltipCard .value{margin-left:auto;font-size:16px;font-weight:850;white-space:nowrap}
+</style>
+
 </head>
 <body>
-
 <div class="wrap">
   <div class="topbar">
     <div class="title">
       <h1>Fansone Report</h1>
-      <div class="sub" id="status">Connecting...</div>
+      <div class="sub" id="status">Loading…</div>
     </div>
     <div class="kpis">
-      <div class="kpi">
-        <div class="klabel">Latest Month</div>
-        <div class="kvalue" id="kpiMonth">–</div>
+      <div class="kpi small">
+        <div class="klabel">Latest</div>
+        <div class="kvalue" id="months">–</div>
       </div>
       <div class="kpi">
-        <div class="klabel">Total Revenue</div>
-        <div class="kvalue" id="kpiTotal">–</div>
-      </div>
+        <div class="klabel">Total revenue</div>
+        <div class="kvalue" id="totalRevenue">–</div></div>
     </div>
   </div>
 
   <div class="grid">
     <div class="panel">
-      <div class="hd"><h2>Chart Controls</h2></div>
+      <div class="hd"><h2>圖表切換</h2><span class="pill" id="orderTag">新 → 舊</span></div>
       <div class="bd">
-        <div class="segmented" id="chartViewSeg">
-          <button class="seg-btn active" data-val="money">Revenue</button>
-          <button class="seg-btn" data-val="subs">Subs</button>
-          <button class="seg-btn" data-val="mix">Plans</button>
-          <button class="seg-btn" data-val="arpu">ARPU</button>
-        </div>
-        <div class="checks" id="traceChecks"></div>
-        <div style="margin-top:14px; font-size:11px; color:var(--muted); text-align:center">
-           Click legend to toggle lines • Double click to isolate
-        </div>
+        
+<div class="segmented" role="tablist" aria-label="Chart views">
+  <button class="seg-btn active" type="button" data-value="money">Revenue</button>
+  <button class="seg-btn" type="button" data-value="subs">Subscribers</button>
+  <button class="seg-btn" type="button" data-value="mix">Plans</button>
+  <button class="seg-btn" type="button" data-value="arpu">ARPU</button>
+</div>
+
+<select id="viewSelect" class="select hidden">
+          <option value="money">金額（總/訂閱/單片）</option>
+          <option value="subs">訂閱人數（新/舊柱狀）</option>
+          <option value="mix">方案比例（1/3/6M 勾選）</option>
+          <option value="arpu">ARPU（折線）</option>
+        </select>
+<div class="checks" id="checks"></div>
       </div>
     </div>
-    <div class="panel" style="padding:4px">
+
+    <div class="panel" style="padding:10px">
       <div id="chart"></div>
     </div>
   </div>
 
   <div class="tablesGrid">
     <div class="panel">
-      <div class="hd"><h2>Monthly Summary</h2><span class="pill">Sub + Single</span></div>
-      <div class="bd scroll-box">
-        <table id="monthlyTable">
-          <thead>
-            <tr><th>Month</th><th class="right">Subs</th><th class="right">New</th><th class="right">Old</th><th class="right">Sub $</th><th class="right">Single $</th><th class="right">Total $</th><th class="right">ARPU</th></tr>
-          </thead>
-          <tbody></tbody>
-        </table>
+      <div class="hd">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <h2 style="margin:0;">月度總表</h2><span class="pill">訂閱 + 單片合計</span>
+        </div>
+      </div>
+      <div class="bd" style="padding:0 0 10px 0;">
+        <div style="max-height:340px; overflow:auto;">
+          <table id="monthlyTable">
+            <thead>
+              <tr>
+                <th>月份</th>
+                <th class="right">訂閱人數</th>
+                <th class="right">新客</th>
+                <th class="right">舊客</th>
+                <th class="right">訂閱營收</th>
+                <th class="right">單片營收</th>
+                <th class="right">總營收</th>
+                <th class="right">ARPU</th>
+              </tr>
+            </thead>
+            <tbody id="tbodyMonthly"></tbody>
+          </table>
+        </div>
       </div>
     </div>
 
     <div class="panel">
       <div class="hd">
-        <h2>Top Users</h2>
-        <div class="segmented" id="userSeg" style="margin:0; padding:2px; font-size:11px;">
-          <button class="seg-btn active" data-metric="totalSpend">Spend</button>
-          <button class="seg-btn" data-metric="monthsActive">Loyalty</button>
+        <div style="display:flex; align-items:center; gap:10px;">
+          <h2 style="margin:0;">用戶分析</h2><span class="pill">Top 10</span>
         </div>
+        <div class="segmented userseg" role="tablist" aria-label="User insights metric">
+  <button class="userseg-btn active" type="button" data-metric="spend_total">付最多錢</button>
+  <button class="userseg-btn" type="button" data-metric="active_months">訂閱最久</button>
+</div>
+<select id="userMetric" style="display:none" class="select" style="max-width:220px; padding:8px 10px;">
+<option value="spend_total">付最多錢（總）</option>
+<option value="active_months">訂閱最久（活躍月數）</option>
+
+          
+          
+          
+          
+          
+          
+        </select>
       </div>
-      <div class="bd scroll-box">
-        <table id="userTable">
-          <thead><tr><th>User ID</th><th class="right">Metric</th><th class="right">Sub $</th><th class="right">Total $</th></tr></thead>
-          <tbody></tbody>
-        </table>
+      <div class="bd" style="padding:0 0 10px 0;">
+        <div style="max-height:340px; overflow:auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>User ID</th>
+                <th class="right">指標</th>
+                <th class="right">訂閱$</th>
+                <th class="right">單片$</th>
+                <th class="right">總$</th>
+              </tr>
+            </thead>
+            <tbody id="tbodyUsers"></tbody>
+          </table>
+        </div>
       </div>
     </div>
   </div>
 
-  <div class="tablesGrid" style="grid-template-columns:1fr">
+  <div class="tablesGrid" style="grid-template-columns: 1fr; margin-top:14px;">
     <div class="panel">
-      <div class="hd"><h2>Top Single Sales</h2><span class="pill">Top 10</span></div>
-      <div class="bd scroll-box">
-        <table>
-          <thead><tr><th>Title</th><th class="right">Revenue</th><th class="right">Orders</th></tr></thead>
-          <tbody id="singleTableBody"></tbody>
-        </table>
+      <div class="hd">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <h2 style="margin:0;">單片 TOP10</h2><span class="pill">點標題可直達貼文</span>
+        </div>
+</div>
+      <div class="bd" style="padding:0 0 10px 0;">
+        <div style="max-height:320px; overflow:auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>影片標題</th>
+                <th class="right">金額</th>
+                <th class="right">筆數</th>
+              </tr>
+            </thead>
+            <tbody id="tbodySingles"></tbody>
+          </table>
+        </div>
       </div>
     </div>
   </div>
 </div>
 
-<div id="ttCard"><div class="tt-head"></div><div class="tt-body"></div></div>
-
 <script>
-// --- Config & Utils ---
-const URLs = {
-  SUB: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQiAPNDCD7qn6atO4VB6Ei63AacDK00AMKM16hK8c-wVWFadPPOj-P8olYQ-ofMFwy0maGU1A4CBneW/pub?gid=0&single=true&output=csv",
-  SINGLE: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQiAPNDCD7qn6atO4VB6Ei63AacDK00AMKM16hK8c-wVWFadPPOj-P8olYQ-ofMFwy0maGU1A4CBneW/pub?gid=1226262547&single=true&output=csv"
-};
 
-const el = id => document.getElementById(id);
-const fmtMoney = n => isFinite(n) ? "$ " + Math.round(n).toLocaleString() : "–";
-const fmtInt = n => isFinite(n) ? Math.round(n).toLocaleString() : "0";
+const SUB_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQiAPNDCD7qn6atO4VB6Ei63AacDK00AMKM16hK8c-wVWFadPPOj-P8olYQ-ofMFwy0maGU1A4CBneW/pub?gid=0&single=true&output=csv";
+const SINGLE_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQiAPNDCD7qn6atO4VB6Ei63AacDK00AMKM16hK8c-wVWFadPPOj-P8olYQ-ofMFwy0maGU1A4CBneW/pub?gid=1226262547&single=true&output=csv";
 
-// --- Data Fetching & Processing ---
-async function fetchData() {
-  const parseCSV = (text) => {
-    const rows = text.replace(/\r/g,"").trim().split("\n");
-    if(rows.length < 2) return [];
-
-    // Split headers carefully
-    const headers = rows[0].split(",").map(h => h.trim().replace(/^"|"$/g, '').toLowerCase());
-
-    return rows.slice(1).map(r => {
-      // Handle quoted CSV cells better
-      const cells = [];
-      let cur = "", inQ = false;
-      for(let i=0; i<r.length; i++){
-        let c = r[i];
-        if(c === '"'){
-           if(inQ && r[i+1] === '"'){ cur += '"'; i++; } // handle escaped quote
-           else { inQ = !inQ; }
-        } else if(c === ',' && !inQ){
-           cells.push(cur); cur = "";
-        } else {
-           cur += c;
-        }
-      }
-      cells.push(cur);
-
-      const obj = {};
-      headers.forEach((h, i) => obj[h] = (cells[i] || "").trim());
-      return obj;
-    });
-  };
-
-  try {
-    if(location.protocol === "file:") {
-      el("status").className = "sub err";
-      el("status").textContent = "File protocol blocked. Please use localhost or Vercel.";
-      return null;
-    }
-    const [r1, r2] = await Promise.all([fetch(URLs.SUB), fetch(URLs.SINGLE)]);
-    if(!r1.ok || !r2.ok) throw new Error("Network error");
-
-    return {
-      subs: parseCSV(await r1.text()),
-      singles: parseCSV(await r2.text())
-    };
-  } catch(e) {
-    el("status").className = "sub err";
-    el("status").textContent = "Error: " + e.message;
-    throw e;
+function el(id){ return document.getElementById(id); }
+function money(n){ if(!isFinite(n)) return "–"; return "$ " + Number(n).toLocaleString("en-US"); }
+function parseMoney(s){
+  if(s==null) return NaN;
+  const t = String(s);
+  const m = t.match(/-?\d+(?:,\d{3})*(?:\.\d+)?/);
+  if(!m) return NaN;
+  return Number(m[0].replace(/,/g,""));
+}
+function toMonthKey(v){
+  if(!v) return null;
+  const s = String(v).trim();
+  const m = s.match(/(\d{4})-(\d{2})/);
+  if(!m) return null;
+  return m[1] + "-" + m[2];
+}
+async function fetchCSV(url){
+  const r = await fetch(url, {cache:"no-store"});
+  if(!r.ok) throw new Error("Fetch failed: " + r.status);
+  return await r.text();
+}
+function splitCSVLine(line){
+  const out=[]; let cur=""; let inQ=false;
+  for(let i=0;i<line.length;i++) {
+    const c=line[i];
+    if(c==='"') {
+      if(inQ && line[i+1]==='"') { cur+='"'; i++; }
+      else inQ=!inQ;
+    } else if(c===',' && !inQ) { out.push(cur); cur=""; }
+    else cur+=c;
   }
+  out.push(cur);
+  return out;
+}
+function csvToRows(csv){
+  const text = csv.replace(/^\uFEFF/, "");
+  const lines = text.replace(/\r/g,"").trim().split("
+");
+  if(lines.length<=1) return [];
+  const headers = splitCSVLine(lines[0]).map(h=>h.trim());
+  const rows=[];
+  for(let i=1;i<lines.length;i++) {
+    if(!lines[i].trim()) continue;
+    const cols = splitCSVLine(lines[i]);
+    const obj={};
+    headers.forEach((h,idx)=> obj[h] = (cols[idx] ?? "").trim());
+    rows.push(obj);
+  }
+  return rows;
+}
+function normalizePlan(plan){
+  const s = String(plan||"").toLowerCase();
+  if(s.includes("6") || s.includes("半年") || s.includes("6個月")) return "6M";
+  if(s.includes("3") || s.includes("三") || s.includes("3個月")) return "3M";
+  return "1M";
+}
+function pickKey(headers, candidates){
+  const lower = headers.map(h=>h.toLowerCase());
+  for(const cand of candidates){
+    const c = String(cand).toLowerCase();
+    const idx = lower.findIndex(h => h.includes(c));
+    if(idx>=0) return headers[idx];
+  }
+  return null;
+}
+function parseTimeToSortable(s){
+  // Accept: 2025-11-3001:09:28 or 2025-11-30 01:09:28
+  const t = String(s||"").trim();
+  const m = t.match(/^(\d{4})-(\d{2})-(\d{2})\s?(\d{2}):(\d{2})(?::(\d{2}))?/);
+  if(!m){
+    // try to insert space between date and time if missing
+    const m2 = t.match(/^(\d{4})-(\d{2})-(\d{2})(\d{2}):(\d{2})(?::(\d{2}))?/);
+    if(!m2) return null;
+    return `${m2[1]}-${m2[2]}-${m2[3]} ${m2[4]}:${m2[5]}:${m2[6]||"00"}`;
+  }
+  return `${m[1]}-${m[2]}-${m[3]} ${m[4]}:${m[5]}:${m[6]||"00"}`;
 }
 
-function processData(rawSub, rawSingle) {
-  // Helper: Find columns using multiple aliases (Chinese/English)
-  const findCol = (row, ...keywords) => {
-    const rowKeys = Object.keys(row);
-    // Try exact match first, then includes
-    for(const k of rowKeys) {
-      if(keywords.some(kw => k === kw || k.includes(kw))) return row[k];
-    }
-    return "";
-  };
+let STATE = { aggAsc:[], aggDesc:[], topSingles:[], users:[] };
 
-  const parsePrice = s => {
-    const m = String(s).match(/-?\d+(?:,\d{3})*(?:\.\d+)?/);
-    return m ? parseFloat(m[0].replace(/,/g, "")) : 0;
-  };
-
-  const getMonth = (s) => {
-    const m = String(s).match(/(\d{4})-(\d{2})/);
-    return m ? `${m[1]}-${m[2]}` : null;
-  };
+function buildAgg(subRows, singleRows){
+  const subHeaders = Object.keys(subRows[0]||{});
+  const timeKey  = pickKey(subHeaders, ["時間","time","date","datetime"]) || subHeaders[0];
+  const planKey  = pickKey(subHeaders, ["方案","plan","類型"]) || subHeaders[1];
+  const idKey    = pickKey(subHeaders, ["用戶id","user id","userid","id","用戶","user"]) || subHeaders[2];
+  const priceKey = pickKey(subHeaders, ["價格","price","金額","amount","收入"]) || subHeaders[Math.min(3, subHeaders.length-1)];
 
   const monthMap = new Map();
+  const seenBefore = new Set();
+
+  const parsedSub = subRows.map(r=>({
+    month: toMonthKey(r[timeKey]),
+    time: parseTimeToSortable(r[timeKey]) || String(r[timeKey]||""),
+    id: String(r[idKey]||"").trim(),
+    plan: normalizePlan(r[planKey]),
+    price: parseMoney(r[priceKey]),
+  })).filter(x=>x.month && x.id);
+
+  parsedSub.sort((a,b)=> (a.month<b.month?-1:a.month>b.month?1: (a.time<b.time?-1:a.time>b.time?1:0)));
+
+  // user agg
   const userMap = new Map();
-  const singleAgg = new Map();
-
-  const ensureMonth = (m) => {
-    if(!monthMap.has(m)) monthMap.set(m, { month:m, subs:new Set(), newU:new Set(), oldU:new Set(), plans:{p1:0,p3:0,p6:0}, revSub:0, revSingle:0 });
-    return monthMap.get(m);
-  };
-  const ensureUser = (id) => {
-    if(!userMap.has(id)) userMap.set(id, { id, sub$:0, single$:0, total$:0, months:new Set() });
+  function ensureUser(id){
+    if(!userMap.has(id)) userMap.set(id, {
+      id, subSpend:0, singleSpend:0, totalSpend:0,
+      subOrders:0, singleOrders:0, totalOrders:0,
+      firstTs:null, lastTs:null, activeMonths:new Set()
+    });
     return userMap.get(id);
-  };
-
-  // 1. Process Subs
-  // Sort by time safely to determine New vs Old
-  rawSub.sort((a,b) => {
-    const ta = findCol(a, "time", "date", "時間") || "";
-    const tb = findCol(b, "time", "date", "時間") || "";
-    return ta.localeCompare(tb);
-  });
-
-  const seenUsers = new Set();
-
-  rawSub.forEach(row => {
-    const timeStr = findCol(row, "time", "date", "時間", "datetime");
-    const m = getMonth(timeStr);
-    if(!m) return;
-
-    const id = findCol(row, "user", "id", "用戶", "userid");
-    const plan = findCol(row, "plan", "方案", "類型").toLowerCase();
-    const price = parsePrice(findCol(row, "price", "金額", "amount", "收入", "價格"));
-
-    const md = ensureMonth(m);
-
-    if(id) {
-      if(!md.subs.has(id)) {
-        md.subs.add(id);
-        if(seenUsers.has(id)) md.oldU.add(id); else md.newU.add(id);
-        seenUsers.add(id);
-      }
-      const u = ensureUser(id);
-      u.sub$ += price; u.total$ += price; u.months.add(m);
-    }
-
-    if(isFinite(price)) md.revSub += price;
-
-    if(plan.includes("6") || plan.includes("半") || plan.includes("six")) md.plans.p6++;
-    else if(plan.includes("3") || plan.includes("三") || plan.includes("three")) md.plans.p3++;
-    else md.plans.p1++;
-  });
-
-  // 2. Process Singles
-  rawSingle.forEach(row => {
-    const timeStr = findCol(row, "time", "date", "時間");
-    const m = getMonth(timeStr);
-    const title = findCol(row, "title", "標題", "內容", "影片");
-    const price = parsePrice(findCol(row, "price", "金額", "amount", "收入", "價格"));
-    const id = findCol(row, "user", "id", "用戶");
-    const url = findCol(row, "url", "link", "網址");
-
-    if(m) {
-      const md = ensureMonth(m);
-      if(isFinite(price)) md.revSingle += price;
-    }
-
-    if(id) {
-      const u = ensureUser(id);
-      if(isFinite(price)) { u.single$ += price; u.total$ += price; }
-      if(m) u.months.add(m);
-    }
-
-    if(title) {
-      if(!singleAgg.has(title)) singleAgg.set(title, { title, sum:0, count:0, url });
-      const t = singleAgg.get(title);
-      if(isFinite(price)) t.sum += price;
-      t.count++;
-    }
-  });
-
-  // 3. Final Aggregation
-  const monthly = Array.from(monthMap.values()).sort((a,b) => a.month.localeCompare(b.month)).map(d => {
-    const totalRev = d.revSub + d.revSingle;
-    const subCount = d.subs.size;
-    const planTotal = d.plans.p1 + d.plans.p3 + d.plans.p6 || 1;
-    return {
-      ...d,
-      totalRev,
-      newCnt: d.newU.size,
-      oldCnt: d.oldU.size,
-      arpu: subCount ? d.revSub / subCount : 0,
-      mix: { p1: d.plans.p1/planTotal*100, p3: d.plans.p3/planTotal*100, p6: d.plans.p6/planTotal*100 }
-    };
-  });
-
-  return {
-    monthly,
-    users: Array.from(userMap.values()),
-    singles: Array.from(singleAgg.values()).sort((a,b) => b.sum - a.sum).slice(0, 10)
-  };
-}
-
-// --- Rendering Logic ---
-let STATE = { monthly: [], users: [], singles: [] };
-let CHART = null;
-
-function renderTables() {
-  if(!STATE.monthly.length) return;
-
-  // Monthly Table
-  const revM = [...STATE.monthly].reverse();
-  el("monthlyTable").querySelector("tbody").innerHTML = revM.map(d => `
-    <tr>
-      <td>${d.month}</td>
-      <td class="right">${d.subs.size}</td>
-      <td class="right" style="color:var(--new)">${d.newCnt}</td>
-      <td class="right" style="color:var(--old)">${d.oldCnt}</td>
-      <td class="right">${fmtInt(d.revSub)}</td>
-      <td class="right" style="color:var(--muted)">${fmtInt(d.revSingle)}</td>
-      <td class="right" style="font-weight:bold">${fmtInt(d.totalRev)}</td>
-      <td class="right">${d.arpu.toFixed(1)}</td>
-    </tr>
-  `).join("");
-
-  // Single Sales Table
-  el("singleTableBody").innerHTML = STATE.singles.map(s => `
-    <tr>
-      <td>${s.url ? `<a href="${s.url}" target="_blank">${s.title}</a>` : s.title}</td>
-      <td class="right">${fmtInt(s.sum)}</td>
-      <td class="right">${s.count}</td>
-    </tr>
-  `).join("");
-
-  renderUsers("totalSpend");
-}
-
-function renderUsers(metric) {
-  const users = [...STATE.users];
-  if(metric === "totalSpend") users.sort((a,b) => b.total$ - a.total$);
-  else if(metric === "monthsActive") users.sort((a,b) => b.months.size - a.months.size);
-
-  const top10 = users.slice(0, 10);
-  const metricVal = (u) => metric === "totalSpend" ? fmtMoney(u.total$) : u.months.size + " mo";
-
-  el("userTable").querySelector("tbody").innerHTML = top10.map(u => `
-    <tr>
-      <td style="font-family:monospace; opacity:.8">${u.id}</td>
-      <td class="right"><b>${metricVal(u)}</b></td>
-      <td class="right">${fmtInt(u.sub$)}</td>
-      <td class="right">${fmtInt(u.total$)}</td>
-    </tr>
-  `).join("") || `<tr><td colspan="4" style="text-align:center; padding:10px; color:var(--muted)">Loading...</td></tr>`;
-}
-
-function renderKPIs() {
-  if(!STATE.monthly.length) return;
-  const last = STATE.monthly[STATE.monthly.length - 1];
-  const total = STATE.monthly.reduce((a, b) => a + b.totalRev, 0);
-  el("kpiMonth").textContent = fmtMoney(last.totalRev);
-  el("kpiTotal").textContent = fmtMoney(total);
-}
-
-// --- Plotly Chart ---
-function initChart() {
-  const config = { responsive: true, displayModeBar: false };
-  const layout = {
-    paper_bgcolor: "rgba(0,0,0,0)",
-    plot_bgcolor: "rgba(255,255,255,0.02)",
-    margin: { l:40, r:20, t:20, b:40 },
-    xaxis: { tickcolor: "rgba(255,255,255,0.1)", gridcolor: "rgba(255,255,255,0.05)", tickfont:{color:"#9ca3af"} },
-    yaxis: { tickcolor: "rgba(255,255,255,0.1)", gridcolor: "rgba(255,255,255,0.05)", tickfont:{color:"#9ca3af"} },
-    legend: { orientation: "h", y: 1.1, font:{color:"#9ca3af"} },
-    hovermode: "closest",
-  };
-  Plotly.newPlot("chart", [], layout, config).then(gd => {
-    CHART = gd;
-    setupTooltip(gd);
-  });
-}
-
-function updateChart(view) {
-  if(!STATE.monthly || !STATE.monthly.length) return;
-
-  const m = STATE.monthly;
-  const x = m.map(d => d.month);
-  let traces = [];
-  let checks = [];
-  const css = getComputedStyle(document.body);
-  const c = {
-    new: css.getPropertyValue("--new").trim(),
-    old: css.getPropertyValue("--old").trim(),
-    rev: css.getPropertyValue("--rev").trim(),
-    tot: css.getPropertyValue("--totalrev").trim(),
-    sng: css.getPropertyValue("--single").trim()
-  };
-
-  if(view === "money") {
-    traces = [
-      { name:"Total", x, y:m.map(d=>d.totalRev), type:"scatter", mode:"lines+markers", line:{color:c.tot, width:3}, visible:true },
-      { name:"Sub Only", x, y:m.map(d=>d.revSub), type:"scatter", mode:"lines+markers", line:{color:c.rev}, visible:true },
-      { name:"Single", x, y:m.map(d=>d.revSingle), type:"scatter", mode:"lines+markers", line:{color:c.sng, dash:"dot"}, visible:true }
-    ];
-    checks = [{id:0, l:"Total"}, {id:1, l:"Sub Only"}, {id:2, l:"Single Sales"}];
-  } else if(view === "subs") {
-    traces = [
-      { name:"New", x, y:m.map(d=>d.newCnt), type:"bar", marker:{color:c.new}, visible:true },
-      { name:"Old", x, y:m.map(d=>d.oldCnt), type:"bar", marker:{color:c.old}, visible:true }
-    ];
-    checks = [{id:0, l:"New Users"}, {id:1, l:"Old Users"}];
-    Plotly.relayout(CHART, {barmode:"stack"});
-  } else if(view === "mix") {
-    traces = [
-      { name:"1M", x, y:m.map(d=>d.mix.p1), type:"bar", marker:{color:"#22c55e"}, visible:true },
-      { name:"3M", x, y:m.map(d=>d.mix.p3), type:"bar", marker:{color:"#60a5fa"}, visible:true },
-      { name:"6M", x, y:m.map(d=>d.mix.p6), type:"bar", marker:{color:"#f97316"}, visible:true }
-    ];
-    checks = [{id:0, l:"1M %"}, {id:1, l:"3M %"}, {id:2, l:"6M %"}];
-    Plotly.relayout(CHART, {barmode:"stack", "yaxis.range":[0,100]});
-  } else if(view === "arpu") {
-    traces = [{ name:"ARPU", x, y:m.map(d=>d.arpu), type:"scatter", mode:"lines+markers", line:{color:css.getPropertyValue("--arpu").trim(), width:3}, visible:true }];
+  }
+  function updateTime(u, ts){
+    if(!ts) return;
+    if(!u.firstTs || ts < u.firstTs) u.firstTs = ts;
+    if(!u.lastTs  || ts > u.lastTs)  u.lastTs  = ts;
   }
 
-  Plotly.react(CHART, traces, CHART.layout);
-
-  // Render Checkboxes
-  const box = el("traceChecks");
-  box.innerHTML = checks.map(c => `
-    <label class="check">
-      <input type="checkbox" checked data-idx="${c.id}">
-      <span class="dot" style="background:${traces[c.id].marker?.color || traces[c.id].line?.color}"></span>
-      <span class="label"><b>${c.l}</b></span>
-    </label>
-  `).join("");
-
-  box.querySelectorAll("input").forEach(cb => {
-    cb.addEventListener("change", (e) => {
-      Plotly.restyle(CHART, {visible: e.target.checked}, [parseInt(e.target.dataset.idx)]);
+  for(const rec of parsedSub){
+    if(!monthMap.has(rec.month)) monthMap.set(rec.month, {
+      month: rec.month,
+      subIds: new Set(),
+      newIds: new Set(),
+      oldIds: new Set(),
+      planCount: {"1M":0,"3M":0,"6M":0},
+      subRevenue: 0,
+      singleRevenue: 0,
     });
-  });
-}
+    const m = monthMap.get(rec.month);
 
-// --- Custom Tooltip ---
-function setupTooltip(gd) {
-  const card = el("ttCard");
-  const head = card.querySelector(".tt-head");
-  const body = card.querySelector(".tt-body");
-
-  gd.on('plotly_hover', data => {
-    const pt = data.points[0];
-    // Position
-    const bbox = pt.xaxis.layer.getBoundingClientRect();
-    const x = data.event ? data.event.clientX : (bbox.x + pt.xaxis.d2p(pt.x));
-    const y = data.event ? data.event.clientY : (bbox.y + pt.yaxis.d2p(pt.y));
-
-    card.style.display = "block";
-    card.style.top = (y - 10) + "px";
-    card.style.left = (x + 15) + "px";
-    if(x > window.innerWidth - 180) card.style.left = (x - 170) + "px";
-
-    head.textContent = pt.x;
-
-    // Show all visible traces for this X
-    const vals = gd.data.map((tr, i) => {
-      if(tr.visible === false || tr.visible === "legendonly") return null;
-      const val = tr.y[pt.pointNumber];
-      if(val == null) return null;
-
-      let valStr = isFinite(val) ? Math.round(val).toLocaleString() : val;
-      if(tr.name.includes("M")) valStr += "%";
-      if(tr.name.includes("Rev") || tr.name.includes("Total") || tr.name.includes("Sub")) valStr = "$ " + valStr;
-
-      const c = tr.marker?.color || tr.line?.color || "#fff";
-      return `<div class="tt-row"><div class="dot" style="background:${c}"></div> ${tr.name} <span class="tt-val">${valStr}</span></div>`;
-    }).filter(x=>x).join("");
-
-    body.innerHTML = vals;
-  });
-
-  gd.on('plotly_unhover', () => card.style.display = "none");
-}
-
-// --- Init ---
-(async function main() {
-  initChart();
-
-  // Controls
-  el("chartViewSeg").querySelectorAll("button").forEach(btn => {
-    btn.addEventListener("click", () => {
-      el("chartViewSeg").querySelector(".active").classList.remove("active");
-      btn.classList.add("active");
-      updateChart(btn.dataset.val);
-    });
-  });
-
-  el("userSeg").querySelectorAll("button").forEach(btn => {
-    btn.addEventListener("click", () => {
-      el("userSeg").querySelector(".active").classList.remove("active");
-      btn.classList.add("active");
-      renderUsers(btn.dataset.metric);
-    });
-  });
-
-  // Load Data
-  try {
-    const raw = await fetchData();
-    if(raw) {
-      STATE = processData(raw.subs, raw.singles);
-
-      el("status").className = "sub ok";
-      el("status").textContent = "Updated: " + new Date().toLocaleTimeString();
-
-      renderKPIs();
-      renderTables();
-      updateChart("money");
+    if(!m.subIds.has(rec.id)){
+      m.subIds.add(rec.id);
+      if(seenBefore.has(rec.id)) m.oldIds.add(rec.id); else m.newIds.add(rec.id);
     }
-  } catch(e) { console.error(e); }
+    m.planCount[rec.plan] = (m.planCount[rec.plan]||0) + 1;
+    if(isFinite(rec.price)) m.subRevenue += rec.price;
+    seenBefore.add(rec.id);
+
+    const u = ensureUser(rec.id);
+    if(isFinite(rec.price)) { u.subSpend += rec.price; u.totalSpend += rec.price; }
+    u.subOrders += 1; u.totalOrders += 1;
+    u.activeMonths.add(rec.month);
+    updateTime(u, rec.time);
+  }
+
+  const sHeaders = Object.keys(singleRows[0]||{});
+  const sTimeKey  = pickKey(sHeaders, ["時間","time","date","datetime"]) || sHeaders[0];
+  const sTitleKey = pickKey(sHeaders, ["影片標題","標題","title","影片","內容"]) || sHeaders[1];
+  const sUrlKey   = pickKey(sHeaders, ["網址","url","link"]) || sHeaders[2];
+  const sIdKey    = pickKey(sHeaders, ["用戶id","user id","userid","id","用戶","user"]) || sHeaders[3];
+  const sPriceKey = pickKey(sHeaders, ["價格","price","金額","amount","收入"]) || sHeaders[Math.min(4, sHeaders.length-1)];
+
+  const titleAgg = new Map();
+  for(const r of singleRows){
+    const title = String(r[sTitleKey]||"").trim();
+    const url = String(r[sUrlKey]||"").trim();
+    const price = parseMoney(r[sPriceKey]);
+    const uid = String(r[sIdKey]||"").trim();
+    if(title){
+      if(!titleAgg.has(title)) titleAgg.set(title, {title, url, sum:0, count:0});
+      const t = titleAgg.get(title);
+      if(!t.url && url) t.url=url;
+      if(isFinite(price)) t.sum += price;
+      t.count += 1;
+    }
+    if(uid){
+      const u = ensureUser(uid);
+      if(isFinite(price)) { u.singleSpend += price; u.totalSpend += price; }
+      u.singleOrders += 1; u.totalOrders += 1;
+      const ts = parseTimeToSortable(r[sTimeKey]) || String(r[sTimeKey]||"");
+      updateTime(u, ts);
+      const mo = toMonthKey(r[sTimeKey]);
+      if(mo) u.activeMonths.add(mo);
+    }
+  }
+
+  for(const r of singleRows){
+    const month = toMonthKey(r[sTimeKey]);
+    if(!month) continue;
+    const price = parseMoney(r[sPriceKey]);
+    if(!monthMap.has(month)) monthMap.set(month, {
+      month, subIds:new Set(), newIds:new Set(), oldIds:new Set(),
+      planCount: {"1M":0,"3M":0,"6M":0}, subRevenue:0, singleRevenue:0
+    });
+    const m = monthMap.get(month);
+    if(isFinite(price)) m.singleRevenue += price;
+  }
+
+  const monthsAsc = Array.from(monthMap.keys()).sort();
+  const aggAsc = monthsAsc.map(k=>{
+    const m = monthMap.get(k);
+    const subs = m.subIds.size;
+    const newUsers = m.newIds.size;
+    const oldUsers = m.oldIds.size;
+    const orders = (m.planCount["1M"] + m.planCount["3M"] + m.planCount["6M"]) || 0;
+    const p1 = orders? m.planCount["1M"]/orders : 0;
+    const p3 = orders? m.planCount["3M"]/orders : 0;
+    const p6 = orders? m.planCount["6M"]/orders : 0;
+    const subRevenue = m.subRevenue || 0;
+    const singleRevenue = m.singleRevenue || 0;
+    const totalRevenue = subRevenue + singleRevenue;
+    const arpu = subs? subRevenue/subs : NaN;
+    return { month:k, subs, newUsers, oldUsers, p1, p3, p6, subRevenue, singleRevenue, totalRevenue, arpu };
+  });
+
+  const topSingles = Array.from(titleAgg.values()).sort((a,b)=>b.sum-a.sum).slice(0,10);
+
+  const users = Array.from(userMap.values()).map(u=>{
+    const monthsActive = u.activeMonths.size;
+    let spanDays = null;
+    if(u.firstTs && u.lastTs){
+      const a = Date.parse(u.firstTs.replace(" ", "T") + "+08:00");
+      const b = Date.parse(u.lastTs.replace(" ", "T") + "+08:00");
+      if(isFinite(a) && isFinite(b)) spanDays = Math.round((b-a)/(1000*60*60*24));
+    }
+    return {...u, monthsActive, spanDays};
+  });
+
+  return { aggAsc, topSingles, users };
+}
+
+function renderTables(aggDesc, topSingles){
+  el("tbodyMonthly").innerHTML = aggDesc.map(x=>(
+    `<tr>
+      <td>${x.month}</td>
+      <td class="right">${x.subs}</td>
+      <td class="right">${x.newUsers}</td>
+      <td class="right">${x.oldUsers}</td>
+      <td class="right">${Math.round(x.subRevenue).toLocaleString("en-US")}</td>
+      <td class="right">${Math.round(x.singleRevenue).toLocaleString("en-US")}</td>
+      <td class="right">${Math.round(x.totalRevenue).toLocaleString("en-US")}</td>
+      <td class="right">${isFinite(x.arpu)?x.arpu.toFixed(1):"–"}</td>
+    </tr>`
+  )).join("");
+
+  el("tbodySingles").innerHTML = topSingles.map(t=>{
+    const safeTitle = t.title.replace(/</g,"&lt;").replace(/>/g,"&gt;");
+    const link = t.url ? `<a href="${t.url}" target="_blank" rel="noopener">${safeTitle}</a>` : safeTitle;
+    return `<tr>
+      <td>${link}</td>
+      <td class="right">${Math.round(t.sum).toLocaleString("en-US")}</td>
+      <td class="right">${t.count}</td>
+    </tr>`;
+  }).join("");
+}
+
+function renderUsers(metric){
+  const users = STATE.users || [];
+  const rows = [...users];
+  let getVal = (u)=>u.totalSpend;
+  let fmt = (v)=> Math.round(v).toLocaleString("en-US");
+  let label = "總$";
+  if(metric==="spend_sub"){ getVal=(u)=>u.subSpend; label="訂閱$"; }
+  else if(metric==="spend_single"){ getVal=(u)=>u.singleSpend; label="單片$"; }
+  else if(metric==="active_months"){ getVal=(u)=>u.monthsActive; fmt=(v)=>String(v); label="月數"; }
+  else if(metric==="tenure_span"){ getVal=(u)=> (u.spanDays==null?-1:u.spanDays); fmt=(v)=> (v<0?"–":(v+"d")); label="跨度"; }
+  else if(metric==="orders_total"){ getVal=(u)=>u.totalOrders; fmt=(v)=>String(v); label="次數"; }
+
+  rows.sort((a,b)=> (getVal(b) - getVal(a)));
+  const top = rows.filter(u=>getVal(u)>0).slice(0,10);
+
+  el("tbodyUsers").innerHTML = top.map(u=>(
+    `<tr>
+      <td>${u.id}</td>
+      <td class="right">${fmt(getVal(u))}</td>
+      <td class="right">${Math.round(u.subSpend).toLocaleString("en-US")}</td>
+      <td class="right">${Math.round(u.singleSpend).toLocaleString("en-US")}</td>
+      <td class="right">${Math.round(u.totalSpend).toLocaleString("en-US")}</td>
+    </tr>`
+  )).join("") || `<tr><td colspan="5" style="color:rgba(156,163,175,.9); padding:14px;">（目前沒有資料）</td></tr>`;
+}
+
+function makeChecksFor(view){
+  const css = getComputedStyle(document.documentElement);
+  const itemsByView = {
+    money: [
+      { id:"r_total",  color:css.getPropertyValue('--totalrev').trim(), title:"總營收", desc:"訂閱 + 單片" },
+      { id:"r_sub",    color:css.getPropertyValue('--rev').trim(),      title:"訂閱營收", desc:"訂閱金額" },
+      { id:"r_single", color:css.getPropertyValue('--single').trim(),   title:"單片營收", desc:"單片金額" },
+    ],
+    subs: [
+      { id:"s_new", color:css.getPropertyValue('--new').trim(), title:"新客", desc:"柱狀（新客）" },
+      { id:"s_old", color:css.getPropertyValue('--old').trim(), title:"舊客", desc:"柱狀（舊客）" },
+    ],
+    mix: [
+      { id:"p_1", color:"#22c55e", title:"1M", desc:"單月" },
+      { id:"p_3", color:"#60a5fa", title:"3M", desc:"三月" },
+      { id:"p_6", color:"#f97316", title:"6M", desc:"六月" },
+    ],
+    arpu: [],
+  };
+  const items = itemsByView[view] || [];
+  const box = el("checks");
+  box.innerHTML = items.map(it=>(
+    `<label class="check">
+      <input type="checkbox" id="${it.id}" />
+      <span class="dot" style="background:${it.color}"></span>
+      <span class="label"><b>${it.title}</b><span>${it.desc}</span></span>
+    </label>`
+  )).join("");
+  box.style.display = (view==="arpu") ? "none" : "grid";
+}
+
+function applyOrder(newestFirst){
+  const a = STATE.aggAsc;
+  STATE.aggDesc = newestFirst ? [...a].reverse() : [...a];
+  el("orderTag").textContent = newestFirst ? "新 → 舊" : "舊 → 新";
+}
+
+function buildTraces(view){
+  const agg = STATE.aggDesc;
+  const x = agg.map(d=>Number(d.month.split("-")[1]));
+  const xText = agg.map(d=>d.month);
+
+  const newY = agg.map(d=>d.newUsers);
+  const oldY = agg.map(d=>d.oldUsers);
+  const subRev = agg.map(d=>Math.round(d.subRevenue));
+  const singleRev = agg.map(d=>Math.round(d.singleRevenue));
+  const totalRev = agg.map(d=>Math.round(d.totalRevenue));
+  const arpu = agg.map(d=> (isFinite(d.arpu)? Number(d.arpu.toFixed(1)) : null));
+  const p1 = agg.map(d=> (d.p1*100));
+  const p3 = agg.map(d=> (d.p3*100));
+  const p6 = agg.map(d=> (d.p6*100));
+
+  const css = getComputedStyle(document.documentElement);
+  const CNEW = css.getPropertyValue('--new').trim();
+  const COLD = css.getPropertyValue('--old').trim();
+  const CREV = css.getPropertyValue('--rev').trim();
+  const CSIN = css.getPropertyValue('--single').trim();
+  const CTOT = css.getPropertyValue('--totalrev').trim();
+  const CARPU = css.getPropertyValue('--arpu').trim();
+
+  const xaxis = {
+    tickmode:"array",
+    tickvals:x,
+    ticktext:x.map(v=>String(v)),
+    gridcolor:"rgba(255,255,255,.08)",
+    zeroline:false,
+    tickfont:{color:"rgba(229,231,235,.9)", size:12},
+  };
+  const yCommon = {
+    gridcolor:"rgba(255,255,255,.10)",
+    zeroline:false,
+    tickfont:{color:"rgba(229,231,235,.9)", size:12},
+  };
+  const labelFont = {color:"rgba(229,231,235,.95)", size:12};
+  const labelFontSmall = {color:"rgba(229,231,235,.95)", size:11};
+
+  if(view==="subs"){
+    return {
+      traces: [
+        {name:"New users", type:"bar", x, y:newY, marker:{color:CNEW},
+          text:newY.map(v=>String(v)), textposition:"inside", insidetextanchor:"middle", textfont:labelFontSmall,
+          customdata:xText, hovertemplate:"%{customdata}<br>New: <b>%{y}</b><extra></extra>"},
+        {name:"Old users", type:"bar", x, y:oldY, marker:{color:COLD},
+          text:oldY.map(v=>String(v)), textposition:"inside", insidetextanchor:"middle", textfont:labelFontSmall,
+          customdata:xText, hovertemplate:"%{customdata}<br>Old: <b>%{y}</b><extra></extra>"},
+      ],
+      layout: { barmode:"stack", xaxis, yaxis: yCommon },
+      defaults: ["s_new","s_old"],
+};
+  }
+  if(view==="mix"){
+    return {
+      traces: [
+        {name:"1M", type:"bar", x, y:p1, marker:{color:"#22c55e"}, opacity:0.92,
+          text:p1.map(v=>v.toFixed(1)+"%"), textposition:"inside", textfont:labelFontSmall,
+          customdata:xText, hovertemplate:"%{customdata}<br>1M: <b>%{y:.1f}%</b><extra></extra>"},
+        {name:"3M", type:"bar", x, y:p3, marker:{color:"#60a5fa"}, opacity:0.92,
+          text:p3.map(v=>v.toFixed(1)+"%"), textposition:"inside", textfont:labelFontSmall,
+          customdata:xText, hovertemplate:"%{customdata}<br>3M: <b>%{y:.1f}%</b><extra></extra>"},
+        {name:"6M", type:"bar", x, y:p6, marker:{color:"#f97316"}, opacity:0.92,
+          text:p6.map(v=>v.toFixed(1)+"%"), textposition:"inside", textfont:labelFontSmall,
+          customdata:xText, hovertemplate:"%{customdata}<br>6M: <b>%{y:.1f}%</b><extra></extra>"},
+      ],
+      layout: { barmode:"stack", xaxis, yaxis: {...yCommon, range:[0,100], ticksuffix:"%"} },
+      defaults: ["p_1","p_3","p_6"],
+};
+  }
+  if(view==="arpu"){
+    return {
+      traces: [
+        {name:"ARPU", type:"scatter", mode:"lines+markers+text", x, y:arpu,
+          line:{color:CARPU,width:3}, marker:{size:8,color:CARPU},
+          text:arpu.map(v=> (v==null? "" : String(v))), textposition:"top center", textfont:labelFont,
+          customdata:xText, hovertemplate:"%{customdata}<br>ARPU: <b>%{y}</b><extra></extra>"},
+      ],
+      layout: { xaxis, yaxis: yCommon },
+      defaults: [],
+};
+  }
+  return {
+    traces: [
+      {name:"Total revenue", type:"scatter", mode:"lines+markers+text", x, y:totalRev,
+        line:{color:CTOT,width:3}, marker:{size:8,color:CTOT},
+        text:totalRev.map(v=>String(v)), textposition:"top center", textfont:labelFont,
+        customdata:xText, hovertemplate:"%{customdata}<br>Total: <b>%{y}</b><extra></extra>"},
+      {name:"Sub revenue", type:"scatter", mode:"lines+markers+text", x, y:subRev,
+        line:{color:CREV,width:3}, marker:{size:8,color:CREV},
+        text:subRev.map(v=>String(v)), textposition:"top center", textfont:labelFont,
+        customdata:xText, hovertemplate:"%{customdata}<br>Sub: <b>%{y}</b><extra></extra>"},
+      {name:"Single revenue", type:"scatter", mode:"lines+markers+text", x, y:singleRev,
+        line:{color:CSIN,width:3,dash:"dot"}, marker:{size:8,color:CSIN},
+        text:singleRev.map(v=>String(v)), textposition:"top center", textfont:labelFont,
+        customdata:xText, hovertemplate:"%{customdata}<br>Single: <b>%{y}</b><extra></extra>"},
+    ],
+    layout: { xaxis, yaxis: yCommon },
+    defaults: ["r_total","r_sub","r_single"],
+};
+}
+
+function layoutBase(){
+  return {
+    dragmode:false,
+    paper_bgcolor:"rgba(0,0,0,0)",
+    plot_bgcolor:"rgba(255,255,255,0.02)",
+    margin:{l:56,r:40,t:22,b:46},
+    bargap:0.35,
+    legend:{orientation:"h", x:0, y:1.12, font:{color:"rgba(229,231,235,.9)"}},
+    hovermode:"x unified",
+    hoverlabel:{bgcolor:"rgba(15,23,42,.95)", bordercolor:"rgba(255,255,255,.14)", font:{color:"#e5e7eb"}},
+  };
+}
+
+function renderChart(view){
+  makeChecksFor(view);
+  const built = buildTraces(view);
+  const layout = {...layoutBase(), ...built.layout};
+  const config = {responsive:true, displaylogo:false, displayModeBar:false, scrollZoom:false, doubleClick:false};
+
+  Plotly.react("chart", built.traces, layout, config).then(()=>{
+    if(view!=="arpu"){
+      (built.defaults||[]).forEach(id=>{ const node=document.getElementById(id); if(node) node.checked=true; });
+      applyVisibility(view, built.traces);
+      document.querySelectorAll("#checks input[type=checkbox]").forEach(cb=> cb.addEventListener("change", ()=>applyVisibility(view, built.traces)));
+    } else {
+      Plotly.restyle("chart", "visible", built.traces.map(()=>true));
+    }
+  });
+}
+
+function applyVisibility(view, traces){
+  let vis = new Array(traces.length).fill(false);
+  const on = (id)=> { const n=document.getElementById(id); return n && n.checked; };
+
+  if(view==="money"){
+    if(on("r_total")) vis[0]=true;
+    if(on("r_sub")) vis[1]=true;
+    if(on("r_single")) vis[2]=true;
+  } else if(view==="subs"){
+    if(on("s_new")) vis[0]=true;
+    if(on("s_old")) vis[1]=true;
+  } else if(view==="mix"){
+    if(on("p_1")) vis[0]=true;
+    if(on("p_3")) vis[1]=true;
+    if(on("p_6")) vis[2]=true;
+  }
+  Plotly.restyle("chart", "visible", vis);
+}
+
+async function main(){
+  try{
+    if(location.protocol==="file:") {
+      el("status").className = "sub err"; el("status").textContent = "● Open via URL (Vercel/localhost). file:// blocks CSV requests.";
+      return;
+    }
+    el("status").className = "sub"; el("status").textContent = "Loading… Fetching data";
+
+    const [subCSV, singleCSV] = await Promise.all([fetchCSV(SUB_CSV_URL), fetchCSV(SINGLE_CSV_URL)]);
+    const subRows = csvToRows(subCSV);
+    const singleRows = csvToRows(singleCSV);
+
+    if(!subRows.length) throw new Error("訂閱CSV 沒抓到資料（可能還沒 publish 或 gid 錯）");
+    if(!singleRows.length) throw new Error("單片CSV 沒抓到資料（可能還沒 publish 或 gid 錯）");
+
+    const built = buildAgg(subRows, singleRows);
+    STATE.aggAsc = built.aggAsc;
+    STATE.topSingles = built.topSingles;
+    STATE.users = built.users;
+
+    applyOrder(true);
+
+    el("months").textContent = String(STATE.aggAsc.length);
+    el("totalRevenue").textContent = money(Math.round(STATE.aggAsc.reduce((a,b)=>a+(b.totalRevenue||0),0)));
+
+    renderTables(STATE.aggDesc, STATE.topSingles);
+    renderUsers(el("userMetric").value);
+    el("userMetric").addEventListener("change", (e)=> renderUsers(e.target.value));
+
+    renderChart("money");
+    el("viewSelect").addEventListener("change", (e)=> renderChart(e.target.value));
+
+    el("status").className = "sub ok"; el("status").textContent = "● Data loaded • Last updated: " + new Date().toLocaleString();
+  } catch(err) {
+    el("status").textContent = "❌ Load failed: " + (err && err.message ? err.message : String(err));
+  }
+}
+main();
+</script>
+
+<script>
+
+(function(){
+  const sel = document.getElementById('viewSelect');
+  const buttons = Array.from(document.querySelectorAll('.seg-btn'));
+  if(!sel || buttons.length===0) return;
+
+  function setActive(val){
+    buttons.forEach(b=>b.classList.toggle('active', b.dataset.value===val));
+  }
+
+  // Initialize from default render (script uses renderChart("money"))
+  setActive(sel.value || 'money');
+
+  buttons.forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const val = btn.dataset.value;
+      sel.value = val;
+      setActive(val);
+      sel.dispatchEvent(new Event('change', {bubbles:true}));
+    });
+  });
 })();
 </script>
+
+<script>
+
+
+(function(){
+  // Sync user insights segmented buttons to hidden select
+  const userSel = document.getElementById("userMetric");
+  const userBtns = document.querySelectorAll(".userseg .userseg-btn");
+  if(userSel && userBtns.length){
+    userBtns.forEach(btn=>{
+      btn.addEventListener("click", ()=>{
+        userBtns.forEach(b=>b.classList.remove("active"));
+        btn.classList.add("active");
+        const v = btn.getAttribute("data-metric");
+        if(v){
+          userSel.value = v;
+          userSel.dispatchEvent(new Event("change", {bubbles:true}));
+        }
+      });
+    });
+  }
+
+  // Prev month total revenue: read from Monthly summary table (tbodyMonthly)
+  // (patched) prevent legacy Prev logic from running
+  return;
+
+  function moneyFmt(n){
+    if(typeof window.money==="function") return window.money(n);
+    return "NT$ " + n.toLocaleString("en-US");
+  }
+  function readPrevFromMonthly(){
+    if(!prevEl) return;
+    const tbody = document.getElementById("tbodyMonthly");
+    const rows = tbody.querySelectorAll("tr");
+    const prevRow = rows[rows.length-2];
+    const cells = prevRow.querySelectorAll("td");
+    const lastCell = cells[cells.length-1]; // total revenue column
+    const num = parseInt((lastCell.textContent||"").replace(/[^0-9]/g,""),10);
+    if(!isNaN(num) && num>0){
+    } else {
+    }
+  }
+  // retry a few times after render
+  setTimeout(readPrevFromMonthly, 200);
+  setTimeout(readPrevFromMonthly, 600);
+  setTimeout(readPrevFromMonthly, 1200);
+})();
+
+</script>
+
+
+<script>
+
+// --- Prev: compute from monthly table header (robust + observer) ---
+(function(){
+  if(!prevEl) return;
+
+  function moneyFmt(n){
+    if(typeof window.money==="function") return window.money(n);
+    return "NT$ " + n.toLocaleString("en-US");
+  }
+
+  function parseMonthCell(text){
+    const t = (text||"").trim();
+    let m = t.match(/(\d{4})\D(\d{1,2})/);
+    if(m) return {y:parseInt(m[1],10), mo:parseInt(m[2],10)};
+    m = t.match(/^\s*(\d{1,2})\s*$/);
+    if(m) return {y:null, mo:parseInt(m[1],10)};
+    const nums = t.match(/(\d{1,2})/g);
+    if(nums && nums.length) return {y:null, mo:parseInt(nums[nums.length-1],10)};
+    return null;
+  }
+
+  function getTotalIdx(table){
+    const ths = Array.from(table.querySelectorAll("thead th")).map(th => (th.textContent||"").trim().toLowerCase());
+    // strict: prefer "總營收" / "總收入" first
+    let idx = ths.findIndex(t => t.includes("總營收") || t.includes("總收入"));
+    if(idx >= 0) return idx;
+    // strict english: "total revenue"
+    idx = ths.findIndex(t => t.includes("total revenue"));
+    if(idx >= 0) return idx;
+    // fallback: if there is "subscription revenue" and "single" columns, take the column named "total"
+    idx = ths.findIndex(t => t === "total" || t === "totalrevenue" || t === "total revenue");
+    return idx;
+  }
+
+  function computePrev(){
+    const tbody = document.getElementById("tbodyMonthly") || document.querySelector("#monthlyTable tbody");
+    const table = tbody ? tbody.closest("table") : null;
+
+    const totalIdx = getTotalIdx(table);
+
+    const rows = Array.from(tbody.querySelectorAll("tr"));
+    const parsed = rows.map(r=>{
+      const tds = Array.from(r.querySelectorAll("td"));
+      if(!tds.length || totalIdx >= tds.length) return null;
+      const mi = parseMonthCell(tds[0].textContent);
+      const total = parseInt((tds[totalIdx].textContent||"").replace(/[^0-9]/g,""),10);
+      if(!mi || isNaN(total)) return null;
+      return {y:mi.y, mo:mi.mo, total};
+    }).filter(Boolean);
+
+
+    parsed.sort((a,b)=>{
+      const ay = (a.y ?? 0), by = (b.y ?? 0);
+      if(ay !== by) return ay - by;
+      return a.mo - b.mo;
+    });
+
+    const latest = parsed[parsed.length-1];
+    let target = null;
+    if(latest.y != null){
+      const prevMo = latest.mo - 1;
+      const prevY = prevMo >= 1 ? latest.y : (latest.y - 1);
+      const wantMo = prevMo >= 1 ? prevMo : 12;
+      target = parsed.slice().reverse().find(p => p.y === prevY && p.mo === wantMo);
+    } else {
+      const wantMo = latest.mo - 1;
+      target = parsed.slice().reverse().find(p => p.mo === wantMo);
+    }
+    if(!target) target = parsed[parsed.length-2];
+
+  }
+
+  // run + observe table updates
+  computePrev();
+  setTimeout(computePrev, 500);
+  setTimeout(computePrev, 1500);
+  setTimeout(computePrev, 3000);
+
+  const tbody = document.getElementById("tbodyMonthly");
+  if(tbody && window.MutationObserver){
+    const obs = new MutationObserver(()=>computePrev());
+    obs.observe(tbody, {childList:true, subtree:true});
+  }
+})();
+</script>
+
+
+<script>
+
+(function(){
+  function moneyFmt(n){
+    if(typeof window.money==="function") return window.money(n);
+    return "NT$ " + n.toLocaleString("en-US");
+  }
+  function parseMonth(s){
+    s = (s||"").trim();
+    let m = s.match(/(\d{4})\D(\d{1,2})/);
+    if(m) return {y:+m[1], mo:+m[2]};
+    m = s.match(/^\s*(\d{1,2})\s*$/);
+    if(m) return {y:0, mo:+m[1]};
+    const nums = s.match(/(\d{1,2})/g);
+    if(nums && nums.length) return {y:0, mo:+nums[nums.length-1]};
+    return null;
+  }
+  function findTotalColIndex(){
+    // try table header labels
+    const table = document.querySelector("#tbodyMonthly")?.closest("table");
+    if(!table) return null;
+    const ths = Array.from(table.querySelectorAll("thead th"));
+    const labels = ths.map(th=>th.textContent.trim().toLowerCase());
+    const candidates = ["total","total revenue","總營收","總收入","營收","revenue"];
+    for(const c of candidates){
+      const idx = labels.findIndex(t=>t.includes(c));
+      if(idx>=0) return idx;
+    }
+    return null;
+  }
+  function setLatest(){
+    const monthsEl = document.getElementById("months");
+    const tbody = document.getElementById("tbodyMonthly");
+    if(!tbody) return;
+    const rows = Array.from(tbody.querySelectorAll("tr"));
+    if(!rows.length) return;
+
+    const totalIdx = findTotalColIndex();
+    // if can't find, fallback to second last cell
+    let best = null;
+    for(const r of rows){
+      const tds = Array.from(r.querySelectorAll("td"));
+      if(!tds.length) continue;
+      const mi = parseMonth(tds[0].textContent);
+      if(!mi) continue;
+      let cell = null;
+      if(totalIdx != null && tds[totalIdx]) cell = tds[totalIdx];
+      else cell = tds[Math.max(0, tds.length-2)];
+      const val = parseInt((cell.textContent||"").replace(/[^0-9]/g,""),10);
+      if(isNaN(val)) continue;
+      const key = mi.y*100 + mi.mo;
+      if(!best || key > best.key) best = {key, val};
+    }
+    if(!best) return;
+
+    if(monthsEl) monthsEl.textContent = moneyFmt(best.val);
+    if(latestEl) latestEl.textContent = "Latest " + moneyFmt(best.val);
+  }
+
+  // Run and observe updates
+  setLatest();
+  setTimeout(setLatest, 400);
+  setTimeout(setLatest, 1200);
+  setTimeout(setLatest, 2400);
+
+  const tbody = document.getElementById("tbodyMonthly");
+  if(tbody && window.MutationObserver){
+    const obs = new MutationObserver(()=>setLatest());
+    obs.observe(tbody, {childList:true, subtree:true});
+  }
+})();
+</script>
+
+
+<script>
+
+// Ensure Latest KPI uses same emphasis class as Total Revenue
+(function(){
+  function syncKpiStyles(){
+    const totalCard = document.querySelector('.kpi-card[data-kpi="total"], #kpiTotal, #totalKpi, [data-kpi="totalRevenue"]');
+    const latestCard = document.querySelector('.kpi-card[data-kpi="latest"], #kpiLatest, #latestKpi, [data-kpi="latestRevenue"]');
+    if(totalCard && latestCard){
+      // copy key classes if present
+      ["kpi-primary","kpi-big","primary","big"].forEach(cls=>{
+        if(totalCard.classList.contains(cls)) latestCard.classList.add(cls);
+      });
+    }
+  }
+  setTimeout(syncKpiStyles, 0);
+  setTimeout(syncKpiStyles, 300);
+})();
+</script>
+
+<div id="customTooltip" style="display:none"></div>
+
+
+
+
+<script id="safeHoverEnhancer">
+(function(){
+  function enhance(gd){
+    if(!gd || gd.__safeHoverBound || !gd.on) return;
+    gd.__safeHoverBound = true;
+
+    try{
+      Plotly.relayout(gd, {hovermode:'closest', hoverdistance:18, spikedistance:-1});
+    }catch(e){}
+
+    const orig = {};
+    function remember(ti){
+      if(orig[ti]) return;
+      const tr = gd.data[ti] || {};
+      if((tr.type||'scatter')!=='scatter') return;
+      orig[ti] = {
+        marker: tr.marker ? JSON.parse(JSON.stringify(tr.marker)) : null,
+        mode: tr.mode
+      };
+    }
+    function restore(){
+      Object.keys(orig).forEach(k=>{
+        const ti = Number(k);
+        const o = orig[ti];
+        try{ Plotly.restyle(gd, {'marker':[o.marker], 'mode':[o.mode]}, [ti]); }catch(e){}
+      });
+    }
+
+    gd\.on\('plotly_hover',\ function\(e\)\{\
+\ \ \ \ \ \ try\{\
+\ \ \ \ \ \ \ \ if\(!e\ \|\|\ !e\.points\ \|\|\ !e\.points\.length\)\ return;\
+\ \ \ \ \ \ \ \ const\ pt\ =\ e\.points\[0\];\
+\ \ \ \ \ \ \ \ const\ ti\ =\ pt\.curveNumber;\
+\ \ \ \ \ \ \ \ const\ tr\ =\ gd\.data\[ti\]\ \|\|\ \{\};\
+\ \ \ \ \ \ \ \ remember\(ti\);\
+\
+\ \ \ \ \ \ \ \ //\ Bar\ traces:\ ONLY\ add\ an\ outline\ to\ the\ hovered\ bar\ segment\ \(no\ color/mode\ changes\)\
+\ \ \ \ \ \ \ \ if\(\(tr\.type\|\|''\)\ ===\ 'bar'\)\{\
+\ \ \ \ \ \ \ \ \ \ const\ n\ =\ \(tr\.x\ \&\&\ tr\.x\.length\)\ \|\|\ \(tr\.y\ \&\&\ tr\.y\.length\)\ \|\|\ 0;\
+\ \ \ \ \ \ \ \ \ \ const\ idx\ =\ pt\.pointNumber;\
+\ \ \ \ \ \ \ \ \ \ const\ w\ =\ Array\(n\)\.fill\(0\)\.map\(\(_,i\)=>\ i===idx\ \?\ 3\ :\ 0\);\
+\ \ \ \ \ \ \ \ \ \ const\ c\ =\ Array\(n\)\.fill\('rgba\(255,255,255,0\)'\)\.map\(\(_,i\)=>\ i===idx\ \?\ 'rgba\(255,255,255,0\.95\)'\ :\ 'rgba\(255,255,255,0\)'\);\
+\ \ \ \ \ \ \ \ \ \ try\{\
+\ \ \ \ \ \ \ \ \ \ \ \ Plotly\.restyle\(gd,\ \{'marker\.line\.width':\[w\],\ 'marker\.line\.color':\[c\]\},\ \[ti\]\);\
+\ \ \ \ \ \ \ \ \ \ \}catch\(e2\)\{\}\
+\ \ \ \ \ \ \ \ \ \ return;\
+\ \ \ \ \ \ \ \ \}\
+
+        const n = (tr.x && tr.x.length) || (tr.y && tr.y.length) || 0;
+        const idx = pt.pointNumber;
+        const base = (tr.marker && tr.marker.size) || 8;
+        const baseNum = (typeof base === 'number') ? base : 8;
+
+        const sizeArr = Array(n).fill(baseNum);
+        if(idx!=null && idx>=0 && idx<n) sizeArr[idx] = Math.round(baseNum*1.8);
+
+        const marker = Object.assign({}, tr.marker || {});
+        marker.size = sizeArr;
+        marker.line = Object.assign({}, marker.line || {});
+        marker.line.width = Array(n).fill(0).map((_,i)=> i===idx ? 3 : 0);
+        marker.line.color = Array(n).fill('rgba(255,255,255,0)').map((_,i)=> i===idx ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0)');
+
+        const isScatter = ['scatter','scattergl'].includes((tr.type||'scatter'));
+        const mode = isScatter ? ((tr.mode || '').includes('markers') ? tr.mode : ((tr.mode ? tr.mode+'+' : '') + 'markers')) : tr.mode;
+        if(mode!=null){ Plotly.restyle(gd, {'marker':[marker], 'mode':[mode]}, [ti]); }
+        else { Plotly.restyle(gd, {'marker':[marker]}, [ti]); }
+      }catch(err){}
+    });
+
+    gd.on('plotly_unhover', function(){
+      try{ restore(); }catch(e){}
+    });
+  }
+
+  function scan(){
+    document.querySelectorAll('.js-plotly-plot').forEach(enhance);
+  }
+
+  const obs = new MutationObserver(()=>scan());
+  obs.observe(document.documentElement, {childList:true, subtree:true});
+  window.addEventListener('load', ()=>{ setTimeout(scan,200); setTimeout(scan,800); setTimeout(scan,1500); });
+})();
+</script>
+
+
+<script id="customTooltipCardScriptV2">
+(function(){
+  let lastMouse = {x: null, y: null};
+  let lock = {key:null, t:0};
+  const LOCK_MS = 140;
+
+  function ensureCard(){
+    let el=document.getElementById('customTooltipCard');
+    if(!el){
+      el=document.createElement('div');
+      el.id='customTooltipCard';
+      el.innerHTML='<div class="tt-title"></div><div class="tt-row"><span class="dot"></span><span class="name"></span><span class="value"></span></div>';
+      document.body.appendChild(el);
+    }
+    return el;
+  }
+  const card=ensureCard();
+  const titleEl=card.querySelector('.tt-title');
+  const dotEl=card.querySelector('.dot');
+  const nameEl=card.querySelector('.name');
+  const valueEl=card.querySelector('.value');
+
+  function colorOf(pt){
+    try{
+      const tr=pt.fullData||pt.data||{};
+      let c=(tr.line&&tr.line.color)||(tr.marker&&tr.marker.color)||'#fff';
+      if(Array.isArray(c)) c=c[0]||'#fff';
+      return c;
+    }catch(e){return '#fff';}
+  }
+  function kindFor(name){
+    const s=(name||'').toLowerCase();
+    if(s.includes('revenue')||s.includes('營收')||s.includes('total')||s.includes('arpu')) return 'money';
+    if(s.includes('%')||s.includes('rate')||s.includes('ratio')||s.includes('比例')||s.includes('成長')) return 'pct';
+    if(s.includes('user')||s.includes('subscriber')||s.includes('客')||s.includes('人數')) return 'int';
+    return 'num';
+  }
+  function fmt(v, kind){
+    if(v==null||isNaN(v)) return '-';
+    const n=Number(v);
+    if(kind==='money') return 'NT$ '+n.toLocaleString(undefined,{maximumFractionDigits:0});
+    if(kind==='pct') return n.toFixed(1)+'%';
+    if(kind==='int') return n.toLocaleString(undefined,{maximumFractionDigits:0});
+    return n.toLocaleString(undefined,{maximumFractionDigits:1});
+  }
+  function place(x,y){
+    const pad=10;
+    if(typeof x!=='number'||typeof y!=='number') return;
+    card.style.display='block';
+    const rect=card.getBoundingClientRect();
+    let px=x+14, py=y+14;
+    const vw=window.innerWidth, vh=window.innerHeight;
+    if(px+rect.width+pad>vw) px=x-rect.width-14;
+    if(py+rect.height+pad>vh) py=y-rect.height-14;
+    card.style.left=Math.max(8,px)+'px';
+    card.style.top =Math.max(8,py)+'px';
+  }
+
+  function bind(gd){
+    if(!gd||gd.__cardBound||!gd.on) return;
+    gd.__cardBound=true;
+
+    // Track mouse position over the graph div
+    gd.addEventListener('mousemove', (ev)=>{ lastMouse.x=ev.clientX; lastMouse.y=ev.clientY; }, {passive:true});
+    gd.addEventListener('mouseleave', ()=>{ card.style.display='none'; }, {passive:true});
+
+    gd.on('plotly_hover', function(e){
+      try{
+        if(!e||!e.points||!e.points.length) return;
+        
+let pt=e.points[0];
+// Plan (1M/3M/6M) stacked bar: pick segment under cursor (avoid wrong trace selection)
+try{
+  const isPlan = gd && gd._fullLayout && gd._fullLayout.yaxis && gd._fullLayout.yaxis.range && gd._fullLayout.yaxis.range[1]===100
+    && gd._fullData && gd._fullData.length===3 && ['1M','3M','6M'].every(n=>gd._fullData.some(t=>t.name===n));
+  if(isPlan && e.points && e.points.length>1 && lastMove){
+    const ya=e.points[0].yaxis;
+    const rect=gd.getBoundingClientRect();
+    const py=(lastMove.y-rect.top) - ya._offset;
+    const dy=ya.p2l(py); // data-space 0..100
+    let chosen=null;
+    for(const p of e.points){
+      const y0=(p.y0!=null)?p.y0:((p.base!=null)?p.base:0);
+      const y1=y0 + (p.y||0);
+      const lo=Math.min(y0,y1), hi=Math.max(y0,y1);
+      if(dy>=lo-1e-6 && dy<=hi+1e-6){ chosen=p; break; }
+    }
+    if(!chosen){
+      chosen=e.points.reduce((best,p)=>{
+        const y0=(p.y0!=null)?p.y0:((p.base!=null)?p.base:0);
+        const mid=y0 + (p.y||0)/2;
+        const db=Math.abs(dy-mid);
+        if(!best) return {p,db};
+        return db<best.db?{p,db}:best;
+      },null).p;
+    }
+    pt=chosen||pt;
+  }
+}catch(err){}
+        const now=Date.now();
+        const key=(pt.curveNumber!=null?pt.curveNumber:'')+':' + (pt.pointNumber!=null?pt.pointNumber:'');
+        if(lock.key && key!==lock.key && (now-lock.t)<LOCK_MS){ return; }
+        lock.key=key; lock.t=now;
+        const xlab=pt.x;
+        const name=(pt.fullData&&pt.fullData.name)||(pt.data&&pt.data.name)||'Value';
+        const yval=pt.y;
+
+        titleEl.textContent=String(xlab);
+        dotEl.style.background=colorOf(pt);
+        nameEl.textContent=name;
+        valueEl.textContent=fmt(yval, kindFor(name));
+
+        // Use provided event coords if available; fallback to lastMouse
+        const ev=e.event||pt.event;
+        const cx=(ev&&typeof ev.clientX==='number')?ev.clientX:lastMouse.x;
+        const cy=(ev&&typeof ev.clientY==='number')?ev.clientY:lastMouse.y;
+        place(cx,cy);
+      }catch(err){}
+    });
+    gd.on('plotly_unhover', function(){ card.style.display='none'; lock.key=null; lock.t=0; });
+
+    window.addEventListener('scroll', ()=>{ card.style.display='none'; }, {passive:true});
+    window.addEventListener('resize', ()=>{ card.style.display='none'; }, {passive:true});
+  }
+
+  function scan(){
+    document.querySelectorAll('.js-plotly-plot, .plotly-graph-div').forEach(bind);
+  }
+  const obs=new MutationObserver(()=>scan());
+  obs.observe(document.documentElement,{childList:true,subtree:true});
+  window.addEventListener('load', ()=>{ setTimeout(scan,200); setTimeout(scan,800); setTimeout(scan,1500); });
+})();
+</script>
+
+
+<script id="plotlyHoverEnforcer">
+(function(){
+  function fixLayout(gd){
+    if(!gd || !gd.classList || (!gd.classList.contains('js-plotly-plot') && !gd.classList.contains('plotly-graph-div'))) return;
+    if(!window.Plotly || !gd._fullLayout) return;
+
+    // Force single-point hover everywhere
+    const update = {
+      hovermode: 'closest',
+      hoverdistance: 8,
+      spikedistance: -1
+    };
+
+    // Disable spikes if present
+    try{
+      const axKeys = Object.keys(gd._fullLayout).filter(k=>/^xaxis\d*$|^yaxis\d*$/.test(k));
+      axKeys.forEach(k=>{
+        update[`${k}.showspikes`] = false;
+        update[`${k}.spikesnap`] = 'cursor';
+      });
+    }catch(e){}
+
+    // Apply without triggering full redraw loop
+    window.Plotly.relayout(gd, update).catch(()=>{});
+  }
+
+  function scan(){
+    document.querySelectorAll('.js-plotly-plot, .plotly-graph-div').forEach(fixLayout);
+  }
+
+  // Re-apply after plots render
+  const obs = new MutationObserver(()=>scan());
+  obs.observe(document.documentElement,{childList:true,subtree:true});
+  window.addEventListener('load', ()=>{ setTimeout(scan,300); setTimeout(scan,1000); setTimeout(scan,2000); });
+})();
+</script>
+
+
+<script id="noHoverColorShift">
+(function(){
+  function isSensitiveChart(gd){
+    try{
+      const t = (gd && gd._fullLayout && gd._fullLayout.title && (gd._fullLayout.title.text||gd._fullLayout.title)) || '';
+      const s = String(t).toLowerCase();
+      // Match your "users / plan" views (English or Chinese)
+      return s.includes('user') || s.includes('用戶') || s.includes('plan') || s.includes('方案');
+    }catch(e){ return false; }
+  }
+
+  function snapColor(tr){
+    // Returns a JSON-serializable "color spec" we can restore
+    const out = {};
+    if(tr.marker){
+      if(tr.marker.color!=null) out.markerColor = tr.marker.color;
+      if(tr.marker.line && tr.marker.line.color!=null) out.markerLineColor = tr.marker.line.color;
+      if(tr.marker.opacity!=null) out.markerOpacity = tr.marker.opacity;
+    }
+    if(tr.line){
+      if(tr.line.color!=null) out.lineColor = tr.line.color;
+      if(tr.line.width!=null) out.lineWidth = tr.line.width;
+    }
+    if(tr.fillcolor!=null) out.fillcolor = tr.fillcolor;
+    if(tr.opacity!=null) out.opacity = tr.opacity;
+    return out;
+  }
+
+  function restoreTrace(gd, i){
+    if(!gd.__origTraceStyles || !gd.__origTraceStyles[i]) return;
+    const st = gd.__origTraceStyles[i];
+    const update = {};
+    if(st.opacity!=null) update.opacity = st.opacity;
+    else update.opacity = 1;
+
+    if(st.fillcolor!=null) update.fillcolor = st.fillcolor;
+
+    // marker
+    if(st.markerColor!=null){
+      update['marker.color'] = st.markerColor;
+    }
+    if(st.markerLineColor!=null){
+      update['marker.line.color'] = st.markerLineColor;
+    }
+    if(st.markerOpacity!=null){
+      update['marker.opacity'] = st.markerOpacity;
+    }else{
+      // prevent Plotly dimming on hover
+      update['marker.opacity'] = 1;
+    }
+
+    // line
+    if(st.lineColor!=null) update['line.color'] = st.lineColor;
+    if(st.lineWidth!=null) update['line.width'] = st.lineWidth;
+
+    try{ window.Plotly && window.Plotly.restyle(gd, update, [i]); }catch(e){}
+  }
+
+  function bind(gd){
+    if(!gd || gd.__noHoverShiftBound || !gd.on) return;
+    gd.__noHoverShiftBound = true;
+
+    // Snapshot original styles after first render
+    function snapshot(){
+      try{
+        if(!gd.data) return;
+        gd.__origTraceStyles = gd.data.map(snapColor);
+      }catch(e){}
+    }
+    snapshot();
+
+    // re-snapshot after any relayout/restyle that might recreate traces
+    gd.on('plotly_afterplot', snapshot);
+
+    gd.on('plotly_hover', function(e){
+      if(!isSensitiveChart(gd)) return;
+      try{
+        // Restore ALL traces on hover to prevent any transient hover styling
+        for(let i=0;i<(gd.data?gd.data.length:0);i++){
+          restoreTrace(gd,i);
+        }
+      }catch(err){}
+    });
+
+    gd.on('plotly_unhover', function(){
+      if(!isSensitiveChart(gd)) return;
+      try{
+        for(let i=0;i<(gd.data?gd.data.length:0);i++){
+          restoreTrace(gd,i);
+        }
+      }catch(err){}
+    });
+  }
+
+  function scan(){
+    document.querySelectorAll('.js-plotly-plot, .plotly-graph-div').forEach(bind);
+  }
+  const obs=new MutationObserver(()=>scan());
+  obs.observe(document.documentElement,{childList:true,subtree:true});
+  window.addEventListener('load', ()=>{ setTimeout(scan,300); setTimeout(scan,1000); setTimeout(scan,2000); });
+})();
+</script>
+
 </body>
 </html>
