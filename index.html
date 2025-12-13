@@ -2,11 +2,11 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
 <title>Fansone Report</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
 <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
 <style>
@@ -18,7 +18,7 @@
     --arpu:#d35400;
     --accent:#3b82f6; --accent-glow:rgba(59,130,246,0.4);
   }
-  *{box-sizing:border-box}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
   body{
     margin:0;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
@@ -31,138 +31,161 @@
     min-height:100vh;
   }
   a{color:inherit; text-decoration:none}
+
+  /* 桌面版預設間距 */
   .wrap{max-width:1200px; margin:0 auto; padding:24px 20px 48px}
 
   .topbar{
-    display:flex; align-items:flex-start; justify-content:space-between; gap:14px;
+    display:flex; align-items:flex-start; justify-content:space-between; gap:16px;
     padding:16px; border:1px solid var(--stroke); border-radius:20px; background:var(--panel); backdrop-filter: blur(12px);
     box-shadow:0 4px 24px rgba(0,0,0,0.2);
   }
-  .title h1{margin:0; font-size:20px; font-weight:800; letter-spacing:-0.5px;}
+  .title h1{margin:0; font-size:20px; font-weight:800; letter-spacing:-0.5px; white-space:nowrap;}
   .title .sub{margin-top:4px; font-size:13px; color:var(--muted); line-height:1.4}
-  #status.ok{color:#34d399}
-  #status.err{color:#fb7185}
+  #status.ok{color:#34d399} #status.err{color:#fb7185}
 
-  /* Scrollbar */
-  ::-webkit-scrollbar{width:6px;height:6px}
+  /* Scrollbar 美化 */
+  ::-webkit-scrollbar{width:4px;height:4px}
   ::-webkit-scrollbar-track{background:transparent}
-  ::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.15);border-radius:99px}
-  ::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,0.3)}
+  ::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.2);border-radius:99px}
 
   .kpis{display:flex; flex-wrap:wrap; gap:12px; justify-content:flex-end; align-items:stretch}
   .kpi{
     padding:16px 18px; border:1px solid var(--stroke); border-radius:18px; background:rgba(255,255,255,.03);
-    min-width:200px; display:flex; flex-direction:column; gap:8px; transition:all 0.2s ease;
+    min-width:180px; display:flex; flex-direction:column; gap:6px; transition:all 0.2s ease;
   }
   .kpi:hover{ transform:translateY(-2px); background:rgba(255,255,255,.05); border-color:rgba(255,255,255,0.2); }
-  .kpi .klabel{font-size:12px; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;}
-  .kpi .kvalue{font-size:28px; font-weight:800; letter-spacing:-1px; color:var(--text)}
-  .kpi.small{min-width:140px} .kpi.small .kvalue{font-size:28px}
+  .kpi .klabel{font-size:12px; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px; white-space:nowrap;}
+  .kpi .kvalue{font-size:26px; font-weight:800; letter-spacing:-0.5px; color:var(--text); white-space:nowrap;}
 
   .grid{display:grid; grid-template-columns:360px 1fr; gap:16px; margin-top:20px}
-  @media(max-width:980px){.grid{grid-template-columns:1fr}}
 
   .panel{
     border:1px solid var(--stroke); border-radius:20px; background:var(--panel); backdrop-filter:blur(12px);
     overflow:hidden; box-shadow:0 4px 20px rgba(0,0,0,0.1);
   }
   .hd{padding:14px 16px; border-bottom:1px solid rgba(255,255,255,.08); display:flex; align-items:center; justify-content:space-between; gap:10px}
-  .hd h2{margin:0; font-size:14px; font-weight:700; color:#fff;}
+  .hd h2{margin:0; font-size:14px; font-weight:700; color:#fff; white-space:nowrap;}
   .bd{padding:16px}
 
-  .select{
-    width:100%; padding:12px; border:1px solid var(--stroke); border-radius:14px;
-    background:rgba(255,255,255,.04); color:var(--text); font-size:13px; font-family:inherit; outline:none;
-    transition:border-color 0.2s;
+  /* Segmented Controls - 横向滑動優化 */
+  .segmented{
+    display:flex; gap:4px; padding:4px; background:rgba(0,0,0,.2); border:1px solid rgba(255,255,255,.1);
+    border-radius:14px; margin:0 0 12px 0; overflow-x:auto; -webkit-overflow-scrolling:touch;
+    scrollbar-width: none; /* Firefox */
   }
-  .select:focus{border-color:var(--accent);}
-  .hint{margin-top:8px; font-size:11px; color:var(--muted); line-height:1.45}
+  .segmented::-webkit-scrollbar { display: none; } /* Chrome/Safari */
 
-  .checks{display:grid; grid-template-columns:1fr; gap:8px; margin-top:12px}
-  .check{
-    display:flex; gap:10px; align-items:center; padding:10px 12px;
-    border:1px solid var(--stroke); border-radius:12px; background:rgba(255,255,255,.02);
-    transition:background 0.2s, border-color 0.2s; cursor:pointer;
-  }
-  .check:hover{background:rgba(255,255,255,.05); border-color:rgba(255,255,255,0.2);}
-  .check input{width:16px; height:16px; accent-color:var(--accent)}
-  .dot{width:8px; height:8px; border-radius:999px; background:#fff; box-shadow:0 0 0 2px rgba(255,255,255,.1)}
-  .label b{font-size:13px; font-weight:600}
-  .label span{font-size:11px; color:var(--muted)}
-
-  #chart{width:100%; height:560px}
-  @media(max-width:980px){#chart{height:520px}}
-
-  .tablesGrid{display:grid; grid-template-columns:1.3fr 1fr; gap:16px; margin-top:16px}
-  @media(max-width:980px){.tablesGrid{grid-template-columns:1fr}}
-
-  table{width:100%; border-collapse:separate; border-spacing:0; font-size:13px}
-  th,td{padding:12px 12px; border-bottom:1px solid rgba(255,255,255,.06)}
-  th{
-    text-align:left; color:var(--muted); font-weight:600; font-size:11px; text-transform:uppercase; letter-spacing:0.5px;
-    background:rgba(19,29,48,0.95); position:sticky; top:0; backdrop-filter:blur(8px); z-index:10;
-  }
-  td.right,th.right{text-align:right}
-  tbody tr:nth-child(even) td{background:rgba(255,255,255,0.01)}
-  tr:hover td{background:rgba(255,255,255,.06)!important; transition:background 0.1s}
-
-  .sheetlink{color:var(--muted); border:1px solid var(--stroke); padding:7px 9px; border-radius:999px; background:rgba(255,255,255,.04)}
-  .sheetlink:hover{color:var(--text)}
-  .pill{padding:4px 10px; border:1px solid var(--stroke); border-radius:999px; font-size:11px; font-weight:600; color:var(--muted); background:rgba(255,255,255,.02)}
-
-  @media(max-width:860px){
-    .wrap{padding:12px;} .hd{flex-direction:column; align-items:flex-start; gap:10px;}
-    .kpis{grid-template-columns:1fr 1fr; gap:10px;} .kpi .big{font-size:22px;}
-    #chart{height:360px!important;}
-  }
-  @media(max-width:480px){ .kpis{grid-template-columns:1fr;} #chart{height:320px!important;} }
-
-  .segmented{display:flex;gap:4px;padding:4px;background:rgba(0,0,0,.2);border:1px solid rgba(255,255,255,.1);border-radius:14px; margin:0 0 12px 0;}
   .seg-btn{
-    flex:1 0 auto; padding:8px 12px; border-radius:10px; border:0; background:transparent;
+    flex:1 0 auto; padding:8px 14px; border-radius:10px; border:0; background:transparent;
     color:rgba(255,255,255,.6); font-weight:600; font-size:13px; cursor:pointer; font-family:inherit;
-    transition:all 0.2s cubic-bezier(0.4,0,0.2,1);
+    white-space:nowrap; transition:all 0.2s cubic-bezier(0.4,0,0.2,1);
   }
-  .seg-btn:hover{color:#fff;}
   .seg-btn.active{
     background:var(--accent); color:#fff;
     box-shadow:0 4px 12px var(--accent-glow); text-shadow:0 1px 2px rgba(0,0,0,0.2);
   }
+
   .select.hidden{display:none!important;}
+  .select{width:100%; padding:12px; border:1px solid var(--stroke); border-radius:14px; background:rgba(255,255,255,.04); color:var(--text); font-size:13px; outline:none;}
+
+  .checks{display:grid; grid-template-columns:1fr; gap:8px; margin-top:12px}
+  .check{
+    display:flex; gap:10px; align-items:center; padding:10px 12px;
+    border:1px solid var(--stroke); border-radius:12px; background:rgba(255,255,255,.02); cursor:pointer;
+  }
+  .check input{width:16px; height:16px; accent-color:var(--accent)}
+  .dot{width:8px; height:8px; border-radius:999px; background:#fff; flex-shrink:0;}
+  .label{overflow:hidden;}
+  .label b{font-size:13px; font-weight:600; white-space:nowrap;}
+  .label span{font-size:11px; color:var(--muted); display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+
+  #chart{width:100%; height:560px}
+
+  .tablesGrid{display:grid; grid-template-columns:1.3fr 1fr; gap:16px; margin-top:16px}
+
+  /* 表格優化 */
+  table{width:100%; border-collapse:separate; border-spacing:0; font-size:13px}
+  th,td{padding:12px 12px; border-bottom:1px solid rgba(255,255,255,.06); white-space:nowrap;} /* 關鍵：不換行 */
+  th{
+    text-align:left; color:var(--muted); font-weight:600; font-size:11px; text-transform:uppercase; letter-spacing:0.5px;
+    background:rgba(19,29,48,0.95); position:sticky; top:0; z-index:10;
+  }
+  td.right, th.right{text-align:right;}
+  tbody tr:nth-child(even) td{background:rgba(255,255,255,0.01)}
+
+  .pill{
+    padding:4px 10px; border:1px solid var(--stroke); border-radius:99px;
+    font-size:11px; font-weight:600; color:var(--muted); background:rgba(255,255,255,.02);
+    white-space:nowrap; flex-shrink:0;
+  }
+
+  /* ------------------- Mobile Specific Optimization ------------------- */
+  @media(max-width:860px){
+    .wrap{padding:16px 12px 60px;} /* 減少邊距 */
+
+    /* Topbar Stacked Layout */
+    .topbar{flex-direction:column; align-items:stretch; gap:12px; padding:14px;}
+    .title{display:flex; justify-content:space-between; align-items:center;}
+    .title .sub{margin-top:0;}
+
+    /* KPI 2-column grid on mobile */
+    .kpis{display:grid; grid-template-columns:1fr 1fr; gap:8px;}
+    .kpi{min-width:0; padding:12px 14px;} /* Compact padding */
+    .kpi .kvalue{font-size:20px;} /* Smaller font for values */
+
+    .grid{grid-template-columns:1fr; gap:12px; margin-top:12px;}
+
+    /* Chart Height */
+    #chart{height:340px!important;}
+
+    .tablesGrid{grid-template-columns:1fr; gap:12px;}
+
+    /* Panel Header Layout */
+    .hd{gap:8px;}
+    .hd h2{font-size:13px;}
+
+    /* Table Font Scaling */
+    th, td{
+      padding:10px 8px; /* Tighter cells */
+      font-size:12px;
+    }
+
+    /* Hide some less important visual clutter on mobile if needed */
+    .check{padding:8px;}
+  }
+
+  @media(max-width:400px){
+    .kpi .klabel{font-size:10px;}
+    .kpi .kvalue{font-size:18px;}
+  }
 
   #orderTag{display:none!important;}
-  .userseg .userseg-btn{all:unset; cursor:pointer; padding:6px 12px; border-radius:999px; font-weight:600; font-size:12px; color:var(--muted); transition:all 0.2s;}
-  .userseg .userseg-btn:hover{color:var(--text); background:rgba(255,255,255,0.05);}
+  .userseg .userseg-btn{all:unset; cursor:pointer; padding:6px 10px; border-radius:99px; font-weight:600; font-size:11px; color:var(--muted); transition:all 0.2s;}
   .userseg .userseg-btn.active{background:rgba(255,255,255,.12); color:#fff; box-shadow:inset 0 0 0 1px rgba(255,255,255,0.1);}
   #prevTotalRevenue{display:none!important;}
 
-  /* Tooltip Card */
+  /* Tooltip & Overlay */
   #customTooltipCard{
     position:fixed; z-index:99999; display:none; pointer-events:none;
-    padding:14px 16px; border-radius:16px;
-    background:rgba(15,23,42,0.92);
-    border:1px solid rgba(255,255,255,.15);
-    box-shadow:0 18px 60px rgba(0,0,0,.6);
-    backdrop-filter:blur(16px);
-    color:#fff; font-family:'Inter', sans-serif;
+    padding:12px 14px; border-radius:14px; background:rgba(15,23,42,0.92);
+    border:1px solid rgba(255,255,255,.15); box-shadow:0 18px 60px rgba(0,0,0,.6);
+    backdrop-filter:blur(16px); color:#fff; font-family:'Inter', sans-serif;
   }
-  #customTooltipCard .tt-title{font-weight:700;font-size:14px;opacity:1;margin-bottom:8px;letter-spacing:0}
-  #customTooltipCard .tt-row{display:flex;align-items:center;gap:10px}
-  #customTooltipCard .dot{width:10px;height:10px;border-radius:999px;flex:0 0 10px;box-shadow:0 0 0 3px rgba(255,255,255,.08)}
-  #customTooltipCard .name{font-size:13px;font-weight:600;opacity:.92;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  #customTooltipCard .value{margin-left:auto;font-size:16px;font-weight:850;white-space:nowrap}
+  #customTooltipCard .tt-title{font-weight:700;font-size:13px;opacity:1;margin-bottom:6px;}
+  #customTooltipCard .tt-row{display:flex;align-items:center;gap:8px}
+  #customTooltipCard .dot{width:8px;height:8px;border-radius:99px;flex:0 0 8px;box-shadow:0 0 0 2px rgba(255,255,255,.1)}
+  #customTooltipCard .name{font-size:12px;font-weight:600;opacity:.9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #customTooltipCard .value{margin-left:auto;font-size:15px;font-weight:700;white-space:nowrap;font-feature-settings:"tnum"}
 
-  /* GHOST OVERLAY - The unified highlighter */
   #ghost-overlay {
-    position: fixed; pointer-events: none; z-index: 9999;
-    background: transparent; border: 2px solid white;
-    box-shadow: 0 0 8px rgba(255,255,255,0.5); /* Glow effect */
-    display: none; transition: all 0.06s ease-out;
-    border-radius: 2px;
-    top: -9999px; left: -9999px;
+    position:fixed; pointer-events:none; z-index:9999;
+    background:transparent; border:2px solid white;
+    box-shadow:0 0 6px rgba(255,255,255,0.5);
+    display:none; transition:all 0.05s ease-out;
+    border-radius:2px; top:-9999px; left:-9999px;
   }
 
-  /* Plotly Fixes */
   .js-plotly-plot .hoverlayer{opacity:0!important; pointer-events:none!important;}
   .js-plotly-plot .hoverlayer .hovertext{display:none!important;}
 </style>
@@ -214,11 +237,11 @@
   <div class="tablesGrid">
     <div class="panel">
       <div class="hd">
-        <div style="display:flex; align-items:center; gap:10px;">
+        <div style="display:flex; align-items:center; gap:8px;">
           <h2>Monthly Summary</h2><span class="pill">Sub + Single</span>
         </div>
       </div>
-      <div class="bd" style="padding:0 0 10px 0;">
+      <div class="bd" style="padding:0;">
         <div style="max-height:340px; overflow:auto;">
           <table id="monthlyTable">
             <thead>
@@ -241,19 +264,19 @@
 
     <div class="panel">
       <div class="hd">
-        <div style="display:flex; align-items:center; gap:10px;">
+        <div style="display:flex; align-items:center; gap:8px;">
           <h2>Top Users</h2><span class="pill">Top 10</span>
         </div>
         <div class="segmented userseg" role="tablist">
           <button class="userseg-btn active" type="button" data-metric="spend_total">Spend</button>
           <button class="userseg-btn" type="button" data-metric="active_months">Loyalty</button>
         </div>
-        <select id="userMetric" style="display:none" class="select" style="max-width:220px; padding:8px 10px;">
+        <select id="userMetric" style="display:none" class="select">
           <option value="spend_total">付最多錢（總）</option>
-          <option value="active_months">訂閱最久（活躍月數）</option>
+          <option value="active_months">訂閱最久</option>
         </select>
       </div>
-      <div class="bd" style="padding:0 0 10px 0;">
+      <div class="bd" style="padding:0;">
         <div style="max-height:340px; overflow:auto;">
           <table>
             <thead>
@@ -275,11 +298,11 @@
   <div class="tablesGrid" style="grid-template-columns: 1fr; margin-top:16px;">
     <div class="panel">
       <div class="hd">
-        <div style="display:flex; align-items:center; gap:10px;">
+        <div style="display:flex; align-items:center; gap:8px;">
           <h2>Top Singles</h2><span class="pill">Click to Open</span>
         </div>
       </div>
-      <div class="bd" style="padding:0 0 10px 0;">
+      <div class="bd" style="padding:0;">
         <div style="max-height:320px; overflow:auto;">
           <table>
             <thead>
@@ -648,7 +671,6 @@ function buildTraces(view){
   const labelFont = {color:"rgba(229,231,235,.95)", size:12};
   const labelFontSmall = {color:"rgba(229,231,235,.95)", size:11};
 
-  // Force closest hover mode
   const hoverConfig = { hovermode: "closest", hoverdistance: 20 };
 
   if(view==="subs"){
@@ -916,10 +938,14 @@ main();
 
 <script id="safeHoverEnhancer">
 (function(){
+  // HYBRID ENGINE:
+  // 1. Bar Chart -> Use HTML Overlay (Ghost)
+  // 2. Scatter Chart -> Use Direct SVG Transform (Scale+Glow)
+
   let lastEl = null;
   let saved = { stroke:'', strokeWidth:'', paintOrder:'', opacity:'', cursor:'', transform:'', transition:'', transformBox:'', transformOrigin:'' };
-  let ghostOverlay = document.getElementById('ghost-overlay');
 
+  let ghostOverlay = document.getElementById('ghost-overlay');
   if(!ghostOverlay) {
     ghostOverlay = document.createElement('div');
     ghostOverlay.id = 'ghost-overlay';
@@ -931,89 +957,104 @@ main();
     gd.__enhancerBound = true;
 
     gd.on('plotly_hover', function(e){
-      try{
-        if(!e || !e.points || !e.points.length) return;
-        const pt = e.points[0];
-        const curveIdx = pt.curveNumber;
-        const pointIdx = pt.pointNumber;
-        const traceType = gd.data[curveIdx].type || 'scatter';
+      if(!e || !e.points || !e.points.length) return;
+      const pt = e.points[0];
+      const curveIdx = pt.curveNumber;
+      const pointIdx = pt.pointNumber;
+      const traceType = gd.data[curveIdx].type || 'scatter';
 
-        let target = null;
-        let isBar = (traceType === 'bar');
+      // Robust Trace Selection Logic
+      let target = null;
+      let isBar = (traceType === 'bar');
 
-        // Robust Element Finding
-        if(isBar){
-            let barTraceCount = 0;
-            for(let i=0; i<curveIdx; i++){
-               const t = gd.data[i];
-               if(t.type === 'bar' && t.visible !== false && t.visible !== 'legendonly') barTraceCount++;
-            }
-            const traces = gd.querySelectorAll('.barlayer .trace');
-            const traceEl = traces[barTraceCount];
-            if(traceEl) {
-               const points = traceEl.querySelectorAll('.point');
-               target = points[pointIdx];
-            }
-        } else {
-            let scatterTraceCount = 0;
-             for(let i=0; i<curveIdx; i++){
-               const t = gd.data[i];
-               const tType = t.type || 'scatter';
-               if((tType === 'scatter' || tType === 'scattergl') && t.visible !== false && t.visible !== 'legendonly') scatterTraceCount++;
-            }
-            const traces = gd.querySelectorAll('.scatterlayer .trace');
-            const traceEl = traces[scatterTraceCount];
-            if(traceEl) {
-               const points = traceEl.querySelectorAll('.point');
-               target = points[pointIdx];
-            }
-        }
-
-        if(!target) return;
-
-        // --- UNIFIED OVERLAY LOGIC ---
-        if(isBar) {
-          // Bar -> Rectangular Overlay
-          if(lastEl) { reset(lastEl); lastEl = null; }
-
-          const rect = target.getBoundingClientRect();
-          if(rect.width > 0 && rect.height > 0) {
-             ghostOverlay.style.borderRadius = "2px";
-             ghostOverlay.style.top = rect.top + 'px';
-             ghostOverlay.style.left = rect.left + 'px';
-             ghostOverlay.style.width = rect.width + 'px';
-             ghostOverlay.style.height = rect.height + 'px';
-             ghostOverlay.style.display = 'block';
+      if(isBar){
+          let barTraceCount = 0;
+          for(let i=0; i<curveIdx; i++){
+             const t = gd.data[i];
+             if(t.type === 'bar' && t.visible !== false && t.visible !== 'legendonly'){
+                 barTraceCount++;
+             }
           }
-        } else {
-          // Scatter -> Circular Overlay (Halo)
-          // We use the overlay instead of SVG transform for stability
-          if(lastEl) { reset(lastEl); lastEl = null; }
-
-          const rect = target.getBoundingClientRect();
-          if(rect.width > 0 && rect.height > 0) {
-             // Center position
-             const cx = rect.left + rect.width/2;
-             const cy = rect.top + rect.height/2;
-
-             // Make overlay bigger (2x)
-             const size = Math.max(rect.width, rect.height) * 2;
-
-             ghostOverlay.style.borderRadius = "50%";
-             ghostOverlay.style.width = size + 'px';
-             ghostOverlay.style.height = size + 'px';
-             ghostOverlay.style.top = (cy - size/2) + 'px';
-             ghostOverlay.style.left = (cx - size/2) + 'px';
-             ghostOverlay.style.display = 'block';
+          const traces = gd.querySelectorAll('.barlayer .trace');
+          const traceEl = traces[barTraceCount];
+          if(traceEl) {
+             const points = traceEl.querySelectorAll('.point');
+             target = points[pointIdx];
           }
+      } else {
+          // Scatter
+          let scatterTraceCount = 0;
+           for(let i=0; i<curveIdx; i++){
+             const t = gd.data[i];
+             const tType = t.type || 'scatter';
+             if((tType === 'scatter' || tType === 'scattergl') && t.visible !== false && t.visible !== 'legendonly'){
+                 scatterTraceCount++;
+             }
+          }
+          const traces = gd.querySelectorAll('.scatterlayer .trace');
+          const traceEl = traces[scatterTraceCount];
+          if(traceEl) {
+             const points = traceEl.querySelectorAll('.point');
+             target = points[pointIdx];
+          }
+      }
+
+      if(!target) return;
+
+      if(isBar) {
+        // --- BAR CHART: GHOST OVERLAY ---
+        if(lastEl) { reset(lastEl); lastEl = null; }
+
+        const rect = target.getBoundingClientRect();
+        if(rect.width > 0 && rect.height > 0) {
+           ghostOverlay.style.top = rect.top + 'px';
+           ghostOverlay.style.left = rect.left + 'px';
+           ghostOverlay.style.width = rect.width + 'px';
+           ghostOverlay.style.height = rect.height + 'px';
+           ghostOverlay.style.borderRadius = "2px";
+           ghostOverlay.style.display = 'block';
         }
-      }catch(err){ console.error(err); }
+      } else {
+        // --- SCATTER CHART: DIRECT SVG TRANSFORM ---
+        ghostOverlay.style.display = 'none';
+        ghostOverlay.style.top = '-9999px';
+        ghostOverlay.style.left = '-9999px';
+
+        if(lastEl !== target) {
+            if(lastEl) reset(lastEl);
+            lastEl = target;
+
+            // Save original styles
+            saved.stroke = target.style.stroke;
+            saved.strokeWidth = target.style.strokeWidth;
+            saved.paintOrder = target.style.paintOrder;
+            saved.cursor = target.style.cursor;
+            saved.transform = target.style.transform;
+            saved.transition = target.style.transition;
+            saved.transformBox = target.style.transformBox;
+            saved.transformOrigin = target.style.transformOrigin;
+
+            // Apply Enhance: Scale + White Glow
+            target.style.transformBox = "fill-box";
+            target.style.transformOrigin = "center";
+            target.style.transition = "all 0.05s ease-out";
+            target.style.transform = "scale(2)"; // 2x Scale
+
+            // White stroke behind the fill
+            target.style.stroke = 'rgba(255,255,255,0.7)';
+            target.style.strokeWidth = '12px'; // Thick glow
+            target.style.paintOrder = 'stroke';
+            target.style.opacity = '1';
+            target.style.cursor = 'pointer';
+
+            // Bring to front
+            if(target.parentNode) target.parentNode.appendChild(target);
+        }
+      }
     });
 
     gd.on('plotly_unhover', function(){
       ghostOverlay.style.display = 'none';
-      ghostOverlay.style.top = '-9999px';
-      ghostOverlay.style.left = '-9999px';
       if(lastEl) { reset(lastEl); lastEl = null; }
     });
   }
@@ -1023,7 +1064,11 @@ main();
     el.style.stroke = saved.stroke;
     el.style.strokeWidth = saved.strokeWidth;
     el.style.paintOrder = saved.paintOrder;
-    el.style.opacity = saved.opacity;
+    el.style.cursor = saved.cursor;
+    el.style.transform = saved.transform;
+    el.style.transition = saved.transition;
+    el.style.transformBox = saved.transformBox;
+    el.style.transformOrigin = saved.transformOrigin;
   }
 
   function scan(){
@@ -1100,6 +1145,7 @@ main();
     const vh=window.innerHeight;
     const pad=16;
 
+    // Offset slightly more to avoid covering the white border
     let px=x+20, py=y+20;
     if(px+rect.width+pad>vw) px=x-rect.width-20;
     if(py+rect.height+pad>vh) py=y-rect.height-20;
