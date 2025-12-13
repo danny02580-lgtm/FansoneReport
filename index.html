@@ -80,29 +80,38 @@
     max-height: 400px;
   }
 
-  /* --- 修正開始：Chart Controls --- */
-  .segmented{
-    display: flex; /* 不滑動，強制塞滿 */
-    width: 100%;
+  /* --- 修正開始：Chart Controls & Segmented --- */
+
+  /* 基礎容器樣式 */
+  .segmented {
     background: rgba(0,0,0,.2);
     border: 1px solid rgba(255,255,255,.1);
     border-radius: 14px;
-    margin: 0 0 12px 0;
-    padding: 4px; /* 保留內距防切邊 */
+    padding: 4px; /* 保留內距 */
     overflow: hidden;
   }
 
-  .seg-btn{
-    flex: 1; /* 等寬 */
+  /* 針對上方主控台的設定 (不是 userseg 的時候) */
+  .segmented:not(.userseg) {
+    display: flex; /* Flex 佈局 */
+    width: 100%;   /* 強制全寬，不滑動 */
+    margin: 0 0 12px 0;
+  }
+
+  /* 上方按鈕樣式 */
+  .seg-btn {
+    flex: 1; /* 平分寬度 */
     min-width: 0; /* 允許壓縮 */
-    padding: 8px 0; /* 左右不留白，讓字能塞滿 */
+
+    padding: 8px 0; /* 左右不留白，最大化文字空間 */
+    margin: 0;
 
     border-radius: 10px;
     border: 0;
     background: transparent;
     color: rgba(255,255,255,.6);
     font-weight: 600;
-    font-size: 14px; /* 預設字體 */
+    font-size: 14px;
     cursor: pointer;
     font-family: inherit;
 
@@ -110,21 +119,44 @@
     text-align: center;
     transition: all 0.2s cubic-bezier(0.4,0,0.2,1);
 
-    /* 修正：移除 ellipsis，讓字儘量顯示 */
+    /* 關鍵：拿掉 ellipsis，強制不顯示點點點 */
     text-overflow: clip;
   }
 
-  .seg-btn.active{
+  .seg-btn.active {
     background: var(--accent);
     color: #fff;
     box-shadow: 0 4px 12px var(--accent-glow);
     text-shadow: 0 1px 2px rgba(0,0,0,0.2);
   }
-
   .seg-btn:hover:not(.active) {
     color: #e5e7eb;
     background: rgba(255,255,255,0.05);
   }
+
+  /* 針對下方 Top Users 的 User Seg (覆蓋上面的設定) */
+  .segmented.userseg {
+    display: inline-flex; /* 恢復成 inline，不佔滿整行 */
+    width: auto;          /* 自動寬度 */
+    margin: 0;
+  }
+  /* 下方按鈕樣式 (維持原本設計) */
+  .userseg .userseg-btn {
+    all: unset;
+    cursor: pointer;
+    padding: 6px 12px;
+    border-radius: 99px;
+    font-weight: 600;
+    font-size: 11px;
+    color: var(--muted);
+    transition: all 0.2s;
+  }
+  .userseg .userseg-btn.active {
+    background: rgba(255,255,255,.12);
+    color: #fff;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1);
+  }
+
   /* --- 修正結束 --- */
 
   .select.hidden{display:none!important;}
@@ -172,18 +204,13 @@
     .grid{grid-template-columns:1fr; gap:16px; margin-top:16px;}
     #chart{height:480px!important;}
 
-    /* 這裡不再去動 th, td 的 padding，保留上一版的樣子以免 User Analysis 跑掉 */
     .tablesGrid{grid-template-columns:1fr; gap:16px;}
     .check{padding:12px;}
 
-    /* --- 手機版按鈕特別優化 (只針對上面的切換按鈕) --- */
+    /* 手機版：針對上方按鈕做極限優化 */
     .seg-btn {
-      /* 字體縮小到 11px，確保 Subscribers 塞得進去 */
-      font-size: 11px;
-      /* 縮小字距 */
-      letter-spacing: -0.5px;
-      /* 上下 padding */
-      padding: 8px 0;
+      font-size: 11px; /* 縮小字體 */
+      padding: 7px 0;  /* 高度稍微修飾，左右不留空 */
     }
   }
 
@@ -193,8 +220,6 @@
   }
 
   #orderTag{display:none!important;}
-  .userseg .userseg-btn{all:unset; cursor:pointer; padding:6px 10px; border-radius:99px; font-weight:600; font-size:11px; color:var(--muted); transition:all 0.2s;}
-  .userseg .userseg-btn.active{background:rgba(255,255,255,.12); color:#fff; box-shadow:inset 0 0 0 1px rgba(255,255,255,0.1);}
   #prevTotalRevenue{display:none!important;}
 
   #customTooltipCard{
