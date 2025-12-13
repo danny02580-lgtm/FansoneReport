@@ -9,6 +9,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
 <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
 <style>
   :root{
     --bg0:#0b1220; --bg1:#0f1a2e; --panel:rgba(255,255,255,.06); --stroke:rgba(255,255,255,.14);
@@ -20,10 +22,7 @@
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
 
-  html, body{
-    margin:0; padding:0; width:100%; height:100%;
-    overflow-x: hidden;
-  }
+  html, body{ margin:0; padding:0; width:100%; height:100%; overflow-x: hidden; }
 
   body{
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
@@ -48,10 +47,6 @@
   .title .sub{margin-top:4px; font-size:13px; color:var(--muted); line-height:1.4}
   #status.ok{color:#34d399} #status.err{color:#fb7185}
 
-  ::-webkit-scrollbar{width:4px;height:4px}
-  ::-webkit-scrollbar-track{background:transparent}
-  ::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.2);border-radius:99px}
-
   .kpis{display:flex; flex-wrap:wrap; gap:12px; justify-content:flex-end; align-items:stretch}
   .kpi{
     padding:16px 18px; border:1px solid var(--stroke); border-radius:18px; background:rgba(255,255,255,.03);
@@ -62,106 +57,58 @@
   .kpi .kvalue{font-size:28px; font-weight:800; letter-spacing:-0.5px; color:var(--text); white-space:nowrap;}
 
   .grid{display:grid; grid-template-columns:360px 1fr; gap:16px; margin-top:20px}
-  @media(max-width:980px){.grid{grid-template-columns:1fr}}
 
   .panel{
     border:1px solid var(--stroke); border-radius:20px; background:var(--panel); backdrop-filter:blur(12px);
     overflow:hidden; box-shadow:0 4px 20px rgba(0,0,0,0.1);
-    max-width: 100%;
+    max-width: 100%; display: flex; flex-direction: column;
   }
   .hd{padding:14px 16px; border-bottom:1px solid rgba(255,255,255,.08); display:flex; align-items:center; justify-content:space-between; gap:10px}
   .hd h2{margin:0; font-size:15px; font-weight:700; color:#fff; white-space:nowrap;}
   .bd{padding:16px}
 
-  /* --- 關鍵修正：表格滾動容器 --- */
-  .table-scroll-container {
+  /* --- Skeleton Loading (骨架屏動畫) --- */
+  .skeleton {
+    background: #1f2937;
+    background: linear-gradient(110deg, #1f2937 8%, #374151 18%, #1f2937 33%);
+    border-radius: 8px;
+    background-size: 200% 100%;
+    animation: shine 1.5s linear infinite;
     width: 100%;
-    /* 恢復 auto 以允許滑動，不然內容一定被切掉 */
-    overflow-x: auto;
-    /* iOS 平滑滾動 */
-    -webkit-overflow-scrolling: touch;
+  }
+  .skeleton-text { height: 24px; margin-bottom: 8px; width: 60%; }
+  .skeleton-rect { height: 200px; width: 100%; }
+  .skeleton-table-row { height: 40px; margin-bottom: 8px; width: 100%; }
 
-    /* 隱藏滾動條但保留功能 (Chrome/Safari/Edge) */
-    scrollbar-width: none;
-    -ms-overflow-style: none;
+  @keyframes shine {
+    to { background-position-x: -200%; }
   }
-  /* 隱藏滾動條 (Webkit) */
-  .table-scroll-container::-webkit-scrollbar {
-    display: none;
-  }
+  /* 隱藏內容直到載入完成 */
+  .loading-hide { display: none !important; }
+  .skeleton-container { width: 100%; }
 
-  /* --- 上方 Chart Controls --- */
-  .segmented {
-    background: rgba(0,0,0,.2);
-    border: 1px solid rgba(255,255,255,.1);
-    border-radius: 14px;
-    padding: 4px;
-    overflow: hidden;
-  }
-  .segmented:not(.userseg) {
-    display: flex;
-    width: 100%;
-    margin: 0 0 12px 0;
-  }
+  /* --- Chart Controls --- */
+  .segmented { background: rgba(0,0,0,.2); border: 1px solid rgba(255,255,255,.1); border-radius: 14px; padding: 4px; overflow: hidden; }
+  .segmented:not(.userseg) { display: flex; width: 100%; margin: 0 0 12px 0; }
   .seg-btn {
-    flex: 1;
-    min-width: 0;
-    padding: 8px 0;
-    margin: 0;
-    border-radius: 10px;
-    border: 0;
-    background: transparent;
-    color: rgba(255,255,255,.6);
-    font-weight: 600;
-    font-size: 14px;
-    cursor: pointer;
-    font-family: inherit;
-    white-space: nowrap;
-    text-align: center;
-    transition: all 0.2s cubic-bezier(0.4,0,0.2,1);
-    text-overflow: clip;
+    flex: 1; min-width: 0; padding: 8px 0; margin: 0;
+    border-radius: 10px; border: 0; background: transparent;
+    color: rgba(255,255,255,.6); font-weight: 600; font-size: 14px;
+    cursor: pointer; font-family: inherit; white-space: nowrap; text-align: center;
+    transition: all 0.2s cubic-bezier(0.4,0,0.2,1); text-overflow: clip;
   }
-  .seg-btn.active {
-    background: var(--accent);
-    color: #fff;
-    box-shadow: 0 4px 12px var(--accent-glow);
-    text-shadow: 0 1px 2px rgba(0,0,0,0.2);
-  }
-  .seg-btn:hover:not(.active) {
-    color: #e5e7eb;
-    background: rgba(255,255,255,0.05);
-  }
+  .seg-btn.active { background: var(--accent); color: #fff; box-shadow: 0 4px 12px var(--accent-glow); text-shadow: 0 1px 2px rgba(0,0,0,0.2); }
+  .seg-btn:hover:not(.active) { color: #e5e7eb; background: rgba(255,255,255,0.05); }
 
-  /* --- 下方 Top Users 切換按鈕 --- */
-  .segmented.userseg {
-    display: inline-flex;
-    width: auto;
-    margin: 0;
-  }
-  .userseg .userseg-btn {
-    all: unset;
-    cursor: pointer;
-    padding: 6px 12px;
-    border-radius: 99px;
-    font-weight: 600;
-    font-size: 11px;
-    color: var(--muted);
-    transition: all 0.2s;
-  }
-  .userseg .userseg-btn.active {
-    background: rgba(255,255,255,.12);
-    color: #fff;
-    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1);
-  }
+  .segmented.userseg { display: inline-flex; width: auto; margin: 0; }
+  .userseg .userseg-btn { all: unset; cursor: pointer; padding: 6px 12px; border-radius: 99px; font-weight: 600; font-size: 11px; color: var(--muted); transition: all 0.2s; }
+  .userseg .userseg-btn.active { background: rgba(255,255,255,.12); color: #fff; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); }
 
   .select.hidden{display:none!important;}
   .select{width:100%; padding:12px; border:1px solid var(--stroke); border-radius:14px; background:rgba(255,255,255,.04); color:var(--text); font-size:14px; outline:none;}
 
   .checks{display:grid; grid-template-columns:1fr; gap:8px; margin-top:12px}
-  .check{
-    display:flex; gap:12px; align-items:center; padding:12px 14px;
-    border:1px solid var(--stroke); border-radius:12px; background:rgba(255,255,255,.02); cursor:pointer;
-  }
+  .check{ display:flex; gap:12px; align-items:center; padding:12px 14px; border:1px solid var(--stroke); border-radius:12px; background:rgba(255,255,255,.02); cursor:pointer; }
   .check input{width:20px; height:20px; accent-color:var(--accent)}
   .dot{width:10px; height:10px; border-radius:999px; background:#fff; flex-shrink:0;}
   .label{overflow:hidden; display:flex; align-items:center; flex:1;}
@@ -170,110 +117,72 @@
   #chart{width:100%; height:560px}
 
   .tablesGrid{display:grid; grid-template-columns:1.3fr 1fr; gap:16px; margin-top:16px; width: 100%;}
-  @media(max-width:980px){.tablesGrid{grid-template-columns:1fr}}
 
-  /* --- 通用表格樣式 --- */
+  /* --- 表格與排序樣式 --- */
+  .table-scroll-container { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; -ms-overflow-style: none; }
+  .table-scroll-container::-webkit-scrollbar { display: none; }
+
   table{width:100%; border-collapse:separate; border-spacing:0; font-size:14px}
   th,td{padding:14px 14px; border-bottom:1px solid rgba(255,255,255,.06); white-space:nowrap;}
-  th{
+
+  th {
     text-align:left; color:var(--muted); font-weight:700; font-size:12px; text-transform:uppercase; letter-spacing:0.5px;
     background:rgba(19,29,48,0.95); position:sticky; top:0; z-index:10;
+    cursor: pointer; user-select: none; transition: color 0.2s;
   }
+  th:hover { color: #fff; background:rgba(30,41,59,0.95); }
+
+  /* 排序箭頭 */
+  th::after { content: ''; display: inline-block; margin-left: 6px; width: 8px; opacity: 0.3; }
+  th.sort-asc::after { content: '▲'; opacity: 1; color: var(--accent); }
+  th.sort-desc::after { content: '▼'; opacity: 1; color: var(--accent); }
+
   td.right, th.right{text-align:right;}
   tbody tr:nth-child(even) td{background:rgba(255,255,255,0.01)}
   tr:hover td{background:rgba(255,255,255,.06)!important; transition:background 0.1s}
 
-  /* --- 修正開始：Top Users 表格固定欄寬 --- */
-  .fixed-table {
-    table-layout: fixed;
-    /* 這裡設定最小寬度 550px。
-       在電腦上 width: 100% 會超過 550，所以會填滿卡片。
-       在手機上 width: 100% 只有 360，所以會觸發 min-width 550，
-       這時外層的 table-scroll-container 就會允許橫向滑動。
-    */
-    min-width: 550px;
-    width: 100%;
-  }
-
-  /* 第一欄 User ID：給 32% */
-  .fixed-table th:nth-child(1) {
-    width: 32%;
-  }
-
-  /* 後面四欄：各 17% */
-  .fixed-table th:nth-child(2),
-  .fixed-table th:nth-child(3),
-  .fixed-table th:nth-child(4),
-  .fixed-table th:nth-child(5) {
-    width: 17%;
-  }
-
-  .fixed-table td {
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  /* --- 修正結束 --- */
+  /* 固定寬度表格 (Top Users) */
+  .fixed-table { table-layout: fixed; width: 100%; min-width: 550px; }
+  .fixed-table th:nth-child(1) { width: 32%; }
+  .fixed-table th:nth-child(2), .fixed-table th:nth-child(3), .fixed-table th:nth-child(4), .fixed-table th:nth-child(5) { width: 17%; }
+  .fixed-table td { overflow: hidden; text-overflow: ellipsis; }
 
   .sheetlink{color:var(--muted); border:1px solid var(--stroke); padding:7px 9px; border-radius:999px; background:rgba(255,255,255,.04)}
   .sheetlink:hover{color:var(--text)}
   .pill{padding:4px 10px; border:1px solid var(--stroke); border-radius:999px; font-size:11px; font-weight:600; color:var(--muted); background:rgba(255,255,255,.02); white-space:nowrap;}
 
-  /* --- Mobile Optimization --- */
+  /* --- RWD --- */
+  @media(max-width:980px){
+    .grid{grid-template-columns:1fr}
+    .tablesGrid{grid-template-columns:1fr}
+  }
   @media(max-width:860px){
     .wrap{padding:16px 12px 60px; overflow-x: hidden;}
     .topbar{flex-direction:column; align-items:stretch; gap:12px; padding:16px;}
-
     .kpis{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
     .kpi{min-width:0; padding:16px;}
     .kpi .kvalue{font-size:32px;}
-    .kpi .klabel{font-size:12px;}
-
     .grid{grid-template-columns:1fr; gap:16px; margin-top:16px;}
     #chart{height:480px!important;}
-
     .tablesGrid{grid-template-columns:1fr; gap:16px;}
     .check{padding:12px;}
 
-    /* 手機版字體設定 */
-    .fixed-table th, .fixed-table td {
-        padding: 12px 8px; /* 稍微舒適一點的內距 */
-        font-size: 12px;   /* 字體可以不用縮到太小，因為現在可以滑動了 */
-    }
-
-    .seg-btn {
-      font-size: 13px;
-      padding: 8px 0;
-    }
+    .fixed-table th, .fixed-table td { padding: 12px 8px; font-size: 12px; }
+    .seg-btn { font-size: 13px; padding: 8px 0; }
   }
-
   @media(max-width:400px){
     .kpi .klabel{font-size:11px;} .kpi .kvalue{font-size:26px;}
     #chart{height:420px!important;}
   }
 
   #orderTag{display:none!important;}
-  #prevTotalRevenue{display:none!important;}
-
-  #customTooltipCard{
-    position:fixed; z-index:99999; display:none; pointer-events:none;
-    padding:14px 16px; border-radius:14px; background:rgba(15,23,42,0.92);
-    border:1px solid rgba(255,255,255,.15); box-shadow:0 18px 60px rgba(0,0,0,.6);
-    backdrop-filter:blur(16px); color:#fff; font-family:'Inter', sans-serif;
-  }
+  #customTooltipCard{ position:fixed; z-index:99999; display:none; pointer-events:none; padding:14px 16px; border-radius:14px; background:rgba(15,23,42,0.92); border:1px solid rgba(255,255,255,.15); box-shadow:0 18px 60px rgba(0,0,0,.6); backdrop-filter:blur(16px); color:#fff; font-family:'Inter', sans-serif; }
   #customTooltipCard .tt-title{font-weight:700;font-size:14px;opacity:1;margin-bottom:6px;}
   #customTooltipCard .tt-row{display:flex;align-items:center;gap:10px}
   #customTooltipCard .dot{width:10px;height:10px;border-radius:99px;flex:0 0 10px;box-shadow:0 0 0 2px rgba(255,255,255,.1)}
   #customTooltipCard .name{font-size:13px;font-weight:600;opacity:.9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   #customTooltipCard .value{margin-left:auto;font-size:16px;font-weight:700;white-space:nowrap;font-feature-settings:"tnum"}
-
-  #ghost-overlay {
-    position:fixed; pointer-events:none; z-index:9999;
-    background:transparent; border:2px solid white;
-    box-shadow:0 0 8px rgba(255,255,255,0.6);
-    display:none; transition:all 0.05s ease-out;
-    border-radius:2px; top:-9999px; left:-9999px;
-  }
-
+  #ghost-overlay { position:fixed; pointer-events:none; z-index:9999; background:transparent; border:2px solid white; box-shadow:0 0 8px rgba(255,255,255,0.6); display:none; transition:all 0.05s ease-out; border-radius:2px; top:-9999px; left:-9999px; }
   .js-plotly-plot .hoverlayer{opacity:0!important; pointer-events:none!important;}
   .js-plotly-plot .hoverlayer .hovertext{display:none!important;}
 </style>
@@ -285,7 +194,11 @@
       <h1>Fansone Report</h1>
       <div class="sub" id="status">Loading…</div>
     </div>
-    <div class="kpis">
+    <div id="skel-kpi" class="skeleton-container kpis">
+        <div class="kpi" style="min-width:180px"><div class="skeleton skeleton-text" style="width:40%"></div><div class="skeleton skeleton-text" style="height:32px; width:80%"></div></div>
+        <div class="kpi" style="min-width:180px"><div class="skeleton skeleton-text" style="width:40%"></div><div class="skeleton skeleton-text" style="height:32px; width:80%"></div></div>
+    </div>
+    <div id="real-kpi" class="kpis loading-hide">
       <div class="kpi small">
         <div class="klabel">Latest Month</div>
         <div class="kvalue" id="months">–</div>
@@ -308,40 +221,40 @@
           <button class="seg-btn" type="button" data-value="arpu">ARPU</button>
         </div>
         <select id="viewSelect" class="select hidden">
-          <option value="money">金額（總/訂閱/單片）</option>
-          <option value="subs">訂閱人數（新/舊柱狀）</option>
-          <option value="mix">方案比例（1/3/6M 勾選）</option>
-          <option value="arpu">ARPU（折線）</option>
+          <option value="money">金額</option><option value="subs">人數</option><option value="mix">方案</option><option value="arpu">ARPU</option>
         </select>
         <div class="checks" id="checks"></div>
       </div>
     </div>
 
     <div class="panel" style="padding:10px">
-      <div id="chart"></div>
+        <div id="skel-chart" class="skeleton-container" style="padding:10px">
+            <div class="skeleton" style="height:480px; width:100%"></div>
+        </div>
+        <div id="chart" class="loading-hide"></div>
     </div>
   </div>
 
   <div class="tablesGrid">
     <div class="panel">
-      <div class="hd">
-        <div style="display:flex; align-items:center; gap:8px;">
-          <h2>Monthly Summary</h2>
-        </div>
-      </div>
+      <div class="hd"><h2>Monthly Summary</h2></div>
       <div class="bd" style="padding:0;">
-        <div class="table-scroll-container">
+        <div id="skel-t1" class="skeleton-container" style="padding:16px">
+            <div class="skeleton skeleton-table-row"></div><div class="skeleton skeleton-table-row"></div><div class="skeleton skeleton-table-row"></div><div class="skeleton skeleton-table-row"></div>
+        </div>
+
+        <div id="real-t1" class="table-scroll-container loading-hide">
           <table id="monthlyTable">
             <thead>
               <tr>
-                <th>Month</th>
-                <th class="right">Subs</th>
-                <th class="right">New</th>
-                <th class="right">Old</th>
-                <th class="right">Sub $</th>
-                <th class="right">Single $</th>
-                <th class="right">Total $</th>
-                <th class="right">ARPU</th>
+                <th onclick="sortTable('monthly', 'month')" data-key="month">Month</th>
+                <th class="right" onclick="sortTable('monthly', 'subs')" data-key="subs">Subs</th>
+                <th class="right" onclick="sortTable('monthly', 'newUsers')" data-key="newUsers">New</th>
+                <th class="right" onclick="sortTable('monthly', 'oldUsers')" data-key="oldUsers">Old</th>
+                <th class="right" onclick="sortTable('monthly', 'subRevenue')" data-key="subRevenue">Sub $</th>
+                <th class="right" onclick="sortTable('monthly', 'singleRevenue')" data-key="singleRevenue">Single $</th>
+                <th class="right" onclick="sortTable('monthly', 'totalRevenue')" data-key="totalRevenue">Total $</th>
+                <th class="right" onclick="sortTable('monthly', 'arpu')" data-key="arpu">ARPU</th>
               </tr>
             </thead>
             <tbody id="tbodyMonthly"></tbody>
@@ -352,28 +265,27 @@
 
     <div class="panel">
       <div class="hd">
-        <div style="display:flex; align-items:center; gap:8px;">
-          <h2>Top Users</h2>
-        </div>
+        <div style="display:flex; align-items:center; gap:8px;"><h2>Top Users</h2></div>
         <div class="segmented userseg" role="tablist">
           <button class="userseg-btn active" type="button" data-metric="spend_total">Spend</button>
           <button class="userseg-btn" type="button" data-metric="active_months">Loyalty</button>
         </div>
-        <select id="userMetric" style="display:none" class="select">
-          <option value="spend_total">付最多錢（總）</option>
-          <option value="active_months">訂閱最久</option>
-        </select>
+        <select id="userMetric" style="display:none" class="select"><option value="spend_total">A</option><option value="active_months">B</option></select>
       </div>
       <div class="bd" style="padding:0;">
-        <div class="table-scroll-container">
+        <div id="skel-t2" class="skeleton-container" style="padding:16px">
+            <div class="skeleton skeleton-table-row"></div><div class="skeleton skeleton-table-row"></div><div class="skeleton skeleton-table-row"></div>
+        </div>
+
+        <div id="real-t2" class="table-scroll-container loading-hide">
           <table class="fixed-table">
             <thead>
               <tr>
-                <th>User ID</th>
-                <th class="right">Metric</th>
-                <th class="right">Sub $</th>
-                <th class="right">Single $</th>
-                <th class="right">Total $</th>
+                <th onclick="sortTable('users', 'id')" data-key="id">User ID</th>
+                <th class="right" onclick="sortTable('users', 'metricVal')" data-key="metricVal">Metric</th>
+                <th class="right" onclick="sortTable('users', 'subSpend')" data-key="subSpend">Sub $</th>
+                <th class="right" onclick="sortTable('users', 'singleSpend')" data-key="singleSpend">Single $</th>
+                <th class="right" onclick="sortTable('users', 'totalSpend')" data-key="totalSpend">Total $</th>
               </tr>
             </thead>
             <tbody id="tbodyUsers"></tbody>
@@ -385,19 +297,19 @@
 
   <div class="tablesGrid" style="grid-template-columns: 1fr; margin-top:16px;">
     <div class="panel">
-      <div class="hd">
-        <div style="display:flex; align-items:center; gap:8px;">
-          <h2>Top Singles</h2>
-        </div>
-      </div>
+      <div class="hd"><h2>Top Singles</h2></div>
       <div class="bd" style="padding:0;">
-        <div class="table-scroll-container">
+        <div id="skel-t3" class="skeleton-container" style="padding:16px">
+            <div class="skeleton skeleton-table-row"></div><div class="skeleton skeleton-table-row"></div>
+        </div>
+
+        <div id="real-t3" class="table-scroll-container loading-hide">
           <table>
             <thead>
               <tr>
-                <th>Title</th>
-                <th class="right">Revenue</th>
-                <th class="right">Orders</th>
+                <th onclick="sortTable('singles', 'title')" data-key="title">Title</th>
+                <th class="right" onclick="sortTable('singles', 'sum')" data-key="sum">Revenue</th>
+                <th class="right" onclick="sortTable('singles', 'count')" data-key="count">Orders</th>
               </tr>
             </thead>
             <tbody id="tbodySingles"></tbody>
@@ -416,58 +328,24 @@ const SUB_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQiAPNDCD7q
 const SINGLE_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQiAPNDCD7qn6atO4VB6Ei63AacDK00AMKM16hK8c-wVWFadPPOj-P8olYQ-ofMFwy0maGU1A4CBneW/pub?gid=1226262547&single=true&output=csv";
 
 function el(id){ return document.getElementById(id); }
-function setText(id, txt){
-  const e=document.getElementById(id);
-  if(e) e.textContent=txt;
-}
+function setText(id, txt){ const e=document.getElementById(id); if(e) e.textContent=txt; }
 function money(n){ if(!isFinite(n)) return "–"; return "$ " + Number(n).toLocaleString("en-US"); }
-function parseMoney(s){
-  if(s==null) return NaN;
-  const t = String(s);
-  const m = t.match(/-?\d+(?:,\d{3})*(?:\.\d+)?/);
-  if(!m) return NaN;
-  return Number(m[0].replace(/,/g,""));
+function parseMoney(s){ if(s==null) return NaN; const m = String(s).match(/-?\d+(?:,\d{3})*(?:\.\d+)?/); return m ? Number(m[0].replace(/,/g,"")) : NaN; }
+function toMonthKey(v){ if(!v) return null; const s=String(v).trim(), m=s.match(/(\d{4})-(\d{2})/); return m ? m[1]+"-"+m[2] : null; }
+
+// --- 1. PapaParse Fetcher (Promise Wrapper) ---
+function fetchCsvPapa(url) {
+    return new Promise((resolve, reject) => {
+        Papa.parse(url, {
+            download: true,
+            header: true,
+            skipEmptyLines: true,
+            complete: (results) => resolve(results.data),
+            error: (err) => reject(err)
+        });
+    });
 }
-function toMonthKey(v){
-  if(!v) return null;
-  const s = String(v).trim();
-  const m = s.match(/(\d{4})-(\d{2})/);
-  if(!m) return null;
-  return m[1] + "-" + m[2];
-}
-async function fetchCSV(url){
-  const r = await fetch(url, {cache:"no-store"});
-  if(!r.ok) throw new Error("Fetch failed: " + r.status);
-  return await r.text();
-}
-function splitCSVLine(line){
-  const out=[]; let cur=""; let inQ=false;
-  for(let i=0;i<line.length;i++) {
-    const c=line[i];
-    if(c==='"') {
-      if(inQ && line[i+1]==='"') { cur+='"'; i++; }
-      else inQ=!inQ;
-    } else if(c===',' && !inQ) { out.push(cur); cur=""; }
-    else cur+=c;
-  }
-  out.push(cur);
-  return out;
-}
-function csvToRows(csv){
-  const text = csv.replace(/^\uFEFF/, "");
-  const lines = text.replace(/\r/g,"").trim().split("\n");
-  if(lines.length<=1) return [];
-  const headers = splitCSVLine(lines[0]).map(h=>h.trim());
-  const rows=[];
-  for(let i=1;i<lines.length;i++) {
-    if(!lines[i].trim()) continue;
-    const cols = splitCSVLine(lines[i]);
-    const obj={};
-    headers.forEach((h,idx)=> obj[h] = (cols[idx] ?? "").trim());
-    rows.push(obj);
-  }
-  return rows;
-}
+
 function normalizePlan(plan){
   const s = String(plan||"").toLowerCase();
   if(s.includes("6") || s.includes("半年") || s.includes("6個月")) return "6M";
@@ -494,7 +372,56 @@ function parseTimeToSortable(s){
   return `${m[1]}-${m[2]}-${m[3]} ${m[4]}:${m[5]}:${m[6]||"00"}`;
 }
 
-let STATE = { aggAsc:[], aggDesc:[], topSingles:[], users:[] };
+// --- STATE Management with Sorting ---
+let STATE = {
+    aggAsc:[], aggDesc:[], topSingles:[], users:[],
+    sort: {
+        monthly: { col: 'month', dir: 'desc' },
+        users: { col: 'metricVal', dir: 'desc' },
+        singles: { col: 'sum', dir: 'desc' }
+    }
+};
+
+// --- Sorting Logic ---
+function sortTable(tableId, colKey) {
+    const s = STATE.sort[tableId];
+    if (s.col === colKey) {
+        s.dir = (s.dir === 'desc') ? 'asc' : 'desc'; // Toggle
+    } else {
+        s.col = colKey;
+        s.dir = 'desc'; // Default new sort to desc
+    }
+
+    // Update Icons
+    document.querySelectorAll(`#tbody${tableId.charAt(0).toUpperCase() + tableId.slice(1)}`).forEach(tbody => {
+        const table = tbody.closest('table');
+        table.querySelectorAll('th').forEach(th => {
+            th.classList.remove('sort-asc', 'sort-desc');
+            if (th.dataset.key === colKey) {
+                th.classList.add(s.dir === 'asc' ? 'sort-asc' : 'sort-desc');
+            }
+        });
+    });
+
+    if (tableId === 'monthly') renderTables();
+    else if (tableId === 'singles') renderTables();
+    else if (tableId === 'users') renderUsers();
+}
+
+function getSortedData(data, tableId) {
+    const s = STATE.sort[tableId];
+    if(!s.col) return data;
+
+    const sorted = [...data].sort((a,b) => {
+        let va = a[s.col], vb = b[s.col];
+        if (typeof va === 'string') va = va.toLowerCase();
+        if (typeof vb === 'string') vb = vb.toLowerCase();
+        if (va < vb) return s.dir === 'asc' ? -1 : 1;
+        if (va > vb) return s.dir === 'asc' ? 1 : -1;
+        return 0;
+    });
+    return sorted;
+}
 
 function buildAgg(subRows, singleRows){
   const subHeaders = Object.keys(subRows[0]||{});
@@ -617,7 +544,7 @@ function buildAgg(subRows, singleRows){
     return { month:k, subs, newUsers, oldUsers, p1, p3, p6, subRevenue, singleRevenue, totalRevenue, arpu };
   });
 
-  const topSingles = Array.from(titleAgg.values()).sort((a,b)=>b.sum-a.sum).slice(0,10);
+  const topSingles = Array.from(titleAgg.values()).sort((a,b)=>b.sum-a.sum).slice(0,10); // Initial sort
 
   const users = Array.from(userMap.values()).map(u=>{
     const monthsActive = u.activeMonths.size;
@@ -633,8 +560,11 @@ function buildAgg(subRows, singleRows){
   return { aggAsc, topSingles, users };
 }
 
-function renderTables(aggDesc, topSingles){
-  el("tbodyMonthly").innerHTML = aggDesc.map(x=>(
+function renderTables(){
+  // 1. Monthly Table
+  // Sort data first
+  const sortedMonthly = getSortedData(STATE.aggAsc, 'monthly');
+  el("tbodyMonthly").innerHTML = sortedMonthly.map(x=>(
     `<tr>
       <td>${x.month}</td>
       <td class="right">${x.subs}</td>
@@ -647,7 +577,9 @@ function renderTables(aggDesc, topSingles){
     </tr>`
   )).join("");
 
-  el("tbodySingles").innerHTML = topSingles.map(t=>{
+  // 2. Singles Table
+  const sortedSingles = getSortedData(STATE.topSingles, 'singles').slice(0,10);
+  el("tbodySingles").innerHTML = sortedSingles.map(t=>{
     const safeTitle = t.title.replace(/</g,"&lt;").replace(/>/g,"&gt;");
     const link = t.url ? `<a href="${t.url}" target="_blank" rel="noopener">${safeTitle}</a>` : safeTitle;
     return `<tr>
@@ -659,23 +591,36 @@ function renderTables(aggDesc, topSingles){
 }
 
 function renderUsers(metric){
+  // If metric is not passed, check active state or default
+  if (!metric) {
+      const activeBtn = document.querySelector('.userseg-btn.active');
+      metric = activeBtn ? activeBtn.getAttribute('data-metric') : 'spend_total';
+  }
+
+  // Pre-process rows with the current metric value for sorting
   const users = STATE.users || [];
-  const rows = [...users];
-  let getVal = (u)=>u.totalSpend;
+  const rows = users.map(u => {
+      let val = u.totalSpend;
+      if(metric==="spend_sub") val=u.subSpend;
+      else if(metric==="spend_single") val=u.singleSpend;
+      else if(metric==="active_months") val=u.monthsActive;
+      else if(metric==="tenure_span") val=(u.spanDays==null?-1:u.spanDays);
+      else if(metric==="orders_total") val=u.totalOrders;
+      return { ...u, metricVal: val };
+  });
+
+  // Sort
+  const sortedRows = getSortedData(rows, 'users').slice(0,10);
+
+  // Format helper
   let fmt = (v)=> Math.round(v).toLocaleString("en-US");
-  if(metric==="spend_sub"){ getVal=(u)=>u.subSpend; }
-  else if(metric==="spend_single"){ getVal=(u)=>u.singleSpend; }
-  else if(metric==="active_months"){ getVal=(u)=>u.monthsActive; fmt=(v)=>String(v); }
-  else if(metric==="tenure_span"){ getVal=(u)=> (u.spanDays==null?-1:u.spanDays); fmt=(v)=> (v<0?"–":(v+"d")); }
-  else if(metric==="orders_total"){ getVal=(u)=>u.totalOrders; fmt=(v)=>String(v); }
+  if(metric==="active_months" || metric==="orders_total") fmt=(v)=>String(v);
+  if(metric==="tenure_span") fmt=(v)=> (v<0?"–":(v+"d"));
 
-  rows.sort((a,b)=> (getVal(b) - getVal(a)));
-  const top = rows.filter(u=>getVal(u)>0).slice(0,10);
-
-  el("tbodyUsers").innerHTML = top.map(u=>(
+  el("tbodyUsers").innerHTML = sortedRows.map(u=>(
     `<tr>
       <td>${u.id}</td>
-      <td class="right">${fmt(getVal(u))}</td>
+      <td class="right">${fmt(u.metricVal)}</td>
       <td class="right">${Math.round(u.subSpend).toLocaleString("en-US")}</td>
       <td class="right">${Math.round(u.singleSpend).toLocaleString("en-US")}</td>
       <td class="right">${Math.round(u.totalSpend).toLocaleString("en-US")}</td>
@@ -843,6 +788,10 @@ function renderChart(view){
   const config = {responsive:true, displaylogo:false, displayModeBar:false, scrollZoom:false, doubleClick:false};
 
   Plotly.react("chart", built.traces, layout, config).then(()=>{
+    // Hide skeleton chart, show real chart
+    el("skel-chart").classList.add("loading-hide");
+    el("chart").classList.remove("loading-hide");
+
     if(view!=="arpu"){
       (built.defaults||[]).forEach(id=>{ const node=document.getElementById(id); if(node) node.checked=true; });
       applyVisibility(view, built.traces);
@@ -880,9 +829,8 @@ async function main(){
     }
     el("status").className = "sub"; el("status").textContent = "Loading… Fetching data";
 
-    const [subCSV, singleCSV] = await Promise.all([fetchCSV(SUB_CSV_URL), fetchCSV(SINGLE_CSV_URL)]);
-    const subRows = csvToRows(subCSV);
-    const singleRows = csvToRows(singleCSV);
+    // 使用 PapaParse 解析 CSV
+    const [subRows, singleRows] = await Promise.all([fetchCsvPapa(SUB_CSV_URL), fetchCsvPapa(SINGLE_CSV_URL)]);
 
     if(!subRows.length) throw new Error("訂閱CSV 沒抓到資料（可能還沒 publish 或 gid 錯）");
     if(!singleRows.length) throw new Error("單片CSV 沒抓到資料（可能還沒 publish 或 gid 錯）");
@@ -897,9 +845,18 @@ async function main(){
     setText("months", String(STATE.aggAsc.length));
     setText("totalRevenue", money(Math.round(STATE.aggAsc.reduce((a,b)=>a+(b.totalRevenue||0),0))));
 
-    renderTables(STATE.aggDesc, STATE.topSingles);
+    // Hide skeletons, show content
+    document.querySelectorAll(".skeleton-container").forEach(e=>e.classList.add("loading-hide"));
+    document.querySelectorAll(".loading-hide").forEach(e=>e.classList.remove("loading-hide"));
+
+    renderTables();
     renderUsers(el("userMetric").value);
-    el("userMetric").addEventListener("change", (e)=> renderUsers(e.target.value));
+    el("userMetric").addEventListener("change", (e)=> {
+        // Reset sort for users when metric changes
+        STATE.sort.users.col = 'metricVal';
+        STATE.sort.users.dir = 'desc';
+        renderUsers(e.target.value);
+    });
 
     renderChart("money");
     el("viewSelect").addEventListener("change", (e)=> renderChart(e.target.value));
@@ -907,6 +864,7 @@ async function main(){
     el("status").className = "sub ok"; el("status").textContent = "● Data loaded • Last updated: " + new Date().toLocaleString();
   } catch(err) {
     el("status").textContent = "❌ Load failed: " + (err && err.message ? err.message : String(err));
+    console.error(err);
   }
 }
 main();
