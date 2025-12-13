@@ -20,7 +20,6 @@
   *{box-sizing:border-box}
   body{
     margin:0;
-    /* 2. 使用 Inter 字體 */
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     color:var(--text);
     background:
@@ -41,7 +40,7 @@
   #status.ok{color:#34d399}
   #status.err{color:#fb7185}
 
-  /* 3. 美化滾動條 (Custom Scrollbar) */
+  /* Custom Scrollbar */
   ::-webkit-scrollbar { width: 6px; height: 6px; }
   ::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); border-radius: 4px; }
   ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 4px; }
@@ -51,11 +50,11 @@
   .kpi{
     padding:12px 14px; border:1px solid var(--stroke); border-radius:16px; background:rgba(255,255,255,.04);
     min-width:220px; display:flex; flex-direction:column; gap:6px;
-    transition: transform 0.2s; /* 增加一點互動感 */
+    transition: transform 0.2s;
   }
   .kpi:hover { transform: translateY(-2px); border-color: rgba(255,255,255,0.25); }
   .kpi .klabel{font-size:12px; color:var(--muted); font-weight: 500;}
-  .kpi .kvalue{font-size:24px; font-weight:800; letter-spacing:-0.5px; color:var(--text)} /* 數字字距微調 */
+  .kpi .kvalue{font-size:24px; font-weight:800; letter-spacing:-0.5px; color:var(--text)}
   .kpi.small{min-width:140px}
   .kpi.small .kvalue{font-size:24px}
 
@@ -105,7 +104,7 @@
   th{text-align:left; color:var(--muted); font-weight:700; background:rgba(15, 26, 46, 0.95); position:sticky; top:0; backdrop-filter: blur(10px); z-index: 10;}
   td.right, th.right{text-align:right}
 
-  /* 4. 表格斑馬紋與懸停效果 */
+  /* Table Stripes */
   tbody tr:nth-child(even) td { background: rgba(255,255,255,0.015); }
   tr:hover td{background:rgba(255,255,255,.08) !important; transition: background 0.15s;}
 
@@ -165,7 +164,7 @@
   #customTooltip .tt-row{ display:flex; align-items:center; gap:10px; margin: 7px 0; }
   #customTooltip .tt-dot{ width:8px;height:8px;border-radius:999px;flex:0 0 8px; box-shadow: 0 0 0 2px rgba(255,255,255,0.15); }
   #customTooltip .tt-name{ flex:1; opacity:.8; font-weight:500; font-size: 13px; }
-  #customTooltip .tt-val{ font-weight:700; letter-spacing:0px; font-size: 14px; font-feature-settings: "tnum"; } /* 等寬數字 */
+  #customTooltip .tt-val{ font-weight:700; letter-spacing:0px; font-size: 14px; font-feature-settings: "tnum"; }
 
   /* Plotly override */
   .js-plotly-plot .hoverlayer{ opacity:0 !important; pointer-events:none !important; }
@@ -174,7 +173,7 @@
   #customTooltipCard{
     position:fixed; z-index:99999; display:none; pointer-events:none;
     padding:14px 16px; border-radius:18px;
-    background:rgba(12,16,24,.85); /* 稍微加深背景 */
+    background:rgba(12,16,24,.85);
     border:1px solid rgba(255,255,255,.14);
     box-shadow:0 18px 60px rgba(0,0,0,.5);
     backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
@@ -193,7 +192,7 @@
     pointer-events: none; /* Allows click-through */
     z-index: 9999;
     border: 2px solid white;
-    box-shadow: 0 0 4px rgba(0,0,0,0.3); /* 增加一點陰影讓白框更立體 */
+    box-shadow: 0 0 4px rgba(0,0,0,0.3);
     display: none;
     border-radius: 2px;
     transition: all 0.08s ease-out;
@@ -946,9 +945,10 @@ main();
 <script id="safeHoverEnhancer">
 (function(){
   let lastEl = null;
-  let saved = { stroke:'', strokeWidth:'', paintOrder:'', opacity:'', cursor:'' };
-  let ghostOverlay = document.getElementById('ghost-overlay');
+  // Saved state to restore original styles
+  let saved = { stroke:'', strokeWidth:'', paintOrder:'', opacity:'', cursor:'', transform:'', transition:'', transformBox:'', transformOrigin:'' };
 
+  let ghostOverlay = document.getElementById('ghost-overlay');
   if(!ghostOverlay) {
     ghostOverlay = document.createElement('div');
     ghostOverlay.id = 'ghost-overlay';
@@ -962,33 +962,22 @@ main();
     gd.on('plotly_hover', function(e){
       if(!e || !e.points || !e.points.length) return;
       const pt = e.points[0];
-
       const curveIdx = pt.curveNumber;
       const pointIdx = pt.pointNumber;
 
-      // CRITICAL FIX: Robustly find the trace element by index
       const traces = gd.querySelectorAll('.trace');
-      // Filter only visible traces (Scatter or Bar) usually grouped in 'cartesianlayer'
-      // Plotly DOM: .cartesianlayer > .subplot > .plot > .scatterlayer/.barlayer > .trace
-      // We must be careful because traces array index matches data index.
       const traceEl = traces[curveIdx];
-
       if(!traceEl) return;
 
-      // Find the specific point (path)
       const points = traceEl.querySelectorAll('.point');
       const target = points[pointIdx];
-
       if(!target) return;
 
-      // Identify chart type from data, not DOM class
       const isBar = pt.data.type === 'bar';
 
       if(isBar) {
-        // --- BAR CHART: GHOST OVERLAY ---
-        // Get precise screen coordinates of the SVG element
+        // ... Bar logic (Keep existing ghost overlay) ...
         const rect = target.getBoundingClientRect();
-
         if(rect.width > 0 && rect.height > 0) {
            ghostOverlay.style.top = rect.top + 'px';
            ghostOverlay.style.left = rect.left + 'px';
@@ -997,20 +986,39 @@ main();
            ghostOverlay.style.display = 'block';
         }
       } else {
-        // --- SCATTER CHART: SVG STROKE (GLOW) ---
-        ghostOverlay.style.display = 'none'; // Hide ghost if moving to scatter
+        // --- SCATTER CHART: SCALE + GLOW ---
+        ghostOverlay.style.display = 'none';
 
         if(lastEl !== target) {
             if(lastEl) reset(lastEl);
             lastEl = target;
+
+            // Save original styles
             saved.stroke = target.style.stroke;
             saved.strokeWidth = target.style.strokeWidth;
             saved.paintOrder = target.style.paintOrder;
+            saved.cursor = target.style.cursor;
+            saved.transform = target.style.transform;
+            saved.transition = target.style.transition;
+            saved.transformBox = target.style.transformBox;
+            saved.transformOrigin = target.style.transformOrigin;
 
-            // Apply glow effect directly to SVG
-            target.style.stroke = 'rgba(255,255,255,0.9)';
-            target.style.strokeWidth = '3px';
+            // Apply Enhance Styles
+            // 1. Scale up from center
+            target.style.transformBox = "fill-box";
+            target.style.transformOrigin = "center";
+            target.style.transition = "all 0.1s ease-out"; // Smooth transition
+            target.style.transform = "scale(1.5)";
+
+            // 2. Add White Glow/Border
+            target.style.stroke = '#ffffff';
+            target.style.strokeWidth = '8px'; // Slightly thinner than 10px since we scaled up
             target.style.paintOrder = 'stroke';
+            target.style.opacity = '1';
+            target.style.cursor = 'pointer';
+
+            // 3. Bring to front (optional for scatter, but good for overlapping points)
+            if(target.parentNode) target.parentNode.appendChild(target);
         }
       }
     });
@@ -1029,10 +1037,15 @@ main();
     el.style.stroke = saved.stroke;
     el.style.strokeWidth = saved.strokeWidth;
     el.style.paintOrder = saved.paintOrder;
+    el.style.cursor = saved.cursor;
+    el.style.transform = saved.transform;
+    el.style.transition = saved.transition;
+    el.style.transformBox = saved.transformBox;
+    el.style.transformOrigin = saved.transformOrigin;
   }
 
   function scan(){
-    document.querySelectorAll('.js-plotly-plot').forEach(enhance);
+    document.querySelectorAll('.js-plotly-plot, .plotly-graph-div').forEach(enhance);
   }
 
   const obs = new MutationObserver(()=>scan());
