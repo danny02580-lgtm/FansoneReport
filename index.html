@@ -150,18 +150,25 @@
 
   /* 電腦端 (大於 860px) */
   @media(min-width:861px) {
-    /* Monthly Summary: 自動寬度，確保文字完整顯示，不出現捲軸 */
-    #real-t1.table-scroll-container {
-        overflow-x: hidden;
-    }
+    #real-t1.table-scroll-container { overflow-x: hidden; }
+
+    /* Monthly Table 在電腦端的優化 */
     #monthlyTable {
-        table-layout: auto;
+        table-layout: auto; /* 讓瀏覽器自動分配寬度，不要硬性平分 */
         width: 100%;
     }
-    #monthlyTable td, #monthlyTable th {
+    #monthlyTable th, #monthlyTable td {
+        /* 關鍵：縮小內距，省下大量空間給文字 */
+        padding: 12px 6px;
+
+        /* 關鍵：拿掉省略號，確保文字完整 */
         white-space: nowrap;
         overflow: visible;
         text-overflow: clip;
+
+        /* 稍微縮小字體與字距，增加容納量 */
+        font-size: 13px;
+        letter-spacing: -0.2px;
     }
   }
 
@@ -619,7 +626,6 @@ function renderUsers(metric){
   )).join("") || `<tr><td colspan="5" style="color:rgba(156,163,175,.9); padding:14px;">（目前沒有資料）</td></tr>`;
 }
 
-// 漏掉的 layoutBase，補回來
 function layoutBase(){
   return {
     dragmode:false,
@@ -748,38 +754,18 @@ function buildTraces(view){
     };
 }
 
-function applyVisibility(view, traces){
-  let vis = new Array(traces.length).fill(false);
-  const on = (id)=> { const n=document.getElementById(id); return n && n.checked; };
-
-  if(view==="money"){
-    if(on("r_total")) vis[0]=true;
-    if(on("r_sub")) vis[1]=true;
-    if(on("r_single")) vis[2]=true;
-  } else if(view==="subs"){
-    if(on("s_new")) vis[0]=true;
-    if(on("s_old")) vis[1]=true;
-  } else if(view==="mix"){
-    if(on("p_1")) vis[0]=true;
-    if(on("p_3")) vis[1]=true;
-    if(on("p_6")) vis[2]=true;
-  }
-  Plotly.restyle("chart", "visible", vis);
-}
-
 function renderChart(view){
   makeChecksFor(view);
   const built = buildTraces(view);
   const layout = {...layoutBase(), ...built.layout};
   const config = {responsive:true, displaylogo:false, displayModeBar:false, scrollZoom:false, doubleClick:false};
 
-  // --- 修正: 確保事件綁定在 DOM 元素存在後立即執行 ---
-  // 先設定 checkbox 的預設勾選狀態 (修改 DOM)
+  // 1. 設定預設勾選
   if(view!=="arpu"){
     (built.defaults||[]).forEach(id=>{ const node=document.getElementById(id); if(node) node.checked=true; });
   }
 
-  // 綁定事件監聽器 (因為 makeChecksFor 已經重建了 DOM，所以這裡可以抓到最新的 checkbox)
+  // 2. 綁定 Checkbox 事件 (立即生效，不等待 Plotly)
   const checkboxes = document.querySelectorAll("#checks input[type=checkbox]");
   checkboxes.forEach(cb => {
       cb.addEventListener("change", () => {
@@ -793,7 +779,6 @@ function renderChart(view){
     el("chart").classList.remove("loading-hide");
 
     if(view!=="arpu"){
-      // 確保初始狀態是正確的
       applyVisibility(view, built.traces);
     } else {
       Plotly.restyle("chart", "visible", built.traces.map(()=>true));
