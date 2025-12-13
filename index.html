@@ -80,46 +80,38 @@
     max-height: 400px;
   }
 
-  /* --- 修正開始：Chart Controls 完全不滑動 --- */
+  /* --- 修正開始：Chart Controls --- */
   .segmented{
-    display: flex; /* 使用 flex 充滿容器 */
-    width: 100%;   /* 強制寬度 100% */
-
+    display: flex; /* 不滑動，強制塞滿 */
+    width: 100%;
     background: rgba(0,0,0,.2);
     border: 1px solid rgba(255,255,255,.1);
     border-radius: 14px;
     margin: 0 0 12px 0;
-
-    /* 這裡就是重點：保留 4px 內距，讓按鈕不會撞到邊框 */
-    padding: 4px;
-
-    /* 禁止溢出，禁止滑動 */
+    padding: 4px; /* 保留內距防切邊 */
     overflow: hidden;
   }
 
   .seg-btn{
-    /* 這裡讓每個按鈕平分寬度，但 min-width:0 允許它被壓縮 */
-    flex: 1;
-    min-width: 0;
+    flex: 1; /* 等寬 */
+    min-width: 0; /* 允許壓縮 */
+    padding: 8px 0; /* 左右不留白，讓字能塞滿 */
 
-    padding: 8px 4px; /* 縮小左右內距，把空間留給文字 */
     border-radius: 10px;
     border: 0;
     background: transparent;
     color: rgba(255,255,255,.6);
     font-weight: 600;
-    font-size: 14px;
+    font-size: 14px; /* 預設字體 */
     cursor: pointer;
     font-family: inherit;
 
-    white-space: nowrap; /* 強制不換行 */
+    white-space: nowrap;
     text-align: center;
-
-    /* 萬一真的太擠，用 ... 省略，但因為有調整字體通常不會發生 */
-    text-overflow: ellipsis;
-    overflow: hidden;
-
     transition: all 0.2s cubic-bezier(0.4,0,0.2,1);
+
+    /* 修正：移除 ellipsis，讓字儘量顯示 */
+    text-overflow: clip;
   }
 
   .seg-btn.active{
@@ -180,25 +172,24 @@
     .grid{grid-template-columns:1fr; gap:16px; margin-top:16px;}
     #chart{height:480px!important;}
 
+    /* 這裡不再去動 th, td 的 padding，保留上一版的樣子以免 User Analysis 跑掉 */
     .tablesGrid{grid-template-columns:1fr; gap:16px;}
-    .hd{gap:8px;} .hd h2{font-size:15px;}
-    th, td{padding:12px 10px; font-size:14px;}
     .check{padding:12px;}
 
-    /* 手機版按鈕優化 */
+    /* --- 手機版按鈕特別優化 (只針對上面的切換按鈕) --- */
     .seg-btn {
-      /* 字體縮小，確保塞得進去 */
-      font-size: 12px;
-      /* 內距極小化 */
-      padding: 8px 2px;
+      /* 字體縮小到 11px，確保 Subscribers 塞得進去 */
+      font-size: 11px;
+      /* 縮小字距 */
+      letter-spacing: -0.5px;
+      /* 上下 padding */
+      padding: 8px 0;
     }
   }
 
   @media(max-width:400px){
     .kpi .klabel{font-size:11px;} .kpi .kvalue{font-size:26px;}
     #chart{height:420px!important;}
-    /* 小手機再縮一點，保證不跑版 */
-    .seg-btn { font-size: 11px; }
   }
 
   #orderTag{display:none!important;}
