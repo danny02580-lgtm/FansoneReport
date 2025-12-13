@@ -136,18 +136,10 @@
   tbody tr:nth-child(even) td{background:rgba(255,255,255,0.01)}
   tr:hover td{background:rgba(255,255,255,.06)!important; transition:background 0.1s}
 
-  /* --- Top Users 表格 (修正：調整寬度比例) --- */
+  /* --- Top Users 表格 (固定寬度) --- */
   .fixed-table { table-layout: fixed; width: 100%; }
-
-  /* 原本 32% 改為 28% (讓出 4%) */
   .fixed-table th:nth-child(1) { width: 28%; }
-
-  /* 原本 17% 改為 18% (獲得 1%) -> Single $ 就有更多空間了 */
-  .fixed-table th:nth-child(2),
-  .fixed-table th:nth-child(3),
-  .fixed-table th:nth-child(4),
-  .fixed-table th:nth-child(5) { width: 18%; }
-
+  .fixed-table th:nth-child(2), .fixed-table th:nth-child(3), .fixed-table th:nth-child(4), .fixed-table th:nth-child(5) { width: 18%; }
   .fixed-table td { overflow: hidden; text-overflow: ellipsis; }
 
   .sheetlink{color:var(--muted); border:1px solid var(--stroke); padding:7px 9px; border-radius:999px; background:rgba(255,255,255,.04)}
@@ -158,14 +150,15 @@
 
   /* 電腦端 (大於 860px) */
   @media(min-width:861px) {
-    #real-t1.table-scroll-container { overflow-x: hidden; }
+    /* 強制隱藏捲軸 */
+    #real-t1.table-scroll-container { overflow-x: hidden !important; }
 
     #monthlyTable {
         table-layout: auto;
         width: 100%;
     }
     #monthlyTable th, #monthlyTable td {
-        padding: 12px 6px;
+        padding: 12px 6px; /* 緊湊內距 */
         white-space: nowrap;
         overflow: visible;
         text-overflow: clip;
@@ -173,10 +166,8 @@
         letter-spacing: -0.2px;
     }
 
-    /* 修正：電腦端 Top Users 表格也縮小 padding，確保三角形不被切 */
-    .fixed-table th, .fixed-table td {
-        padding: 12px 8px; /* 比預設 14px 小 */
-    }
+    /* Top Users 表格調整 */
+    .fixed-table th, .fixed-table td { padding: 12px 8px; }
   }
 
   /* 手機端 (小於 860px) */
@@ -759,18 +750,62 @@ function buildTraces(view){
     };
 }
 
+function applyVisibility(view, traces){
+  let vis = new Array(traces.length).fill(false);
+  const on = (id)=> { const n=document.getElementById(id); return n && n.checked; };
+
+  if(view==="money"){
+    if(on("r_total")) vis[0]=true;
+    if(on("r_sub")) vis[1]=true;
+    if(on("r_single")) vis[2]=true;
+  } else if(view==="subs"){
+    if(on("s_new")) vis[0]=true;
+    if(on("s_old")) vis[1]=true;
+  } else if(view==="mix"){
+    if(on("p_1")) vis[0]=true;
+    if(on("p_3")) vis[1]=true;
+    if(on("p_6")) vis[2]=true;
+  }
+  Plotly.restyle("chart", "visible", vis);
+}
+
 function renderChart(view){
   makeChecksFor(view);
   const built = buildTraces(view);
   const layout = {...layoutBase(), ...built.layout};
   const config = {responsive:true, displaylogo:false, displayModeBar:false, scrollZoom:false, doubleClick:false};
 
+  // --- 修正：確保事件綁定邏輯正確 ---
   // 1. 設定預設勾選
   if(view!=="arpu"){
-    (built.defaults||[]).forEach(id=>{ const node=document.getElementById(id); if(node) node.checked=true; });
+    const defaultIds = built.defaults || [];
+    defaultIds.forEach(id => {
+      const node = document.getElementById(id);
+      if(node) node.checked = true;
+    });
+
+    // 2. 關鍵修正：在初始化圖表前，先修改 traces 的 visible 屬性
+    // 這樣第一張圖畫出來的時候就是正確的，不需要依賴 Plotly.restyle
+    // 因為此時 chart 還沒畫出來，restyle 會失敗
+
+    // 取得當前所有 checkbox 的狀態
+    const getChecked = (id) => { const n=document.getElementById(id); return n && n.checked; };
+
+    if(view === "money"){
+        built.traces[0].visible = getChecked("r_total");
+        built.traces[1].visible = getChecked("r_sub");
+        built.traces[2].visible = getChecked("r_single");
+    } else if(view === "subs"){
+        built.traces[0].visible = getChecked("s_new");
+        built.traces[1].visible = getChecked("s_old");
+    } else if(view === "mix"){
+        built.traces[0].visible = getChecked("p_1");
+        built.traces[1].visible = getChecked("p_3");
+        built.traces[2].visible = getChecked("p_6");
+    }
   }
 
-  // 2. 綁定 Checkbox 事件 (立即生效，不等待 Plotly)
+  // 3. 綁定事件 (讓之後的點擊觸發 restyle)
   const checkboxes = document.querySelectorAll("#checks input[type=checkbox]");
   checkboxes.forEach(cb => {
       cb.addEventListener("change", () => {
@@ -778,16 +813,10 @@ function renderChart(view){
       });
   });
 
+  // 4. 畫圖 (使用已經設定好 visible 的 traces)
   Plotly.react("chart", built.traces, layout, config).then(()=>{
-    // Hide skeleton chart, show real chart
     el("skel-chart").classList.add("loading-hide");
     el("chart").classList.remove("loading-hide");
-
-    if(view!=="arpu"){
-      applyVisibility(view, built.traces);
-    } else {
-      Plotly.restyle("chart", "visible", built.traces.map(()=>true));
-    }
   });
 }
 
@@ -799,7 +828,6 @@ async function main(){
     }
     el("status").className = "sub"; el("status").textContent = "Loading… Fetching data";
 
-    // 使用 PapaParse 解析 CSV
     const [subRows, singleRows] = await Promise.all([fetchCsvPapa(SUB_CSV_URL), fetchCsvPapa(SINGLE_CSV_URL)]);
 
     if(!subRows.length) throw new Error("訂閱CSV 沒抓到資料（可能還沒 publish 或 gid 錯）");
