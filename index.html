@@ -92,6 +92,7 @@
   .sheetlink:hover{color:var(--text)}
   .pill{padding:5px 8px; border:1px solid var(--stroke); border-radius:999px; font-size:11px; color:var(--muted); background:rgba(255,255,255,.03)}
 
+/* --- Mobile polish (no layout break) --- */
 @media (max-width: 860px){
   .wrap{padding:12px;}
   .hd{flex-direction:column; align-items:flex-start; gap:10px;}
@@ -111,27 +112,45 @@
   #chart{height:320px !important;}
   .btn, select, input[type="checkbox"]{touch-action:manipulation;}
 }
+
+
+/* === KPI premium cards (A) === */
 .kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:12px 0 14px;}
 .kpi{background:linear-gradient(135deg,rgba(255,255,255,.08),rgba(255,255,255,.03));border:1px solid rgba(255,255,255,.14);
      border-radius:16px;padding:14px 14px;box-shadow:0 14px 34px rgba(0,0,0,.22);}
 .kpi .klabel{font-size:12px;color:rgba(255,255,255,.70);letter-spacing:.12em;}
 .kpi .kvalue{margin-top:6px;font-size:32px;font-weight:850;letter-spacing:.02em;}
 @media(max-width:520px){.kpis{grid-template-columns:1fr;}.kpi .kvalue{font-size:28px;}}
+
+
+/* === Segmented control (B) === */
 .segmented{display:flex;gap:6px;padding:6px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.14);border-radius:14px;
            overflow-x:auto;-webkit-overflow-scrolling:touch;margin:10px 0 10px;}
 .segmented::-webkit-scrollbar{height:0}
 .seg-btn{flex:1 0 auto;padding:10px 12px;border-radius:12px;border:0;background:transparent;color:rgba(255,255,255,.72);font-weight:750;cursor:pointer;white-space:nowrap;}
 .seg-btn.active{background:rgba(255,255,255,.12);color:rgba(255,255,255,.96);}
 .select.hidden{display:none!important;}
+
+
+/* --- Requested UX patches (v3_8 based) --- */
 #orderTag{display:none !important;}
 .twoline{display:inline-block; line-height:1.05; text-align:center;}
 @media (max-width:720px){
   .twoline{font-size:12px;}
 }
 .kprev{margin-top:6px; font-size:12px; opacity:.85;}
+
+
+/* Map user insights buttons to segmented style without triggering chart view handlers */
 .userseg .userseg-btn{ all:unset; cursor:pointer; padding:10px 12px; border-radius:999px; font-weight:600; letter-spacing:.2px; }
 .userseg .userseg-btn.active{ background:rgba(255,255,255,.12); box-shadow:inset 0 0 0 1px rgba(255,255,255,.14); }
+
+
+/* Hide legacy Prev label */
 #prevTotalRevenue{display:none !important;}
+
+
+/* Match Latest KPI typography to Total Revenue */
 .kpi-card[data-kpi="latest"] .kpi-title,
 #kpiLatest .kpi-title, #latestKpi .kpi-title, #kpiLatestTitle, #latestKpiTitle{
   font-size: inherit;
@@ -141,6 +160,9 @@
   font-size: inherit;
   font-weight: inherit;
 }
+
+
+/* Monthly table header: single line + alignment */
 #monthlyTable thead th{white-space:nowrap !important; vertical-align:middle !important;}
 #monthlyTable thead th:first-child, #monthlyTable tbody td:first-child{white-space:nowrap !important; text-align:left !important;}
 #monthlyTable thead th.right, #monthlyTable tbody td.right{text-align:right !important;}
@@ -148,20 +170,53 @@
 </style>
 
 <style id="customHoverStyle">
+/* Hide Plotly default hover label box (keep events) */
 .js-plotly-plot .hoverlayer{ opacity:0 !important; pointer-events:none !important; }
+
+/* Custom tooltip card */
 #customTooltip{
-  position:fixed; z-index:9999; pointer-events:none; min-width: 220px; max-width: 340px;
-  padding: 12px 14px; border-radius: 16px; background: rgba(18, 22, 32, 0.78);
-  border: 1px solid rgba(255,255,255,0.10); box-shadow: 0 16px 48px rgba(0,0,0,0.50);
-  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); color: #fff;
-  font-family: system-ui, -apple-system, sans-serif;
+  position:fixed;
+  z-index:9999;
+  pointer-events:none;
+  min-width: 220px;
+  max-width: 340px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(18, 22, 32, 0.78);
+  border: 1px solid rgba(255,255,255,0.10);
+  box-shadow: 0 16px 48px rgba(0,0,0,0.50);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: #fff;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Noto Sans", "PingFang TC", "Microsoft JhengHei", sans-serif;
 }
-#customTooltip .tt-title{ font-weight: 850; letter-spacing: .3px; margin-bottom: 8px; opacity: .95; }
-#customTooltip .tt-row{ display:flex; align-items:center; gap:10px; margin: 7px 0; }
-#customTooltip .tt-dot{ width:10px;height:10px;border-radius:999px;flex:0 0 10px; box-shadow: 0 0 0 2px rgba(255,255,255,0.10); }
-#customTooltip .tt-name{ flex:1; opacity:.92; font-weight:650; }
-#customTooltip .tt-val{ font-weight:850; letter-spacing:.2px; }
+#customTooltip .tt-title{
+  font-weight: 850;
+  letter-spacing: .3px;
+  margin-bottom: 8px;
+  opacity: .95;
+}
+#customTooltip .tt-row{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin: 7px 0;
+}
+#customTooltip .tt-dot{
+  width:10px;height:10px;border-radius:999px;flex:0 0 10px;
+  box-shadow: 0 0 0 2px rgba(255,255,255,0.10);
+}
+#customTooltip .tt-name{
+  flex:1;
+  opacity:.92;
+  font-weight:650;
+}
+#customTooltip .tt-val{
+  font-weight:850;
+  letter-spacing:.2px;
+}
 </style>
+
 
 <style id="customTooltipCardStyles">
 .js-plotly-plot .hoverlayer .hovertext{display:none!important;}
@@ -204,7 +259,7 @@
     <div class="panel">
       <div class="hd"><h2>圖表切換</h2><span class="pill" id="orderTag">新 → 舊</span></div>
       <div class="bd">
-
+        
 <div class="segmented" role="tablist" aria-label="Chart views">
   <button class="seg-btn active" type="button" data-value="money">Revenue</button>
   <button class="seg-btn" type="button" data-value="subs">Subscribers</button>
@@ -267,7 +322,14 @@
 <select id="userMetric" style="display:none" class="select" style="max-width:220px; padding:8px 10px;">
 <option value="spend_total">付最多錢（總）</option>
 <option value="active_months">訂閱最久（活躍月數）</option>
-</select>
+
+          
+          
+          
+          
+          
+          
+        </select>
       </div>
       <div class="bd" style="padding:0 0 10px 0;">
         <div style="max-height:340px; overflow:auto;">
@@ -314,6 +376,7 @@
 </div>
 
 <script>
+
 const SUB_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQiAPNDCD7qn6atO4VB6Ei63AacDK00AMKM16hK8c-wVWFadPPOj-P8olYQ-ofMFwy0maGU1A4CBneW/pub?gid=0&single=true&output=csv";
 const SINGLE_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQiAPNDCD7qn6atO4VB6Ei63AacDK00AMKM16hK8c-wVWFadPPOj-P8olYQ-ofMFwy0maGU1A4CBneW/pub?gid=1226262547&single=true&output=csv";
 
@@ -382,9 +445,11 @@ function pickKey(headers, candidates){
   return null;
 }
 function parseTimeToSortable(s){
+  // Accept: 2025-11-3001:09:28 or 2025-11-30 01:09:28
   const t = String(s||"").trim();
   const m = t.match(/^(\d{4})-(\d{2})-(\d{2})\s?(\d{2}):(\d{2})(?::(\d{2}))?/);
   if(!m){
+    // try to insert space between date and time if missing
     const m2 = t.match(/^(\d{4})-(\d{2})-(\d{2})(\d{2}):(\d{2})(?::(\d{2}))?/);
     if(!m2) return null;
     return `${m2[1]}-${m2[2]}-${m2[3]} ${m2[4]}:${m2[5]}:${m2[6]||"00"}`;
@@ -414,6 +479,7 @@ function buildAgg(subRows, singleRows){
 
   parsedSub.sort((a,b)=> (a.month<b.month?-1:a.month>b.month?1: (a.time<b.time?-1:a.time>b.time?1:0)));
 
+  // user agg
   const userMap = new Map();
   function ensureUser(id){
     if(!userMap.has(id)) userMap.set(id, {
@@ -562,11 +628,12 @@ function renderUsers(metric){
   const rows = [...users];
   let getVal = (u)=>u.totalSpend;
   let fmt = (v)=> Math.round(v).toLocaleString("en-US");
-  if(metric==="spend_sub"){ getVal=(u)=>u.subSpend; }
-  else if(metric==="spend_single"){ getVal=(u)=>u.singleSpend; }
-  else if(metric==="active_months"){ getVal=(u)=>u.monthsActive; fmt=(v)=>String(v); }
-  else if(metric==="tenure_span"){ getVal=(u)=> (u.spanDays==null?-1:u.spanDays); fmt=(v)=> (v<0?"–":(v+"d")); }
-  else if(metric==="orders_total"){ getVal=(u)=>u.totalOrders; fmt=(v)=>String(v); }
+  let label = "總$";
+  if(metric==="spend_sub"){ getVal=(u)=>u.subSpend; label="訂閱$"; }
+  else if(metric==="spend_single"){ getVal=(u)=>u.singleSpend; label="單片$"; }
+  else if(metric==="active_months"){ getVal=(u)=>u.monthsActive; fmt=(v)=>String(v); label="月數"; }
+  else if(metric==="tenure_span"){ getVal=(u)=> (u.spanDays==null?-1:u.spanDays); fmt=(v)=> (v<0?"–":(v+"d")); label="跨度"; }
+  else if(metric==="orders_total"){ getVal=(u)=>u.totalOrders; fmt=(v)=>String(v); label="次數"; }
 
   rows.sort((a,b)=> (getVal(b) - getVal(a)));
   const top = rows.filter(u=>getVal(u)>0).slice(0,10);
@@ -811,15 +878,24 @@ main();
 </script>
 
 <script>
+
 (function(){
   const sel = document.getElementById('viewSelect');
   const buttons = Array.from(document.querySelectorAll('.seg-btn'));
   if(!sel || buttons.length===0) return;
-  function setActive(val){ buttons.forEach(b=>b.classList.toggle('active', b.dataset.value===val)); }
+
+  function setActive(val){
+    buttons.forEach(b=>b.classList.toggle('active', b.dataset.value===val));
+  }
+
+  // Initialize from default render (script uses renderChart("money"))
   setActive(sel.value || 'money');
+
   buttons.forEach(btn=>{
     btn.addEventListener('click', ()=>{
-      const val = btn.dataset.value; sel.value = val; setActive(val);
+      const val = btn.dataset.value;
+      sel.value = val;
+      setActive(val);
       sel.dispatchEvent(new Event('change', {bubbles:true}));
     });
   });
@@ -827,7 +903,10 @@ main();
 </script>
 
 <script>
+
+
 (function(){
+  // Sync user insights segmented buttons to hidden select
   const userSel = document.getElementById("userMetric");
   const userBtns = document.querySelectorAll(".userseg .userseg-btn");
   if(userSel && userBtns.length){
@@ -836,22 +915,122 @@ main();
         userBtns.forEach(b=>b.classList.remove("active"));
         btn.classList.add("active");
         const v = btn.getAttribute("data-metric");
-        if(v){ userSel.value = v; userSel.dispatchEvent(new Event("change", {bubbles:true})); }
+        if(v){
+          userSel.value = v;
+          userSel.dispatchEvent(new Event("change", {bubbles:true}));
+        }
       });
     });
   }
+
+  // Prev month total revenue: read from Monthly summary table (tbodyMonthly)
+  // (patched) prevent legacy Prev logic from running
+  return;
+
+  function moneyFmt(n){
+    if(typeof window.money==="function") return window.money(n);
+    return "NT$ " + n.toLocaleString("en-US");
+  }
+  function readPrevFromMonthly(){
+    if(!prevEl) return;
+    const tbody = document.getElementById("tbodyMonthly");
+    const rows = tbody.querySelectorAll("tr");
+    const prevRow = rows[rows.length-2];
+    const cells = prevRow.querySelectorAll("td");
+    const lastCell = cells[cells.length-1]; // total revenue column
+    const num = parseInt((lastCell.textContent||"").replace(/[^0-9]/g,""),10);
+    if(!isNaN(num) && num>0){
+    } else {
+    }
+  }
+  // retry a few times after render
+  setTimeout(readPrevFromMonthly, 200);
+  setTimeout(readPrevFromMonthly, 600);
+  setTimeout(readPrevFromMonthly, 1200);
 })();
+
 </script>
 
+
 <script>
+
 // --- Prev: compute from monthly table header (robust + observer) ---
 (function(){
-  if(!document.getElementById("monthlyTable")) return;
-  function computePrev(){
-    const tbody = document.getElementById("tbodyMonthly");
+  if(!prevEl) return;
+
+  function moneyFmt(n){
+    if(typeof window.money==="function") return window.money(n);
+    return "NT$ " + n.toLocaleString("en-US");
   }
+
+  function parseMonthCell(text){
+    const t = (text||"").trim();
+    let m = t.match(/(\d{4})\D(\d{1,2})/);
+    if(m) return {y:parseInt(m[1],10), mo:parseInt(m[2],10)};
+    m = t.match(/^\s*(\d{1,2})\s*$/);
+    if(m) return {y:null, mo:parseInt(m[1],10)};
+    const nums = t.match(/(\d{1,2})/g);
+    if(nums && nums.length) return {y:null, mo:parseInt(nums[nums.length-1],10)};
+    return null;
+  }
+
+  function getTotalIdx(table){
+    const ths = Array.from(table.querySelectorAll("thead th")).map(th => (th.textContent||"").trim().toLowerCase());
+    // strict: prefer "總營收" / "總收入" first
+    let idx = ths.findIndex(t => t.includes("總營收") || t.includes("總收入"));
+    if(idx >= 0) return idx;
+    // strict english: "total revenue"
+    idx = ths.findIndex(t => t.includes("total revenue"));
+    if(idx >= 0) return idx;
+    // fallback: if there is "subscription revenue" and "single" columns, take the column named "total"
+    idx = ths.findIndex(t => t === "total" || t === "totalrevenue" || t === "total revenue");
+    return idx;
+  }
+
+  function computePrev(){
+    const tbody = document.getElementById("tbodyMonthly") || document.querySelector("#monthlyTable tbody");
+    const table = tbody ? tbody.closest("table") : null;
+
+    const totalIdx = getTotalIdx(table);
+
+    const rows = Array.from(tbody.querySelectorAll("tr"));
+    const parsed = rows.map(r=>{
+      const tds = Array.from(r.querySelectorAll("td"));
+      if(!tds.length || totalIdx >= tds.length) return null;
+      const mi = parseMonthCell(tds[0].textContent);
+      const total = parseInt((tds[totalIdx].textContent||"").replace(/[^0-9]/g,""),10);
+      if(!mi || isNaN(total)) return null;
+      return {y:mi.y, mo:mi.mo, total};
+    }).filter(Boolean);
+
+
+    parsed.sort((a,b)=>{
+      const ay = (a.y ?? 0), by = (b.y ?? 0);
+      if(ay !== by) return ay - by;
+      return a.mo - b.mo;
+    });
+
+    const latest = parsed[parsed.length-1];
+    let target = null;
+    if(latest.y != null){
+      const prevMo = latest.mo - 1;
+      const prevY = prevMo >= 1 ? latest.y : (latest.y - 1);
+      const wantMo = prevMo >= 1 ? prevMo : 12;
+      target = parsed.slice().reverse().find(p => p.y === prevY && p.mo === wantMo);
+    } else {
+      const wantMo = latest.mo - 1;
+      target = parsed.slice().reverse().find(p => p.mo === wantMo);
+    }
+    if(!target) target = parsed[parsed.length-2];
+
+  }
+
+  // run + observe table updates
   computePrev();
   setTimeout(computePrev, 500);
+  setTimeout(computePrev, 1500);
+  setTimeout(computePrev, 3000);
+
   const tbody = document.getElementById("tbodyMonthly");
   if(tbody && window.MutationObserver){
     const obs = new MutationObserver(()=>computePrev());
@@ -860,41 +1039,104 @@ main();
 })();
 </script>
 
+
 <script>
+
 (function(){
-  function moneyFmt(n){ return "NT$ " + n.toLocaleString("en-US"); }
+  function moneyFmt(n){
+    if(typeof window.money==="function") return window.money(n);
+    return "NT$ " + n.toLocaleString("en-US");
+  }
   function parseMonth(s){
-    s = (s||"").trim(); let m = s.match(/(\d{4})\D(\d{1,2})/);
+    s = (s||"").trim();
+    let m = s.match(/(\d{4})\D(\d{1,2})/);
     if(m) return {y:+m[1], mo:+m[2]};
+    m = s.match(/^\s*(\d{1,2})\s*$/);
+    if(m) return {y:0, mo:+m[1]};
+    const nums = s.match(/(\d{1,2})/g);
+    if(nums && nums.length) return {y:0, mo:+nums[nums.length-1]};
+    return null;
+  }
+  function findTotalColIndex(){
+    // try table header labels
+    const table = document.querySelector("#tbodyMonthly")?.closest("table");
+    if(!table) return null;
+    const ths = Array.from(table.querySelectorAll("thead th"));
+    const labels = ths.map(th=>th.textContent.trim().toLowerCase());
+    const candidates = ["total","total revenue","總營收","總收入","營收","revenue"];
+    for(const c of candidates){
+      const idx = labels.findIndex(t=>t.includes(c));
+      if(idx>=0) return idx;
+    }
     return null;
   }
   function setLatest(){
+    const monthsEl = document.getElementById("months");
     const tbody = document.getElementById("tbodyMonthly");
     if(!tbody) return;
     const rows = Array.from(tbody.querySelectorAll("tr"));
-    // Logic to find latest is handled via table data generally
+    if(!rows.length) return;
+
+    const totalIdx = findTotalColIndex();
+    // if can't find, fallback to second last cell
+    let best = null;
+    for(const r of rows){
+      const tds = Array.from(r.querySelectorAll("td"));
+      if(!tds.length) continue;
+      const mi = parseMonth(tds[0].textContent);
+      if(!mi) continue;
+      let cell = null;
+      if(totalIdx != null && tds[totalIdx]) cell = tds[totalIdx];
+      else cell = tds[Math.max(0, tds.length-2)];
+      const val = parseInt((cell.textContent||"").replace(/[^0-9]/g,""),10);
+      if(isNaN(val)) continue;
+      const key = mi.y*100 + mi.mo;
+      if(!best || key > best.key) best = {key, val};
+    }
+    if(!best) return;
+
+    if(monthsEl) monthsEl.textContent = moneyFmt(best.val);
+    if(latestEl) latestEl.textContent = "Latest " + moneyFmt(best.val);
   }
+
+  // Run and observe updates
   setLatest();
   setTimeout(setLatest, 400);
+  setTimeout(setLatest, 1200);
+  setTimeout(setLatest, 2400);
+
+  const tbody = document.getElementById("tbodyMonthly");
+  if(tbody && window.MutationObserver){
+    const obs = new MutationObserver(()=>setLatest());
+    obs.observe(tbody, {childList:true, subtree:true});
+  }
 })();
 </script>
 
+
 <script>
+
+// Ensure Latest KPI uses same emphasis class as Total Revenue
 (function(){
   function syncKpiStyles(){
     const totalCard = document.querySelector('.kpi-card[data-kpi="total"], #kpiTotal, #totalKpi, [data-kpi="totalRevenue"]');
     const latestCard = document.querySelector('.kpi-card[data-kpi="latest"], #kpiLatest, #latestKpi, [data-kpi="latestRevenue"]');
     if(totalCard && latestCard){
+      // copy key classes if present
       ["kpi-primary","kpi-big","primary","big"].forEach(cls=>{
         if(totalCard.classList.contains(cls)) latestCard.classList.add(cls);
       });
     }
   }
+  setTimeout(syncKpiStyles, 0);
   setTimeout(syncKpiStyles, 300);
 })();
 </script>
 
 <div id="customTooltip" style="display:none"></div>
+
+
+
 
 <script id="safeHoverEnhancer">
 (function(){
@@ -902,51 +1144,52 @@ main();
     if(!gd || gd.__safeHoverBound || !gd.on) return;
     gd.__safeHoverBound = true;
 
-    // FIX: Only force 'closest' mode if we are strictly in a scatter plot context.
-    // For bar charts, forcing 'closest' often ruins stacked bar visuals.
-    const hasBar = gd.data && gd.data.some(t => t.type === 'bar');
-    if(!hasBar) {
-      try{
-        Plotly.relayout(gd, {hovermode:'closest', hoverdistance:18, spikedistance:-1});
-      }catch(e){}
-    }
+    try{
+      Plotly.relayout(gd, {hovermode:'closest', hoverdistance:18, spikedistance:-1});
+    }catch(e){}
 
-    let orig = {};
+    const orig = {};
     function remember(ti){
       if(orig[ti]) return;
       const tr = gd.data[ti] || {};
       orig[ti] = {
         marker: tr.marker ? JSON.parse(JSON.stringify(tr.marker)) : null,
-        mode: tr.mode,
-        type: tr.type // Remember type to avoid applying to wrong chart later
+        mode: tr.mode
       };
     }
     function restore(){
       Object.keys(orig).forEach(k=>{
         const ti = Number(k);
         const o = orig[ti];
-        // FIX: Verify the trace still exists and is the same type (Scatter)
-        // This prevents applying scatter styles (transparency/white border) to bar charts after switching tabs
-        const currentTr = gd.data && gd.data[ti];
-        if(!currentTr || currentTr.type !== o.type) return;
-
         try{ Plotly.restyle(gd, {'marker':[o.marker], 'mode':[o.mode]}, [ti]); }catch(e){}
       });
-      orig = {}; // Clear orig to prevent stale state persistence
     }
 
     gd.on('plotly_hover', function(e){
-      try{
+      
+    // Keep bar colors stable on hover (Plotly can apply hover styling on stacked bars)
+    try{
+      if(gd && gd.data){
+        const barIdx=[], barCols=[];
+        gd.data.forEach((t,i)=>{
+          if(t && t.type==='bar' && t.meta && t.meta.origColor){
+            barIdx.push(i); barCols.push(t.meta.origColor);
+          }
+        });
+        if(barIdx.length){
+          Plotly.restyle(gd, {'marker.color': barCols}, barIdx);
+        }
+      }
+    }catch(e){}
+try{
         if(!e || !e.points || !e.points.length) return;
         const pt = e.points[0];
         const ti = pt.curveNumber;
         const tr = gd.data[ti] || {};
-
-        // Strictly only enhance markers (Scatter)
+        // Only enhance point-based traces (avoid recoloring bars on hover)
         if(!['scatter','scattergl'].includes(tr.type) || !String(tr.mode||'').includes('markers')) return;
-
         remember(ti);
-        const n = (tr.x && tr.x.length) || (tr.y && tr.y.length) || 0;
+const n = (tr.x && tr.x.length) || (tr.y && tr.y.length) || 0;
         const idx = pt.pointNumber;
         const base = (tr.marker && tr.marker.size) || 8;
         const baseNum = (typeof base === 'number') ? base : 8;
@@ -979,6 +1222,7 @@ main();
   window.addEventListener('load', ()=>{ setTimeout(scan,200); setTimeout(scan,800); setTimeout(scan,1500); });
 })();
 </script>
+
 
 <script id="customTooltipCardScriptV2">
 (function(){
@@ -1041,40 +1285,44 @@ main();
   function bind(gd){
     if(!gd||gd.__cardBound||!gd.on) return;
     gd.__cardBound=true;
+
+    // Track mouse position over the graph div
     gd.addEventListener('mousemove', (ev)=>{ lastMouse.x=ev.clientX; lastMouse.y=ev.clientY; }, {passive:true});
     gd.addEventListener('mouseleave', ()=>{ card.style.display='none'; }, {passive:true});
 
     gd.on('plotly_hover', function(e){
       try{
         if(!e||!e.points||!e.points.length) return;
-        let pt=e.points[0];
-        try{
-          const isPlan = gd && gd._fullLayout && gd._fullLayout.yaxis && gd._fullLayout.yaxis.range && gd._fullLayout.yaxis.range[1]===100
-            && gd._fullData && gd._fullData.length===3 && ['1M','3M','6M'].every(n=>gd._fullData.some(t=>t.name===n));
-          if(isPlan && e.points && e.points.length>1 && lastMouse){
-            const ya=e.points[0].yaxis;
-            const rect=gd.getBoundingClientRect();
-            const py=(lastMouse.y-rect.top) - ya._offset;
-            const dy=ya.p2l(py);
-            let chosen=null;
-            for(const p of e.points){
-              const y0=(p.y0!=null)?p.y0:((p.base!=null)?p.base:0);
-              const y1=y0 + (p.y||0);
-              const lo=Math.min(y0,y1), hi=Math.max(y0,y1);
-              if(dy>=lo-1e-6 && dy<=hi+1e-6){ chosen=p; break; }
-            }
-            if(!chosen){
-              chosen=e.points.reduce((best,p)=>{
-                const y0=(p.y0!=null)?p.y0:((p.base!=null)?p.base:0);
-                const mid=y0 + (p.y||0)/2;
-                const db=Math.abs(dy-mid);
-                if(!best) return {p,db};
-                return db<best.db?{p,db}:best;
-              },null).p;
-            }
-            pt=chosen||pt;
-          }
-        }catch(err){}
+        
+let pt=e.points[0];
+// Plan (1M/3M/6M) stacked bar: pick segment under cursor (avoid wrong trace selection)
+try{
+  const isPlan = gd && gd._fullLayout && gd._fullLayout.yaxis && gd._fullLayout.yaxis.range && gd._fullLayout.yaxis.range[1]===100
+    && gd._fullData && gd._fullData.length===3 && ['1M','3M','6M'].every(n=>gd._fullData.some(t=>t.name===n));
+  if(isPlan && e.points && e.points.length>1 && lastMove){
+    const ya=e.points[0].yaxis;
+    const rect=gd.getBoundingClientRect();
+    const py=(lastMove.y-rect.top) - ya._offset;
+    const dy=ya.p2l(py); // data-space 0..100
+    let chosen=null;
+    for(const p of e.points){
+      const y0=(p.y0!=null)?p.y0:((p.base!=null)?p.base:0);
+      const y1=y0 + (p.y||0);
+      const lo=Math.min(y0,y1), hi=Math.max(y0,y1);
+      if(dy>=lo-1e-6 && dy<=hi+1e-6){ chosen=p; break; }
+    }
+    if(!chosen){
+      chosen=e.points.reduce((best,p)=>{
+        const y0=(p.y0!=null)?p.y0:((p.base!=null)?p.base:0);
+        const mid=y0 + (p.y||0)/2;
+        const db=Math.abs(dy-mid);
+        if(!best) return {p,db};
+        return db<best.db?{p,db}:best;
+      },null).p;
+    }
+    pt=chosen||pt;
+  }
+}catch(err){}
         const now=Date.now();
         const key=(pt.curveNumber!=null?pt.curveNumber:'')+':' + (pt.pointNumber!=null?pt.pointNumber:'');
         if(lock.key && key!==lock.key && (now-lock.t)<LOCK_MS){ return; }
@@ -1087,6 +1335,8 @@ main();
         dotEl.style.background=colorOf(pt);
         nameEl.textContent=name;
         valueEl.textContent=fmt(yval, kindFor(name));
+
+        // Use provided event coords if available; fallback to lastMouse
         const ev=e.event||pt.event;
         const cx=(ev&&typeof ev.clientX==='number')?ev.clientX:lastMouse.x;
         const cy=(ev&&typeof ev.clientY==='number')?ev.clientY:lastMouse.y;
@@ -1094,15 +1344,20 @@ main();
       }catch(err){}
     });
     gd.on('plotly_unhover', function(){ card.style.display='none'; lock.key=null; lock.t=0; });
+
     window.addEventListener('scroll', ()=>{ card.style.display='none'; }, {passive:true});
     window.addEventListener('resize', ()=>{ card.style.display='none'; }, {passive:true});
   }
-  function scan(){ document.querySelectorAll('.js-plotly-plot, .plotly-graph-div').forEach(bind); }
+
+  function scan(){
+    document.querySelectorAll('.js-plotly-plot, .plotly-graph-div').forEach(bind);
+  }
   const obs=new MutationObserver(()=>scan());
   obs.observe(document.documentElement,{childList:true,subtree:true});
   window.addEventListener('load', ()=>{ setTimeout(scan,200); setTimeout(scan,800); setTimeout(scan,1500); });
 })();
 </script>
+
 
 <script id="plotlyHoverEnforcer">
 (function(){
@@ -1110,15 +1365,14 @@ main();
     if(!gd || !gd.classList || (!gd.classList.contains('js-plotly-plot') && !gd.classList.contains('plotly-graph-div'))) return;
     if(!window.Plotly || !gd._fullLayout) return;
 
-    // FIX: Do NOT enforce 'closest' on bar charts, as it dims other bars and looks bad.
-    const hasBar = gd.data && gd.data.some(t => t.type === 'bar');
-    if(hasBar) return;
-
+    // Force single-point hover everywhere
     const update = {
       hovermode: 'closest',
       hoverdistance: 8,
       spikedistance: -1
     };
+
+    // Disable spikes if present
     try{
       const axKeys = Object.keys(gd._fullLayout).filter(k=>/^xaxis\d*$|^yaxis\d*$/.test(k));
       axKeys.forEach(k=>{
@@ -1126,14 +1380,22 @@ main();
         update[`${k}.spikesnap`] = 'cursor';
       });
     }catch(e){}
+
+    // Apply without triggering full redraw loop
     window.Plotly.relayout(gd, update).catch(()=>{});
   }
-  function scan(){ document.querySelectorAll('.js-plotly-plot, .plotly-graph-div').forEach(fixLayout); }
+
+  function scan(){
+    document.querySelectorAll('.js-plotly-plot, .plotly-graph-div').forEach(fixLayout);
+  }
+
+  // Re-apply after plots render
   const obs = new MutationObserver(()=>scan());
   obs.observe(document.documentElement,{childList:true,subtree:true});
   window.addEventListener('load', ()=>{ setTimeout(scan,300); setTimeout(scan,1000); setTimeout(scan,2000); });
 })();
 </script>
+
 
 </body>
 </html>
