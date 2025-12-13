@@ -1003,11 +1003,10 @@ main();
 
 <script id="customTooltipCardScriptV2">
 (function(){
-  // 用來記錄滑鼠位置的全域變數
+  // 記錄滑鼠位置
   let lastMouse = {x: 0, y: 0};
-  let lock = {key:null, t:0};
-  const LOCK_MS = 60; // 降低鎖定時間，讓反應更靈敏
 
+  // 建立 Tooltip 元素
   function ensureCard(){
     let el=document.getElementById('customTooltipCard');
     if(!el){
@@ -1024,6 +1023,7 @@ main();
   const nameEl=card.querySelector('.name');
   const valueEl=card.querySelector('.value');
 
+  // 輔助函式
   function colorOf(pt){
     try{
       const tr=pt.fullData||pt.data||{};
@@ -1048,14 +1048,12 @@ main();
     return n.toLocaleString(undefined,{maximumFractionDigits:1});
   }
   function place(x,y){
-    const pad=12;
     if(typeof x!=='number'||typeof y!=='number') return;
     card.style.display='block';
-
-    // 邊界檢查，避免 Tooltip 超出螢幕
     const rect=card.getBoundingClientRect();
     const vw=window.innerWidth;
     const vh=window.innerHeight;
+    const pad=16;
 
     let px=x+16, py=y+16;
     if(px+rect.width+pad>vw) px=x-rect.width-16;
@@ -1069,7 +1067,7 @@ main();
     if(!gd||gd.__cardBound||!gd.on) return;
     gd.__cardBound=true;
 
-    // 監聽滑鼠移動，隨時更新座標
+    // 1. 全域監聽滑鼠，隨時更新座標
     gd.addEventListener('mousemove', (ev)=>{
       lastMouse.x=ev.clientX;
       lastMouse.y=ev.clientY;
@@ -1077,96 +1075,68 @@ main();
 
     gd.addEventListener('mouseleave', ()=>{ card.style.display='none'; }, {passive:true});
 
+    // 2. Plotly Hover 事件
     gd.on('plotly_hover', function(e){
       try{
-        if(!e||!e.points||!e.points.length) return;
+        if(!e || !e.points || !e.points.length) return;
 
-        let pt=e.points[0];
+        let pt = e.points[0]; // 預設拿第一個
 
-        // ---------------------------------------------------------
-        // 修正邏輯：處理堆疊柱狀圖 (Stacked Bar) 的滑鼠判定
-        // ---------------------------------------------------------
-        try{
-          // 只要有多個點 (堆疊) 或滑鼠位置有效，就嘗試計算精確的垂直位置
-          if(e.points.length >= 1 && lastMouse.x !== 0 && gd._fullLayout && gd._fullLayout.yaxis){
-            const rect = gd.getBoundingClientRect();
-            const layout = gd._fullLayout;
-            const yAxis = layout.yaxis;
+        // --- 關鍵修正：使用 Bounding Box (bbox) 進行碰撞檢測 ---
+        // 只有當有多個點 (Stacked) 且滑鼠有位置時才運算
+        if(e.points.length > 1 && lastMouse.y !== 0){
+          const graphRect = gd.getBoundingClientRect();
+          // 計算滑鼠相對於圖表區塊的 Y 座標 (Pixel)
+          const mouseY_rel = lastMouse.y - graphRect.top;
 
-            // 【關鍵修正】
-            // 使用 _fullLayout 中的 margin 計算真正的繪圖區頂部
-            // 這樣才能得到正確的「相對於軸」的像素值
-            const plotTop = rect.top + (layout.margin.t || 0);
-            const relativeY = lastMouse.y - plotTop;
+          // 找出「bbox 包含滑鼠 Y 座標」的那個點
+          // bbox 格式: {y0: 上緣, y1: 下緣, ...} (注意：Plotly y0 可能是上面也可能是下面，視繪圖方向而定)
+          const hit = e.points.find(p => {
+            if(!p.bbox) return false;
+            // 確保 yMin 是較小值，yMax 是較大值
+            const yMin = Math.min(p.bbox.y0, p.bbox.y1);
+            const yMax = Math.max(p.bbox.y0, p.bbox.y1);
+            // 寬鬆判定 (+/- 1px 誤差)
+            return mouseY_rel >= (yMin - 1) && mouseY_rel <= (yMax + 1);
+          });
 
-            // 將像素轉換回 Y 軸數值 (Data Value)
-            const dy = yAxis.p2l(relativeY);
-
-            let chosen = null;
-
-            // 1. 精準命中檢查：數值是否落在 bar 的範圍內
-            for(const p of e.points){
-              // p.y0 是堆疊底部 (Plotly計算), p.base 是基礎底部
-              const y0 = (p.y0!==undefined) ? p.y0 : ((p.base!==undefined) ? p.base : 0);
-              const val = p.y || 0;
-              const y1 = y0 + val;
-
-              const lo = Math.min(y0, y1);
-              const hi = Math.max(y0, y1);
-
-              // 容許些微誤差
-              if(dy >= lo - 0.5 && dy <= hi + 0.5){ chosen = p; break; }
-            }
-
-            // 2. 如果沒命中 (可能在邊緣)，找中心點最近的那個
-            if(!chosen){
-              chosen = e.points.reduce((best, p)=>{
-                const y0 = (p.y0!==undefined) ? p.y0 : ((p.base!==undefined) ? p.base : 0);
-                const mid = y0 + (p.y||0)/2;
-                const dist = Math.abs(dy - mid);
-                if(!best) return {p, dist};
-                return dist < best.dist ? {p, dist} : best;
-              }, null).p;
-            }
-
-            if(chosen) pt = chosen;
+          if(hit) {
+            pt = hit; // 命中！切換成該資料點
+          } else {
+            // 如果沒命中 (可能在縫隙)，找「中心點」離滑鼠最近的
+            pt = e.points.reduce((prev, curr) => {
+               if(!curr.bbox) return prev;
+               const currMid = (curr.bbox.y0 + curr.bbox.y1) / 2;
+               const prevMid = (prev.bbox.y0 + prev.bbox.y1) / 2;
+               return (Math.abs(mouseY_rel - currMid) < Math.abs(mouseY_rel - prevMid)) ? curr : prev;
+            });
           }
-        }catch(err){
-          // console.error(err); // 發生錯誤時保持預設 pt
         }
+        // -----------------------------------------------------
 
-        // 防止 Tooltip 閃爍
-        const now=Date.now();
-        const key=(pt.curveNumber!=null?pt.curveNumber:'')+':' + (pt.pointNumber!=null?pt.pointNumber:'');
-        if(lock.key && key!==lock.key && (now-lock.t)<LOCK_MS){ return; }
-        lock.key=key; lock.t=now;
+        // 讀取並顯示資料
+        const xlab = pt.x;
+        const name = (pt.fullData && pt.fullData.name) || (pt.data && pt.data.name) || 'Value';
+        const yval = pt.y;
 
-        // 讀取資料
-        const xlab=pt.x;
-        const name=(pt.fullData&&pt.fullData.name)||(pt.data&&pt.data.name)||'Value';
-        const yval=pt.y;
+        titleEl.textContent = String(xlab);
+        dotEl.style.background = colorOf(pt);
+        nameEl.textContent = name;
+        valueEl.textContent = fmt(yval, kindFor(name));
 
-        // 更新內容
-        titleEl.textContent=String(xlab);
-        dotEl.style.background=colorOf(pt);
-        nameEl.textContent=name;
-        valueEl.textContent=fmt(yval, kindFor(name));
-
-        // 更新位置
         place(lastMouse.x, lastMouse.y);
 
       }catch(err){ console.error(err); }
     });
 
-    gd.on('plotly_unhover', function(){ card.style.display='none'; lock.key=null; lock.t=0; });
-
-    window.addEventListener('scroll', ()=>{ card.style.display='none'; }, {passive:true});
-    window.addEventListener('resize', ()=>{ card.style.display='none'; }, {passive:true});
+    gd.on('plotly_unhover', function(){ card.style.display='none'; });
   }
 
   function scan(){
     document.querySelectorAll('.js-plotly-plot, .plotly-graph-div').forEach(bind);
   }
+
+  // 啟動偵測
   const obs=new MutationObserver(()=>scan());
   obs.observe(document.documentElement,{childList:true,subtree:true});
   window.addEventListener('load', ()=>{ setTimeout(scan,500); setTimeout(scan,1500); });
