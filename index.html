@@ -44,7 +44,7 @@
   .segmented{display:flex; gap:4px; padding:4px; background:rgba(255,255,255,.05); border-radius:12px; margin-bottom:12px;}
   .seg-btn{flex:1; padding:8px; border-radius:8px; border:0; background:transparent; color:var(--muted); font-weight:700; cursor:pointer; transition:.2s;}
   .seg-btn:hover{color:var(--text);}
-  .seg-btn.active{background:rgba(255,255,255,.12); color:#fff; shadow:0 2px 5px rgba(0,0,0,.1);}
+  .seg-btn.active{background:rgba(255,255,255,.12); color:#fff; box-shadow:0 2px 5px rgba(0,0,0,.1);}
 
   .checks{display:grid; gap:8px; margin-top:10px}
   .check{ display:flex; gap:10px; align-items:center; padding:10px; border:1px solid var(--stroke); border-radius:14px; background:rgba(255,255,255,.03); cursor:pointer; }
@@ -185,26 +185,39 @@ async function fetchData() {
   const parseCSV = (text) => {
     const rows = text.replace(/\r/g,"").trim().split("\n");
     if(rows.length < 2) return [];
+
+    // Split headers carefully
     const headers = rows[0].split(",").map(h => h.trim().replace(/^"|"$/g, '').toLowerCase());
+
     return rows.slice(1).map(r => {
-      // Handle quoted CSV cells
+      // Handle quoted CSV cells better
       const cells = [];
       let cur = "", inQ = false;
-      for(let c of r){
-        if(c === '"'){ inQ = !inQ; }
-        else if(c === ',' && !inQ){ cells.push(cur.replace(/^"|"$/g,'').trim()); cur = ""; }
-        else cur += c;
+      for(let i=0; i<r.length; i++){
+        let c = r[i];
+        if(c === '"'){
+           if(inQ && r[i+1] === '"'){ cur += '"'; i++; } // handle escaped quote
+           else { inQ = !inQ; }
+        } else if(c === ',' && !inQ){
+           cells.push(cur); cur = "";
+        } else {
+           cur += c;
+        }
       }
-      cells.push(cur.replace(/^"|"$/g,'').trim());
+      cells.push(cur);
 
       const obj = {};
-      headers.forEach((h, i) => obj[h] = cells[i] || "");
+      headers.forEach((h, i) => obj[h] = (cells[i] || "").trim());
       return obj;
     });
   };
 
   try {
-    if(location.protocol === "file:") throw new Error("File protocol blocked. Use localhost.");
+    if(location.protocol === "file:") {
+      el("status").className = "sub err";
+      el("status").textContent = "File protocol blocked. Please use localhost or Vercel.";
+      return null;
+    }
     const [r1, r2] = await Promise.all([fetch(URLs.SUB), fetch(URLs.SINGLE)]);
     if(!r1.ok || !r2.ok) throw new Error("Network error");
 
@@ -220,14 +233,24 @@ async function fetchData() {
 }
 
 function processData(rawSub, rawSingle) {
-  // Helpers to find columns flexibly
-  const findCol = (row, ...keys) => {
-    const k = Object.keys(row).find(k => keys.some(x => k.includes(x)));
-    return k ? row[k] : "";
+  // Helper: Find columns using multiple aliases (Chinese/English)
+  const findCol = (row, ...keywords) => {
+    const rowKeys = Object.keys(row);
+    // Try exact match first, then includes
+    for(const k of rowKeys) {
+      if(keywords.some(kw => k === kw || k.includes(kw))) return row[k];
+    }
+    return "";
   };
+
   const parsePrice = s => {
     const m = String(s).match(/-?\d+(?:,\d{3})*(?:\.\d+)?/);
     return m ? parseFloat(m[0].replace(/,/g, "")) : 0;
+  };
+
+  const getMonth = (s) => {
+    const m = String(s).match(/(\d{4})-(\d{2})/);
+    return m ? `${m[1]}-${m[2]}` : null;
   };
 
   const monthMap = new Map();
@@ -244,19 +267,26 @@ function processData(rawSub, rawSingle) {
   };
 
   // 1. Process Subs
+  // Sort by time safely to determine New vs Old
+  rawSub.sort((a,b) => {
+    const ta = findCol(a, "time", "date", "時間") || "";
+    const tb = findCol(b, "time", "date", "時間") || "";
+    return ta.localeCompare(tb);
+  });
+
   const seenUsers = new Set();
-  // Sort by date to correctly identify "New" vs "Old"
-  rawSub.sort((a,b) => (findCol(a,"time","date") > findCol(b,"time","date") ? 1 : -1));
 
   rawSub.forEach(row => {
-    const time = findCol(row, "time", "date");
-    if(!time) return;
-    const m = time.slice(0, 7); // YYYY-MM
-    const id = findCol(row, "user", "id");
-    const plan = findCol(row, "plan", "方案").toLowerCase();
-    const price = parsePrice(findCol(row, "price", "金額"));
+    const timeStr = findCol(row, "time", "date", "時間", "datetime");
+    const m = getMonth(timeStr);
+    if(!m) return;
+
+    const id = findCol(row, "user", "id", "用戶", "userid");
+    const plan = findCol(row, "plan", "方案", "類型").toLowerCase();
+    const price = parsePrice(findCol(row, "price", "金額", "amount", "收入", "價格"));
 
     const md = ensureMonth(m);
+
     if(id) {
       if(!md.subs.has(id)) {
         md.subs.add(id);
@@ -267,33 +297,38 @@ function processData(rawSub, rawSingle) {
       u.sub$ += price; u.total$ += price; u.months.add(m);
     }
 
-    md.revSub += price;
-    if(plan.includes("6") || plan.includes("半")) md.plans.p6++;
-    else if(plan.includes("3") || plan.includes("三")) md.plans.p3++;
+    if(isFinite(price)) md.revSub += price;
+
+    if(plan.includes("6") || plan.includes("半") || plan.includes("six")) md.plans.p6++;
+    else if(plan.includes("3") || plan.includes("三") || plan.includes("three")) md.plans.p3++;
     else md.plans.p1++;
   });
 
   // 2. Process Singles
   rawSingle.forEach(row => {
-    const time = findCol(row, "time", "date");
-    if(!time) return;
-    const m = time.slice(0, 7);
-    const title = findCol(row, "title", "標題", "內容");
-    const price = parsePrice(findCol(row, "price", "金額"));
-    const id = findCol(row, "user", "id");
+    const timeStr = findCol(row, "time", "date", "時間");
+    const m = getMonth(timeStr);
+    const title = findCol(row, "title", "標題", "內容", "影片");
+    const price = parsePrice(findCol(row, "price", "金額", "amount", "收入", "價格"));
+    const id = findCol(row, "user", "id", "用戶");
+    const url = findCol(row, "url", "link", "網址");
 
-    const md = ensureMonth(m);
-    md.revSingle += price;
+    if(m) {
+      const md = ensureMonth(m);
+      if(isFinite(price)) md.revSingle += price;
+    }
 
     if(id) {
       const u = ensureUser(id);
-      u.single$ += price; u.total$ += price; u.months.add(m);
+      if(isFinite(price)) { u.single$ += price; u.total$ += price; }
+      if(m) u.months.add(m);
     }
 
     if(title) {
-      if(!singleAgg.has(title)) singleAgg.set(title, { title, sum:0, count:0, url: findCol(row,"url","link") });
+      if(!singleAgg.has(title)) singleAgg.set(title, { title, sum:0, count:0, url });
       const t = singleAgg.get(title);
-      t.sum += price; t.count++;
+      if(isFinite(price)) t.sum += price;
+      t.count++;
     }
   });
 
@@ -320,10 +355,12 @@ function processData(rawSub, rawSingle) {
 }
 
 // --- Rendering Logic ---
-let STATE = {};
+let STATE = { monthly: [], users: [], singles: [] };
 let CHART = null;
 
 function renderTables() {
+  if(!STATE.monthly.length) return;
+
   // Monthly Table
   const revM = [...STATE.monthly].reverse();
   el("monthlyTable").querySelector("tbody").innerHTML = revM.map(d => `
@@ -366,16 +403,15 @@ function renderUsers(metric) {
       <td class="right">${fmtInt(u.sub$)}</td>
       <td class="right">${fmtInt(u.total$)}</td>
     </tr>
-  `).join("");
+  `).join("") || `<tr><td colspan="4" style="text-align:center; padding:10px; color:var(--muted)">Loading...</td></tr>`;
 }
 
 function renderKPIs() {
+  if(!STATE.monthly.length) return;
   const last = STATE.monthly[STATE.monthly.length - 1];
   const total = STATE.monthly.reduce((a, b) => a + b.totalRev, 0);
-  if(last) {
-    el("kpiMonth").textContent = fmtMoney(last.totalRev);
-    el("kpiTotal").textContent = fmtMoney(total);
-  }
+  el("kpiMonth").textContent = fmtMoney(last.totalRev);
+  el("kpiTotal").textContent = fmtMoney(total);
 }
 
 // --- Plotly Chart ---
@@ -388,7 +424,7 @@ function initChart() {
     xaxis: { tickcolor: "rgba(255,255,255,0.1)", gridcolor: "rgba(255,255,255,0.05)", tickfont:{color:"#9ca3af"} },
     yaxis: { tickcolor: "rgba(255,255,255,0.1)", gridcolor: "rgba(255,255,255,0.05)", tickfont:{color:"#9ca3af"} },
     legend: { orientation: "h", y: 1.1, font:{color:"#9ca3af"} },
-    hovermode: "closest", // Custom tooltip handles the rest
+    hovermode: "closest",
   };
   Plotly.newPlot("chart", [], layout, config).then(gd => {
     CHART = gd;
@@ -397,6 +433,8 @@ function initChart() {
 }
 
 function updateChart(view) {
+  if(!STATE.monthly || !STATE.monthly.length) return;
+
   const m = STATE.monthly;
   const x = m.map(d => d.month);
   let traces = [];
@@ -463,19 +501,14 @@ function setupTooltip(gd) {
 
   gd.on('plotly_hover', data => {
     const pt = data.points[0];
-    const color = pt.fullData.marker?.color || pt.fullData.line?.color || "#fff";
-
     // Position
-    const bbox = pt.xaxis.layer.getBoundingClientRect(); // graph area
-    // Use pointer event if available for smoother tracking, else point coords
+    const bbox = pt.xaxis.layer.getBoundingClientRect();
     const x = data.event ? data.event.clientX : (bbox.x + pt.xaxis.d2p(pt.x));
     const y = data.event ? data.event.clientY : (bbox.y + pt.yaxis.d2p(pt.y));
 
     card.style.display = "block";
     card.style.top = (y - 10) + "px";
     card.style.left = (x + 15) + "px";
-
-    // Avoid edge overflow
     if(x > window.innerWidth - 180) card.style.left = (x - 170) + "px";
 
     head.textContent = pt.x;
@@ -487,7 +520,7 @@ function setupTooltip(gd) {
       if(val == null) return null;
 
       let valStr = isFinite(val) ? Math.round(val).toLocaleString() : val;
-      if(tr.name.includes("M")) valStr += "%"; // Mix view
+      if(tr.name.includes("M")) valStr += "%";
       if(tr.name.includes("Rev") || tr.name.includes("Total") || tr.name.includes("Sub")) valStr = "$ " + valStr;
 
       const c = tr.marker?.color || tr.line?.color || "#fff";
@@ -504,7 +537,7 @@ function setupTooltip(gd) {
 (async function main() {
   initChart();
 
-  // Segment Controls
+  // Controls
   el("chartViewSeg").querySelectorAll("button").forEach(btn => {
     btn.addEventListener("click", () => {
       el("chartViewSeg").querySelector(".active").classList.remove("active");
@@ -524,15 +557,16 @@ function setupTooltip(gd) {
   // Load Data
   try {
     const raw = await fetchData();
-    STATE = processData(raw.subs, raw.singles);
+    if(raw) {
+      STATE = processData(raw.subs, raw.singles);
 
-    el("status").className = "sub ok";
-    el("status").textContent = "Updated: " + new Date().toLocaleTimeString();
+      el("status").className = "sub ok";
+      el("status").textContent = "Updated: " + new Date().toLocaleTimeString();
 
-    renderKPIs();
-    renderTables();
-    updateChart("money"); // Default view
-
+      renderKPIs();
+      renderTables();
+      updateChart("money");
+    }
   } catch(e) { console.error(e); }
 })();
 </script>
