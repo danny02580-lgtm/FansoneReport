@@ -1152,7 +1152,7 @@ main();
     function remember(ti){
       if(orig[ti]) return;
       const tr = gd.data[ti] || {};
-        if((tr.type||'')==='bar') return;
+      if((tr.type||'scatter')!=='scatter') return;
       orig[ti] = {
         marker: tr.marker ? JSON.parse(JSON.stringify(tr.marker)) : null,
         mode: tr.mode
@@ -1172,7 +1172,6 @@ main();
         const pt = e.points[0];
         const ti = pt.curveNumber;
         const tr = gd.data[ti] || {};
-        if((tr.type||'')==='bar') return;
         remember(ti);
 
         const n = (tr.x && tr.x.length) || (tr.y && tr.y.length) || 0;
@@ -1449,13 +1448,14 @@ try{
     function snapshot(){
       try{
         if(!gd.data) return;
+        if(gd.__origTraceStyles && gd.__origTraceStyles.length) return; // keep first snapshot only
         gd.__origTraceStyles = gd.data.map(snapColor);
       }catch(e){}
     }
     snapshot();
 
     // re-snapshot after any relayout/restyle that might recreate traces
-    gd.on('plotly_afterplot', snapshot);
+    // gd.on('plotly_afterplot', snapshot); // disabled to prevent hover color drift
 
     gd.on('plotly_hover', function(e){
       if(!isSensitiveChart(gd)) return;
