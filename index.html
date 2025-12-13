@@ -73,10 +73,21 @@
   .hd h2{margin:0; font-size:15px; font-weight:700; color:#fff; white-space:nowrap;}
   .bd{padding:16px}
 
+  /* --- 關鍵修正：表格滾動容器 --- */
   .table-scroll-container {
     width: 100%;
-    /* 這裡拿掉 auto，盡量不滑動 */
-    overflow-x: hidden;
+    /* 恢復 auto 以允許滑動，不然內容一定被切掉 */
+    overflow-x: auto;
+    /* iOS 平滑滾動 */
+    -webkit-overflow-scrolling: touch;
+
+    /* 隱藏滾動條但保留功能 (Chrome/Safari/Edge) */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  /* 隱藏滾動條 (Webkit) */
+  .table-scroll-container::-webkit-scrollbar {
+    display: none;
   }
 
   /* --- 上方 Chart Controls --- */
@@ -172,27 +183,31 @@
   tbody tr:nth-child(even) td{background:rgba(255,255,255,0.01)}
   tr:hover td{background:rgba(255,255,255,.06)!important; transition:background 0.1s}
 
-  /* --- 修正開始：Top Users 表格固定欄寬 & 不滑動 --- */
+  /* --- 修正開始：Top Users 表格固定欄寬 --- */
   .fixed-table {
-    table-layout: fixed; /* 強制固定寬度 */
+    table-layout: fixed;
+    /* 這裡設定最小寬度 550px。
+       在電腦上 width: 100% 會超過 550，所以會填滿卡片。
+       在手機上 width: 100% 只有 360，所以會觸發 min-width 550，
+       這時外層的 table-scroll-container 就會允許橫向滑動。
+    */
+    min-width: 550px;
     width: 100%;
-    /* 拿掉 min-width，確保不超出螢幕 */
   }
 
-  /* 第一欄 User ID：15% (30% 的一半) */
+  /* 第一欄 User ID：給 32% */
   .fixed-table th:nth-child(1) {
     width: 32%;
   }
 
-  /* 後面四欄：均分剩下的 85% (約 21.25% 每一欄) */
+  /* 後面四欄：各 17% */
   .fixed-table th:nth-child(2),
   .fixed-table th:nth-child(3),
   .fixed-table th:nth-child(4),
   .fixed-table th:nth-child(5) {
-    width: 18%;
+    width: 17%;
   }
 
-  /* 超出部分用 ... 省略 (防止破版) */
   .fixed-table td {
     overflow: hidden;
     text-overflow: ellipsis;
@@ -219,13 +234,12 @@
     .tablesGrid{grid-template-columns:1fr; gap:16px;}
     .check{padding:12px;}
 
-    /* 手機版表格內距縮小，字體變小，以塞入 5 欄 */
+    /* 手機版字體設定 */
     .fixed-table th, .fixed-table td {
-        padding: 12px 4px; /* 極限內距 */
-        font-size: 11px;   /* 字體縮小 */
+        padding: 12px 8px; /* 稍微舒適一點的內距 */
+        font-size: 12px;   /* 字體可以不用縮到太小，因為現在可以滑動了 */
     }
 
-    /* 手機版按鈕微調 */
     .seg-btn {
       font-size: 13px;
       padding: 8px 0;
