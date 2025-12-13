@@ -1152,6 +1152,7 @@ main();
     function remember(ti){
       if(orig[ti]) return;
       const tr = gd.data[ti] || {};
+      if((tr.type||'scatter')!=='scatter') return;
       orig[ti] = {
         marker: tr.marker ? JSON.parse(JSON.stringify(tr.marker)) : null,
         mode: tr.mode
