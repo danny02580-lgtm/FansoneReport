@@ -104,7 +104,7 @@
   th{text-align:left; color:var(--muted); font-weight:700; background:rgba(15, 26, 46, 0.95); position:sticky; top:0; backdrop-filter: blur(10px); z-index: 10;}
   td.right, th.right{text-align:right}
 
-  /* Table Stripes */
+  /* Zebra Stripes & Hover */
   tbody tr:nth-child(even) td { background: rgba(255,255,255,0.015); }
   tr:hover td{background:rgba(255,255,255,.08) !important; transition: background 0.15s;}
 
@@ -158,7 +158,7 @@
     border: 1px solid rgba(255,255,255,0.12); box-shadow: 0 16px 48px rgba(0,0,0,0.60);
     backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); color: #fff;
     font-family: 'Inter', system-ui, sans-serif;
-    transform: translateZ(0); /* GPU acceleration */
+    transform: translateZ(0);
   }
   #customTooltip .tt-title{ font-weight: 800; letter-spacing: 0px; margin-bottom: 8px; opacity: 1; font-size: 13px; }
   #customTooltip .tt-row{ display:flex; align-items:center; gap:10px; margin: 7px 0; }
@@ -946,15 +946,17 @@ main();
 <script id="safeHoverEnhancer">
 (function(){
   let lastEl = null;
+  // Saved state to restore original styles
   let saved = { stroke:'', strokeWidth:'', paintOrder:'', opacity:'', cursor:'', transform:'', transition:'', transformBox:'', transformOrigin:'' };
-  let ghostOverlay = document.getElementById('ghost-overlay');
 
+  let ghostOverlay = document.getElementById('ghost-overlay');
   if(!ghostOverlay) {
     ghostOverlay = document.createElement('div');
     ghostOverlay.id = 'ghost-overlay';
     document.body.appendChild(ghostOverlay);
   }
 
+  // --- NEW LOGIC: Use Plotly curveNumber mapping instead of hit-testing ---
   function enhance(gd){
     if(!gd || gd.__enhancerBound || !gd.on) return;
     gd.__enhancerBound = true;
@@ -965,18 +967,51 @@ main();
       const curveIdx = pt.curveNumber;
       const pointIdx = pt.pointNumber;
 
-      // 直接使用 curveNumber 對應到 trace DOM 元素的 class
-      // Plotly 的輸出通常包含 class="trace trace_0", "trace trace_1" 等
-      const traceEl = gd.querySelector('.trace.trace_' + curveIdx);
-      if(!traceEl) return;
+      // Determine if it's a Bar chart or Scatter
+      const traceType = gd.data[curveIdx].type;
 
-      const points = traceEl.querySelectorAll('.point');
-      const target = points[pointIdx];
+      // We need to find the DOM element corresponding to this point.
+      // Plotly groups traces in layers: .barlayer for bars, .scatterlayer for scatter.
+      // Crucially, the order in DOM might not match curveIdx if some traces are mixed.
+
+      let target = null;
+
+      // Select the correct trace layer based on type
+      if(traceType === 'bar'){
+          // For Bar charts, Plotly puts them in .barlayer > .trace
+          // We need to find which "visible bar trace" index this is
+          let barTraceCount = 0;
+          for(let i=0; i<curveIdx; i++){
+             if(gd.data[i].type === 'bar' && gd.data[i].visible !== false && gd.data[i].visible !== 'legendonly'){
+                 barTraceCount++;
+             }
+          }
+          const traces = gd.querySelectorAll('.barlayer .trace');
+          const traceEl = traces[barTraceCount];
+          if(traceEl) {
+             const points = traceEl.querySelectorAll('.point');
+             target = points[pointIdx];
+          }
+      } else {
+          // For Scatter charts, Plotly puts them in .scatterlayer > .trace
+          let scatterTraceCount = 0;
+           for(let i=0; i<curveIdx; i++){
+             if((gd.data[i].type === 'scatter' || gd.data[i].type === undefined) && gd.data[i].visible !== false && gd.data[i].visible !== 'legendonly'){
+                 scatterTraceCount++;
+             }
+          }
+          const traces = gd.querySelectorAll('.scatterlayer .trace');
+          const traceEl = traces[scatterTraceCount];
+          if(traceEl) {
+             const points = traceEl.querySelectorAll('.point');
+             target = points[pointIdx];
+          }
+      }
+
       if(!target) return;
 
-      const isBar = pt.data.type === 'bar';
-
-      if(isBar) {
+      // Apply Effects
+      if(traceType === 'bar') {
         // --- BAR CHART: GHOST OVERLAY ---
         const rect = target.getBoundingClientRect();
         if(rect.width > 0 && rect.height > 0) {
@@ -1010,12 +1045,12 @@ main();
             target.style.transformBox = "fill-box";
             target.style.transformOrigin = "center";
             target.style.transition = "all 0.1s ease-out";
-            target.style.transform = "scale(1.5)";
+            target.style.transform = "scale(2)"; // 2x Scale
 
             // Outer Glow effect
             target.style.stroke = 'rgba(255,255,255,0.6)';
-            target.style.strokeWidth = '10px'; // Broad stroke
-            target.style.paintOrder = 'stroke'; // Stroke BEHIND fill
+            target.style.strokeWidth = '10px';
+            target.style.paintOrder = 'stroke';
             target.style.opacity = '1';
             target.style.cursor = 'pointer';
 
