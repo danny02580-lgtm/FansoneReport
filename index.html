@@ -80,29 +80,61 @@
     max-height: 400px;
   }
 
-  /* --- 修正開始：切換按鈕區塊 --- */
+  /* --- 修正開始：Chart Controls 切換按鈕區塊 --- */
   .segmented{
-    display:flex; gap:4px; padding:4px;
-    background:rgba(0,0,0,.2); border:1px solid rgba(255,255,255,.1);
-    border-radius:14px; margin:0 0 12px 0;
-    /* 這裡原本是 overflow-x: auto，現在改為 hidden 強制不滑動 */
-    overflow: hidden;
+    /* 改用 inline-flex 讓它隨內容撐開，但在小螢幕允許滑動 */
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px; /* 關鍵：保留內距，防止按鈕貼邊被切 */
+
+    background: rgba(0,0,0,.2);
+    border: 1px solid rgba(255,255,255,.1);
+    border-radius: 14px;
+    margin: 0 0 12px 0;
+
+    /* 允許橫向滑動，防止窄螢幕被切掉 */
+    overflow-x: auto;
+    max-width: 100%; /* 不超過父層寬度 */
+
+    /* 隱藏捲軸（針對 Chrome/Safari/Edge） */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  /* 隱藏捲軸（針對 Webkit） */
+  .segmented::-webkit-scrollbar {
+    display: none;
   }
 
   .seg-btn{
-    /* 這裡改用 flex: 1，讓所有按鈕自動平分寬度 */
-    flex: 1;
-    /* 桌面版維持寬鬆間距 */
-    padding:10px 12px;
-    border-radius:10px; border:0; background:transparent;
-    color:rgba(255,255,255,.6); font-weight:600; font-size:14px; cursor:pointer; font-family:inherit;
-    white-space:nowrap;
-    text-align: center; /* 確保文字置中 */
-    transition:all 0.2s cubic-bezier(0.4,0,0.2,1);
+    /* 關鍵修正：取消 flex:1，改用 auto，不讓它被壓縮 */
+    flex: 0 0 auto;
+
+    padding: 8px 16px; /* 調整舒適的點擊範圍 */
+    border-radius: 10px;
+    border: 0;
+    background: transparent;
+    color: rgba(255,255,255,.6);
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    font-family: inherit;
+
+    white-space: nowrap; /* 強制不換行 */
+    text-align: center;
+    transition: all 0.2s cubic-bezier(0.4,0,0.2,1);
   }
+
   .seg-btn.active{
-    background:var(--accent); color:#fff;
-    box-shadow:0 4px 12px var(--accent-glow); text-shadow:0 1px 2px rgba(0,0,0,0.2);
+    background: var(--accent);
+    color: #fff;
+    box-shadow: 0 4px 12px var(--accent-glow);
+    text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+  }
+
+  .seg-btn:hover:not(.active) {
+    color: #e5e7eb;
+    background: rgba(255,255,255,0.05);
   }
   /* --- 修正結束 --- */
 
@@ -155,22 +187,13 @@
     .hd{gap:8px;} .hd h2{font-size:15px;}
     th, td{padding:12px 10px; font-size:14px;}
     .check{padding:12px;}
-
-    /* --- 手機版按鈕特別優化 --- */
-    .seg-btn {
-      /* 內距縮小，讓文字有空間 */
-      padding: 10px 0;
-      /* 字體稍微縮小，確保 Subscribers 塞得進去 */
-      font-size: 13px;
-      min-width: 0;
-    }
   }
 
   @media(max-width:400px){
     .kpi .klabel{font-size:11px;} .kpi .kvalue{font-size:26px;}
     #chart{height:420px!important;}
     /* 小手機字體再縮一點點 */
-    .seg-btn { font-size: 12px; }
+    .seg-btn { font-size: 13px; }
   }
 
   #orderTag{display:none!important;}
