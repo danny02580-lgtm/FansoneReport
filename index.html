@@ -196,7 +196,7 @@
     display: none;
     border-radius: 2px;
     transition: all 0.08s ease-out;
-    top: -9999px; left: -9999px; /* Hide initially */
+    top: -9999px; left: -9999px;
   }
 </style>
 </head>
@@ -956,6 +956,7 @@ main();
     document.body.appendChild(ghostOverlay);
   }
 
+  // --- NEW LOGIC: Use Plotly curveNumber mapping instead of hit-testing ---
   function enhance(gd){
     if(!gd || gd.__enhancerBound || !gd.on) return;
     gd.__enhancerBound = true;
