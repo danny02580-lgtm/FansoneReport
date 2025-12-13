@@ -136,7 +136,7 @@
   tbody tr:nth-child(even) td{background:rgba(255,255,255,0.01)}
   tr:hover td{background:rgba(255,255,255,.06)!important; transition:background 0.1s}
 
-  /* --- Top Users 表格 (維持不變) --- */
+  /* --- Top Users 表格 --- */
   .fixed-table { table-layout: fixed; width: 100%; }
   .fixed-table th:nth-child(1) { width: 32%; }
   .fixed-table th:nth-child(2), .fixed-table th:nth-child(3), .fixed-table th:nth-child(4), .fixed-table th:nth-child(5) { width: 17%; }
@@ -150,18 +150,18 @@
 
   /* 電腦端 (大於 860px) */
   @media(min-width:861px) {
-    /* 修正: Monthly Summary 恢復 Auto 佈局，讓瀏覽器自動調寬度，防止切字 */
+    /* Monthly Summary: 自動寬度，確保文字完整顯示，不出現捲軸 */
     #real-t1.table-scroll-container {
-        overflow-x: hidden; /* 強制不出現捲軸 */
+        overflow-x: hidden;
     }
     #monthlyTable {
-        table-layout: auto; /* 關鍵: 自動寬度，長數字會自動撐開 */
+        table-layout: auto;
         width: 100%;
     }
     #monthlyTable td, #monthlyTable th {
         white-space: nowrap;
-        overflow: visible; /* 允許顯示完整文字 */
-        text-overflow: clip; /* 移除點點點 */
+        overflow: visible;
+        text-overflow: clip;
     }
   }
 
@@ -619,6 +619,19 @@ function renderUsers(metric){
   )).join("") || `<tr><td colspan="5" style="color:rgba(156,163,175,.9); padding:14px;">（目前沒有資料）</td></tr>`;
 }
 
+// 漏掉的 layoutBase，補回來
+function layoutBase(){
+  return {
+    dragmode:false,
+    paper_bgcolor:"rgba(0,0,0,0)",
+    plot_bgcolor:"rgba(255,255,255,0.02)",
+    margin:{l:56,r:40,t:22,b:46},
+    bargap:0.35,
+    legend:{orientation:"h", x:0, y:1.12, font:{color:"rgba(229,231,235,.9)"}},
+    hoverlabel:{bgcolor:"rgba(15,23,42,.95)", bordercolor:"rgba(255,255,255,.14)", font:{color:"#e5e7eb"}},
+  };
+}
+
 function makeChecksFor(view){
   const css = getComputedStyle(document.documentElement);
   const itemsByView = {
@@ -760,17 +773,18 @@ function renderChart(view){
   const layout = {...layoutBase(), ...built.layout};
   const config = {responsive:true, displaylogo:false, displayModeBar:false, scrollZoom:false, doubleClick:false};
 
-  // --- 修正：綁定事件 (在 Plotly 繪圖前先綁定，確保 DOM 存在) ---
+  // --- 修正: 確保事件綁定在 DOM 元素存在後立即執行 ---
+  // 先設定 checkbox 的預設勾選狀態 (修改 DOM)
   if(view!=="arpu"){
-    // 設定預設勾選
     (built.defaults||[]).forEach(id=>{ const node=document.getElementById(id); if(node) node.checked=true; });
   }
 
-  // 綁定 Checkbox 事件 (立即生效，不等待 Plotly)
-  const checks = document.querySelectorAll("#checks input[type=checkbox]");
-  checks.forEach(cb => {
-      // 移除舊的 event listener 防止重複 (雖然在這個架構下重建 HTML 已經清除了)
-      cb.onchange = () => applyVisibility(view, built.traces);
+  // 綁定事件監聽器 (因為 makeChecksFor 已經重建了 DOM，所以這裡可以抓到最新的 checkbox)
+  const checkboxes = document.querySelectorAll("#checks input[type=checkbox]");
+  checkboxes.forEach(cb => {
+      cb.addEventListener("change", () => {
+          applyVisibility(view, built.traces);
+      });
   });
 
   Plotly.react("chart", built.traces, layout, config).then(()=>{
@@ -779,7 +793,7 @@ function renderChart(view){
     el("chart").classList.remove("loading-hide");
 
     if(view!=="arpu"){
-      // 初始化時套用一次可見性
+      // 確保初始狀態是正確的
       applyVisibility(view, built.traces);
     } else {
       Plotly.restyle("chart", "visible", built.traces.map(()=>true));
