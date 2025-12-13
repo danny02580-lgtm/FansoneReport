@@ -20,8 +20,13 @@
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
 
+  html, body{
+    margin:0; padding:0; width:100%; height:100%;
+    /* 核心修正：強制禁止網頁整體的水平滾動 */
+    overflow-x: hidden;
+  }
+
   body{
-    margin:0;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     font-feature-settings: "tnum"; font-variant-numeric: tabular-nums;
     color:var(--text);
@@ -30,13 +35,10 @@
       radial-gradient(900px 500px at 85% 25%, rgba(231,76,60,.12), transparent 60%),
       linear-gradient(180deg, var(--bg0), var(--bg1));
     min-height:100vh;
-    /* 關鍵修正：強制禁止水平滾動 */
-    overflow-x: hidden;
-    width: 100%;
   }
 
   a{color:inherit; text-decoration:none}
-  .wrap{max-width:1200px; margin:0 auto; padding:24px 20px 48px}
+  .wrap{max-width:1200px; margin:0 auto; padding:24px 20px 48px; width: 100%;}
 
   .topbar{
     display:flex; align-items:flex-start; justify-content:space-between; gap:16px;
@@ -66,10 +68,20 @@
   .panel{
     border:1px solid var(--stroke); border-radius:20px; background:var(--panel); backdrop-filter:blur(12px);
     overflow:hidden; box-shadow:0 4px 20px rgba(0,0,0,0.1);
+    /* 確保 Panel 本身不會被撐開 */
+    max-width: 100%;
   }
   .hd{padding:14px 16px; border-bottom:1px solid rgba(255,255,255,.08); display:flex; align-items:center; justify-content:space-between; gap:10px}
   .hd h2{margin:0; font-size:15px; font-weight:700; color:#fff; white-space:nowrap;}
   .bd{padding:16px}
+
+  /* 關鍵修正：讓表格容器可以獨立滾動 */
+  .table-scroll-container {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    max-height: 400px;
+  }
 
   .segmented{
     display:flex; gap:4px; padding:4px; background:rgba(0,0,0,.2); border:1px solid rgba(255,255,255,.1);
@@ -103,7 +115,7 @@
 
   #chart{width:100%; height:560px}
 
-  .tablesGrid{display:grid; grid-template-columns:1.3fr 1fr; gap:16px; margin-top:16px}
+  .tablesGrid{display:grid; grid-template-columns:1.3fr 1fr; gap:16px; margin-top:16px; width: 100%;}
   @media(max-width:980px){.tablesGrid{grid-template-columns:1fr}}
 
   table{width:100%; border-collapse:separate; border-spacing:0; font-size:14px}
@@ -122,7 +134,7 @@
 
   /* --- Mobile Optimization --- */
   @media(max-width:860px){
-    .wrap{padding:16px 12px 60px;}
+    .wrap{padding:16px 12px 60px; overflow-x: hidden;}
     .topbar{flex-direction:column; align-items:stretch; gap:12px; padding:16px;}
 
     .kpis{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
@@ -226,7 +238,7 @@
         </div>
       </div>
       <div class="bd" style="padding:0;">
-        <div style="max-height:400px; overflow:auto;">
+        <div class="table-scroll-container">
           <table id="monthlyTable">
             <thead>
               <tr>
@@ -261,7 +273,7 @@
         </select>
       </div>
       <div class="bd" style="padding:0;">
-        <div style="max-height:400px; overflow:auto;">
+        <div class="table-scroll-container">
           <table>
             <thead>
               <tr>
@@ -287,7 +299,7 @@
         </div>
       </div>
       <div class="bd" style="padding:0;">
-        <div style="max-height:350px; overflow:auto;">
+        <div class="table-scroll-container">
           <table>
             <thead>
               <tr>
@@ -508,7 +520,7 @@ function buildAgg(subRows, singleRows){
     const p6 = orders? m.planCount["6M"]/orders : 0;
     const subRevenue = m.subRevenue || 0;
     const singleRevenue = m.singleRevenue || 0;
-    const totalRevenue = subRevenue + singleRevenue;
+    const totalRevenue = Revenue + singleRevenue;
     const arpu = subs? subRevenue/subs : NaN;
     return { month:k, subs, newUsers, oldUsers, p1, p3, p6, subRevenue, singleRevenue, totalRevenue, arpu };
   });
@@ -996,8 +1008,7 @@ main();
 
           const rect = target.getBoundingClientRect();
           if(rect.width > 0 && rect.height > 0) {
-             // 3倍大 (原本 2x, 現在 3x)
-             const size = Math.max(rect.width, rect.height) * 3;
+             const size = 24;
              const cx = rect.left + rect.width/2;
              const cy = rect.top + rect.height/2;
 
@@ -1006,7 +1017,7 @@ main();
              ghostOverlay.style.top = (cy - size/2) + 'px';
              ghostOverlay.style.left = (cx - size/2) + 'px';
              ghostOverlay.style.borderRadius = "50%";
-             ghostOverlay.style.boxShadow = "0 0 0 6px rgba(255,255,255,0.4)"; // 光暈也加粗
+             ghostOverlay.style.boxShadow = "0 0 0 4px rgba(255,255,255,0.4)";
              ghostOverlay.style.display = 'block';
           }
         }
