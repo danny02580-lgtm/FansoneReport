@@ -158,7 +158,7 @@
     border: 1px solid rgba(255,255,255,0.12); box-shadow: 0 16px 48px rgba(0,0,0,0.60);
     backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); color: #fff;
     font-family: 'Inter', system-ui, sans-serif;
-    transform: translateZ(0); /* GPU acceleration */
+    transform: translateZ(0);
   }
   #customTooltip .tt-title{ font-weight: 800; letter-spacing: 0px; margin-bottom: 8px; opacity: 1; font-size: 13px; }
   #customTooltip .tt-row{ display:flex; align-items:center; gap:10px; margin: 7px 0; }
@@ -186,17 +186,16 @@
   #customTooltipCard .name{font-size:13px;font-weight:650;opacity:.92;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   #customTooltipCard .value{margin-left:auto;font-size:16px;font-weight:850;white-space:nowrap}
 
-  /* GHOST OVERLAY for Bar Chart */
+  /* GHOST OVERLAY (The White Box/Circle) */
   #ghost-overlay {
     position: fixed;
     pointer-events: none;
     z-index: 9999;
+    background: transparent;
     border: 2px solid white;
-    box-shadow: 0 0 4px rgba(0,0,0,0.3);
+    box-shadow: 0 0 6px rgba(255,255,255,0.4);
     display: none;
-    border-radius: 2px;
     transition: all 0.08s ease-out;
-    top: -9999px; left: -9999px;
   }
 </style>
 </head>
@@ -967,41 +966,61 @@ main();
       const curveIdx = pt.curveNumber;
       const pointIdx = pt.pointNumber;
 
-      const traceType = gd.data[curveIdx].type || 'scatter'; // Default to scatter
+      const traceType = gd.data[curveIdx].type;
 
       // Calculate which visible trace index this corresponds to
       // This fixes the issue when multiple chart types are mixed (e.g. Bar + Scatter)
-      let visibleTypeIdx = 0;
-      for(let i=0; i<curveIdx; i++){
-         const t = gd.data[i];
-         const tType = t.type || 'scatter';
-         // Only count visible traces of the SAME type
-         if(tType === traceType && t.visible !== false && t.visible !== 'legendonly'){
-             visibleTypeIdx++;
-         }
+
+      // Important: Plotly puts traces in DOM groups based on type
+      // .barlayer > .trace (for bars)
+      // .scatterlayer > .trace (for scatter)
+      // The index in DOM corresponds to the index among VISIBLE traces of that type.
+
+      let target = null;
+      let isBar = (traceType === 'bar');
+
+      if(isBar){
+          let barTraceCount = 0;
+          for(let i=0; i<curveIdx; i++){
+             const t = gd.data[i];
+             if(t.type === 'bar' && t.visible !== false && t.visible !== 'legendonly'){
+                 barTraceCount++;
+             }
+          }
+          const traces = gd.querySelectorAll('.barlayer .trace');
+          const traceEl = traces[barTraceCount];
+          if(traceEl) {
+             const points = traceEl.querySelectorAll('.point');
+             target = points[pointIdx];
+          }
+      } else {
+          // For Scatter
+          let scatterTraceCount = 0;
+           for(let i=0; i<curveIdx; i++){
+             const t = gd.data[i];
+             const tType = t.type || 'scatter'; // scatter is default
+             if((tType === 'scatter' || tType === 'scattergl') && t.visible !== false && t.visible !== 'legendonly'){
+                 scatterTraceCount++;
+             }
+          }
+          const traces = gd.querySelectorAll('.scatterlayer .trace');
+          const traceEl = traces[scatterTraceCount];
+          if(traceEl) {
+             const points = traceEl.querySelectorAll('.point');
+             target = points[pointIdx];
+          }
       }
-
-      // Select the correct trace layer based on type
-      let layerSelector = '.trace';
-      if(traceType === 'bar') layerSelector = '.barlayer .trace';
-      else layerSelector = '.scatterlayer .trace';
-
-      const traces = gd.querySelectorAll(layerSelector);
-      const traceEl = traces[visibleTypeIdx];
-
-      if(!traceEl) return;
-
-      const points = traceEl.querySelectorAll('.point');
-      const target = points[pointIdx];
 
       if(!target) return;
 
-      const isBar = traceType === 'bar';
-
       if(isBar) {
         // --- BAR CHART: GHOST OVERLAY ---
+        // Hide Scatter effects if active
+        if(lastEl) { reset(lastEl); lastEl = null; }
+
         const rect = target.getBoundingClientRect();
         if(rect.width > 0 && rect.height > 0) {
+           ghostOverlay.style.borderRadius = "2px"; // Square for bars
            ghostOverlay.style.top = rect.top + 'px';
            ghostOverlay.style.left = rect.left + 'px';
            ghostOverlay.style.width = rect.width + 'px';
@@ -1009,40 +1028,24 @@ main();
            ghostOverlay.style.display = 'block';
         }
       } else {
-        // --- SCATTER CHART: SCALE + GLOW ---
-        ghostOverlay.style.display = 'none';
-        ghostOverlay.style.top = '-9999px';
-        ghostOverlay.style.left = '-9999px';
+        // --- SCATTER CHART: GHOST OVERLAY (CIRCLE) ---
+        // We use the overlay to create the "halo" effect instead of modifying SVG
+        // This avoids Z-index issues and is smoother
+        const rect = target.getBoundingClientRect();
+        if(rect.width > 0 && rect.height > 0) {
+           // Calculate center
+           const cx = rect.left + rect.width/2;
+           const cy = rect.top + rect.height/2;
 
-        if(lastEl !== target) {
-            if(lastEl) reset(lastEl);
-            lastEl = target;
+           // Make overlay bigger (2x)
+           const size = Math.max(rect.width, rect.height) * 2;
 
-            // Save original styles
-            saved.stroke = target.style.stroke;
-            saved.strokeWidth = target.style.strokeWidth;
-            saved.paintOrder = target.style.paintOrder;
-            saved.cursor = target.style.cursor;
-            saved.transform = target.style.transform;
-            saved.transition = target.style.transition;
-            saved.transformBox = target.style.transformBox;
-            saved.transformOrigin = target.style.transformOrigin;
-
-            // Apply Transform & Glow
-            target.style.transformBox = "fill-box";
-            target.style.transformOrigin = "center";
-            target.style.transition = "all 0.1s ease-out";
-            target.style.transform = "scale(2)"; // 2x Scale
-
-            // Outer Glow effect
-            target.style.stroke = 'rgba(255,255,255,0.6)';
-            target.style.strokeWidth = '10px';
-            target.style.paintOrder = 'stroke';
-            target.style.opacity = '1';
-            target.style.cursor = 'pointer';
-
-            // Bring to front
-            if(target.parentNode) target.parentNode.appendChild(target);
+           ghostOverlay.style.width = size + 'px';
+           ghostOverlay.style.height = size + 'px';
+           ghostOverlay.style.top = (cy - size/2) + 'px';
+           ghostOverlay.style.left = (cx - size/2) + 'px';
+           ghostOverlay.style.borderRadius = "50%"; // Circle for scatter
+           ghostOverlay.style.display = 'block';
         }
       }
     });
