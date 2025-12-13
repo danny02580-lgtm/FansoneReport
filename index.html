@@ -416,8 +416,7 @@ function splitCSVLine(line){
 }
 function csvToRows(csv){
   const text = csv.replace(/^\uFEFF/, "");
-  const lines = text.replace(/\r/g,"").trim().split("
-");
+  const lines = text.replace(/\r/g,"").trim().split("\n");
   if(lines.length<=1) return [];
   const headers = splitCSVLine(lines[0]).map(h=>h.trim());
   const rows=[];
@@ -1153,7 +1152,7 @@ main();
     function remember(ti){
       if(orig[ti]) return;
       const tr = gd.data[ti] || {};
-      if((tr.type||'scatter')!=='scatter') return;
+        if((tr.type||'')==='bar') return;
       orig[ti] = {
         marker: tr.marker ? JSON.parse(JSON.stringify(tr.marker)) : null,
         mode: tr.mode
@@ -1167,25 +1166,14 @@ main();
       });
     }
 
-    gd\.on\('plotly_hover',\ function\(e\)\{\
-\ \ \ \ \ \ try\{\
-\ \ \ \ \ \ \ \ if\(!e\ \|\|\ !e\.points\ \|\|\ !e\.points\.length\)\ return;\
-\ \ \ \ \ \ \ \ const\ pt\ =\ e\.points\[0\];\
-\ \ \ \ \ \ \ \ const\ ti\ =\ pt\.curveNumber;\
-\ \ \ \ \ \ \ \ const\ tr\ =\ gd\.data\[ti\]\ \|\|\ \{\};\
-\ \ \ \ \ \ \ \ remember\(ti\);\
-\
-\ \ \ \ \ \ \ \ //\ Bar\ traces:\ ONLY\ add\ an\ outline\ to\ the\ hovered\ bar\ segment\ \(no\ color/mode\ changes\)\
-\ \ \ \ \ \ \ \ if\(\(tr\.type\|\|''\)\ ===\ 'bar'\)\{\
-\ \ \ \ \ \ \ \ \ \ const\ n\ =\ \(tr\.x\ \&\&\ tr\.x\.length\)\ \|\|\ \(tr\.y\ \&\&\ tr\.y\.length\)\ \|\|\ 0;\
-\ \ \ \ \ \ \ \ \ \ const\ idx\ =\ pt\.pointNumber;\
-\ \ \ \ \ \ \ \ \ \ const\ w\ =\ Array\(n\)\.fill\(0\)\.map\(\(_,i\)=>\ i===idx\ \?\ 3\ :\ 0\);\
-\ \ \ \ \ \ \ \ \ \ const\ c\ =\ Array\(n\)\.fill\('rgba\(255,255,255,0\)'\)\.map\(\(_,i\)=>\ i===idx\ \?\ 'rgba\(255,255,255,0\.95\)'\ :\ 'rgba\(255,255,255,0\)'\);\
-\ \ \ \ \ \ \ \ \ \ try\{\
-\ \ \ \ \ \ \ \ \ \ \ \ Plotly\.restyle\(gd,\ \{'marker\.line\.width':\[w\],\ 'marker\.line\.color':\[c\]\},\ \[ti\]\);\
-\ \ \ \ \ \ \ \ \ \ \}catch\(e2\)\{\}\
-\ \ \ \ \ \ \ \ \ \ return;\
-\ \ \ \ \ \ \ \ \}\
+    gd.on('plotly_hover', function(e){
+      try{
+        if(!e || !e.points || !e.points.length) return;
+        const pt = e.points[0];
+        const ti = pt.curveNumber;
+        const tr = gd.data[ti] || {};
+        if((tr.type||'')==='bar') return;
+        remember(ti);
 
         const n = (tr.x && tr.x.length) || (tr.y && tr.y.length) || 0;
         const idx = pt.pointNumber;
@@ -1201,10 +1189,8 @@ main();
         marker.line.width = Array(n).fill(0).map((_,i)=> i===idx ? 3 : 0);
         marker.line.color = Array(n).fill('rgba(255,255,255,0)').map((_,i)=> i===idx ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0)');
 
-        const isScatter = ['scatter','scattergl'].includes((tr.type||'scatter'));
-        const mode = isScatter ? ((tr.mode || '').includes('markers') ? tr.mode : ((tr.mode ? tr.mode+'+' : '') + 'markers')) : tr.mode;
-        if(mode!=null){ Plotly.restyle(gd, {'marker':[marker], 'mode':[mode]}, [ti]); }
-        else { Plotly.restyle(gd, {'marker':[marker]}, [ti]); }
+        const mode = (tr.mode || '').includes('markers') ? tr.mode : ((tr.mode ? tr.mode+'+' : '') + 'markers');
+        Plotly.restyle(gd, {'marker':[marker], 'mode':[mode]}, [ti]);
       }catch(err){}
     });
 
