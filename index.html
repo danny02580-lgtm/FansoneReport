@@ -152,14 +152,14 @@
   #customTooltipCard .name{font-size:13px;font-weight:600;opacity:.92;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   #customTooltipCard .value{margin-left:auto;font-size:16px;font-weight:850;white-space:nowrap}
 
-  /* GHOST OVERLAY for Bar Chart */
+  /* GHOST OVERLAY - The unified highlighter */
   #ghost-overlay {
     position: fixed; pointer-events: none; z-index: 9999;
     background: transparent; border: 2px solid white;
-    box-shadow: 0 0 6px rgba(0,0,0,0.5);
-    display: none; transition: all 0.05s ease-out;
+    box-shadow: 0 0 8px rgba(255,255,255,0.5); /* Glow effect */
+    display: none; transition: all 0.06s ease-out;
     border-radius: 2px;
-    top: -9999px; left: -9999px; /* Init off-screen */
+    top: -9999px; left: -9999px;
   }
 
   /* Plotly Fixes */
@@ -648,6 +648,7 @@ function buildTraces(view){
   const labelFont = {color:"rgba(229,231,235,.95)", size:12};
   const labelFontSmall = {color:"rgba(229,231,235,.95)", size:11};
 
+  // Force closest hover mode
   const hoverConfig = { hovermode: "closest", hoverdistance: 20 };
 
   if(view==="subs"){
@@ -917,8 +918,8 @@ main();
 (function(){
   let lastEl = null;
   let saved = { stroke:'', strokeWidth:'', paintOrder:'', opacity:'', cursor:'', transform:'', transition:'', transformBox:'', transformOrigin:'' };
-
   let ghostOverlay = document.getElementById('ghost-overlay');
+
   if(!ghostOverlay) {
     ghostOverlay = document.createElement('div');
     ghostOverlay.id = 'ghost-overlay';
@@ -935,23 +936,49 @@ main();
         const pt = e.points[0];
         const curveIdx = pt.curveNumber;
         const pointIdx = pt.pointNumber;
+        const traceType = gd.data[curveIdx].type || 'scatter';
 
-        // 核心修復：使用最穩定的 Class Selector 抓取 DOM
-        const traceEl = gd.querySelector('.trace.trace_' + curveIdx);
-        if(!traceEl) return;
+        let target = null;
+        let isBar = (traceType === 'bar');
 
-        const points = traceEl.querySelectorAll('.point');
-        const target = points[pointIdx];
+        // Robust Element Finding
+        if(isBar){
+            let barTraceCount = 0;
+            for(let i=0; i<curveIdx; i++){
+               const t = gd.data[i];
+               if(t.type === 'bar' && t.visible !== false && t.visible !== 'legendonly') barTraceCount++;
+            }
+            const traces = gd.querySelectorAll('.barlayer .trace');
+            const traceEl = traces[barTraceCount];
+            if(traceEl) {
+               const points = traceEl.querySelectorAll('.point');
+               target = points[pointIdx];
+            }
+        } else {
+            let scatterTraceCount = 0;
+             for(let i=0; i<curveIdx; i++){
+               const t = gd.data[i];
+               const tType = t.type || 'scatter';
+               if((tType === 'scatter' || tType === 'scattergl') && t.visible !== false && t.visible !== 'legendonly') scatterTraceCount++;
+            }
+            const traces = gd.querySelectorAll('.scatterlayer .trace');
+            const traceEl = traces[scatterTraceCount];
+            if(traceEl) {
+               const points = traceEl.querySelectorAll('.point');
+               target = points[pointIdx];
+            }
+        }
+
         if(!target) return;
 
-        const isBar = pt.data.type === 'bar';
-
+        // --- UNIFIED OVERLAY LOGIC ---
         if(isBar) {
-          // --- Bar: Ghost Overlay ---
+          // Bar -> Rectangular Overlay
           if(lastEl) { reset(lastEl); lastEl = null; }
 
           const rect = target.getBoundingClientRect();
           if(rect.width > 0 && rect.height > 0) {
+             ghostOverlay.style.borderRadius = "2px";
              ghostOverlay.style.top = rect.top + 'px';
              ghostOverlay.style.left = rect.left + 'px';
              ghostOverlay.style.width = rect.width + 'px';
@@ -959,36 +986,25 @@ main();
              ghostOverlay.style.display = 'block';
           }
         } else {
-          // --- Scatter: Scale + Glow ---
-          ghostOverlay.style.display = 'none';
+          // Scatter -> Circular Overlay (Halo)
+          // We use the overlay instead of SVG transform for stability
+          if(lastEl) { reset(lastEl); lastEl = null; }
 
-          if(lastEl !== target) {
-              if(lastEl) reset(lastEl);
-              lastEl = target;
+          const rect = target.getBoundingClientRect();
+          if(rect.width > 0 && rect.height > 0) {
+             // Center position
+             const cx = rect.left + rect.width/2;
+             const cy = rect.top + rect.height/2;
 
-              saved.stroke = target.style.stroke;
-              saved.strokeWidth = target.style.strokeWidth;
-              saved.paintOrder = target.style.paintOrder;
-              saved.cursor = target.style.cursor;
-              saved.transform = target.style.transform;
-              saved.transition = target.style.transition;
-              saved.transformBox = target.style.transformBox;
-              saved.transformOrigin = target.style.transformOrigin;
+             // Make overlay bigger (2x)
+             const size = Math.max(rect.width, rect.height) * 2;
 
-              // 放大 + 發光
-              target.style.transformBox = "fill-box";
-              target.style.transformOrigin = "center";
-              target.style.transition = "all 0.08s ease-out";
-              target.style.transform = "scale(2.5)"; // 2.5倍放大，確保夠明顯
-
-              target.style.stroke = 'rgba(255,255,255,0.7)'; // 半透明白光
-              target.style.strokeWidth = '12px'; // 粗邊框作為光暈
-              target.style.paintOrder = 'stroke'; // 邊框畫在填充後面，不遮擋顏色
-              target.style.opacity = '1';
-              target.style.cursor = 'pointer';
-
-              // 強制置頂
-              if(target.parentNode) target.parentNode.appendChild(target);
+             ghostOverlay.style.borderRadius = "50%";
+             ghostOverlay.style.width = size + 'px';
+             ghostOverlay.style.height = size + 'px';
+             ghostOverlay.style.top = (cy - size/2) + 'px';
+             ghostOverlay.style.left = (cx - size/2) + 'px';
+             ghostOverlay.style.display = 'block';
           }
         }
       }catch(err){ console.error(err); }
@@ -998,11 +1014,7 @@ main();
       ghostOverlay.style.display = 'none';
       ghostOverlay.style.top = '-9999px';
       ghostOverlay.style.left = '-9999px';
-
-      if(lastEl) {
-        reset(lastEl);
-        lastEl = null;
-      }
+      if(lastEl) { reset(lastEl); lastEl = null; }
     });
   }
 
@@ -1011,11 +1023,7 @@ main();
     el.style.stroke = saved.stroke;
     el.style.strokeWidth = saved.strokeWidth;
     el.style.paintOrder = saved.paintOrder;
-    el.style.cursor = saved.cursor;
-    el.style.transform = saved.transform;
-    el.style.transition = saved.transition;
-    el.style.transformBox = saved.transformBox;
-    el.style.transformOrigin = saved.transformOrigin;
+    el.style.opacity = saved.opacity;
   }
 
   function scan(){
@@ -1033,7 +1041,10 @@ main();
   let lastMouse = {x: 0, y: 0};
 
   function ensureCard(){
-    let el=document.getElementById('customTooltipCard');
+    let el=document.getElementById('customTooltipCardCard'); // fixed id mismatch
+    if(!el){
+      el=document.getElementById('customTooltipCard'); // fallback
+    }
     if(!el){
       el=document.createElement('div');
       el.id='customTooltipCard';
@@ -1042,11 +1053,21 @@ main();
     }
     return el;
   }
-  const card=ensureCard();
-  const titleEl=card.querySelector('.tt-title');
+  // Ensure we select the right one
+  let card = document.getElementById('customTooltipCard');
+  if(!card) card = ensureCard();
+
+  const titleEl=card.querySelector('.tt-title') || card.appendChild(document.createElement('div'));
+  if(!titleEl.className) titleEl.className='tt-title';
+
+  // Re-build inner structure if missing
+  if(!card.querySelector('.tt-row')){
+     card.innerHTML='<div class="tt-title"></div><div class="tt-row"><span class="dot"></span><span class="name"></span><span class="value"></span></div>';
+  }
   const dotEl=card.querySelector('.dot');
   const nameEl=card.querySelector('.name');
   const valueEl=card.querySelector('.value');
+  const tEl=card.querySelector('.tt-title');
 
   function colorOf(pt){
     try{
@@ -1091,19 +1112,16 @@ main();
     if(!gd||gd.__cardBound||!gd.on) return;
     gd.__cardBound=true;
 
-    // Global mouse tracking
     gd.addEventListener('mousemove', (ev)=>{
       lastMouse.x=ev.clientX;
       lastMouse.y=ev.clientY;
     }, {passive:true});
 
-    // Prevent flicker
     let hideTimer = null;
     gd.on('plotly_unhover', function(){
         hideTimer = setTimeout(() => { card.style.display='none'; }, 50);
     });
 
-    // Hover event
     gd.on('plotly_hover', function(e){
       try{
         if(hideTimer) clearTimeout(hideTimer);
@@ -1115,10 +1133,10 @@ main();
         const name = (pt.fullData && pt.fullData.name) || (pt.data && pt.data.name) || 'Value';
         const yval = pt.y;
 
-        titleEl.textContent = String(xlab);
-        dotEl.style.background = colorOf(pt);
-        nameEl.textContent = name;
-        valueEl.textContent = fmt(yval, kindFor(name));
+        if(tEl) tEl.textContent = String(xlab);
+        if(dotEl) dotEl.style.background = colorOf(pt);
+        if(nameEl) nameEl.textContent = name;
+        if(valueEl) valueEl.textContent = fmt(yval, kindFor(name));
 
         place(lastMouse.x, lastMouse.y);
 
@@ -1142,7 +1160,6 @@ main();
     if(!gd || !gd.classList || (!gd.classList.contains('js-plotly-plot') && !gd.classList.contains('plotly-graph-div'))) return;
     if(!window.Plotly || !gd._fullLayout) return;
 
-    // Enforce closest hover
     const update = {
       hovermode: 'closest',
       hoverdistance: 20,
