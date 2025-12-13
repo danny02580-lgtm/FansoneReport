@@ -150,19 +150,18 @@
 
   /* 電腦端 (大於 860px) */
   @media(min-width:861px) {
-    /* 修正 Monthly Summary 在電腦端不滑動 */
+    /* 修正: Monthly Summary 恢復 Auto 佈局，讓瀏覽器自動調寬度，防止切字 */
     #real-t1.table-scroll-container {
         overflow-x: hidden; /* 強制不出現捲軸 */
     }
     #monthlyTable {
-        table-layout: fixed; /* 強制固定佈局 */
+        table-layout: auto; /* 關鍵: 自動寬度，長數字會自動撐開 */
         width: 100%;
     }
     #monthlyTable td, #monthlyTable th {
-        /* 避免內容太長導致跑版，用 ... 縮略 */
         white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        overflow: visible; /* 允許顯示完整文字 */
+        text-overflow: clip; /* 移除點點點 */
     }
   }
 
@@ -736,18 +735,6 @@ function buildTraces(view){
     };
 }
 
-function layoutBase(){
-  return {
-    dragmode:false,
-    paper_bgcolor:"rgba(0,0,0,0)",
-    plot_bgcolor:"rgba(255,255,255,0.02)",
-    margin:{l:56,r:40,t:22,b:46},
-    bargap:0.35,
-    legend:{orientation:"h", x:0, y:1.12, font:{color:"rgba(229,231,235,.9)"}},
-    hoverlabel:{bgcolor:"rgba(15,23,42,.95)", bordercolor:"rgba(255,255,255,.14)", font:{color:"#e5e7eb"}},
-  };
-}
-
 function applyVisibility(view, traces){
   let vis = new Array(traces.length).fill(false);
   const on = (id)=> { const n=document.getElementById(id); return n && n.checked; };
@@ -773,17 +760,18 @@ function renderChart(view){
   const layout = {...layoutBase(), ...built.layout};
   const config = {responsive:true, displaylogo:false, displayModeBar:false, scrollZoom:false, doubleClick:false};
 
-  // --- 修正開始：綁定事件 (在 Plotly 繪圖前) ---
-  // 1. 設定預設勾選
+  // --- 修正：綁定事件 (在 Plotly 繪圖前先綁定，確保 DOM 存在) ---
   if(view!=="arpu"){
+    // 設定預設勾選
     (built.defaults||[]).forEach(id=>{ const node=document.getElementById(id); if(node) node.checked=true; });
   }
 
-  // 2. 綁定 Checkbox 事件 (立即生效，不等待 Plotly)
-  document.querySelectorAll("#checks input[type=checkbox]").forEach(cb => {
-      cb.addEventListener("change", () => applyVisibility(view, built.traces));
+  // 綁定 Checkbox 事件 (立即生效，不等待 Plotly)
+  const checks = document.querySelectorAll("#checks input[type=checkbox]");
+  checks.forEach(cb => {
+      // 移除舊的 event listener 防止重複 (雖然在這個架構下重建 HTML 已經清除了)
+      cb.onchange = () => applyVisibility(view, built.traces);
   });
-  // --- 修正結束 ---
 
   Plotly.react("chart", built.traces, layout, config).then(()=>{
     // Hide skeleton chart, show real chart
@@ -791,7 +779,7 @@ function renderChart(view){
     el("chart").classList.remove("loading-hide");
 
     if(view!=="arpu"){
-      // Apply visibility based on defaults
+      // 初始化時套用一次可見性
       applyVisibility(view, built.traces);
     } else {
       Plotly.restyle("chart", "visible", built.traces.map(()=>true));
@@ -823,13 +811,9 @@ async function main(){
     setText("months", String(STATE.aggAsc.length));
     setText("totalRevenue", money(Math.round(STATE.aggAsc.reduce((a,b)=>a+(b.totalRevenue||0),0))));
 
-    // --- 修正開始：正確移除骨架屏並顯示內容 ---
-    // 1. 先把所有骨架屏 (Loading 動畫) 直接從畫面上移除
+    // 移除骨架屏
     document.querySelectorAll(".skeleton-container").forEach(e => e.remove());
-
-    // 2. 把原本隱藏的真實內容 (class="loading-hide") 顯示出來
     document.querySelectorAll(".loading-hide").forEach(e => e.classList.remove("loading-hide"));
-    // --- 修正結束 ---
 
     renderTables();
     renderUsers(el("userMetric").value);
