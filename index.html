@@ -939,7 +939,7 @@ main();
 <script id="safeHoverEnhancer">
 (function(){
   let lastEl = null;
-  let saved = { stroke:'', strokeWidth:'', paintOrder:'', opacity:'' };
+  let saved = { stroke:'', strokeWidth:'', paintOrder:'', opacity:'', cursor:'' };
   let ghostOverlay = document.getElementById('ghost-overlay');
 
   if(!ghostOverlay) {
@@ -960,9 +960,10 @@ main();
       const pointIdx = pt.pointNumber;
 
       // CRITICAL FIX: Robustly find the trace element by index
-      // Plotly renders traces in order, but skips hidden ones.
-      // We query ALL traces and assume Plotly's curveNumber maps to DOM order.
       const traces = gd.querySelectorAll('.trace');
+      // Filter only visible traces (Scatter or Bar) usually grouped in 'cartesianlayer'
+      // Plotly DOM: .cartesianlayer > .subplot > .plot > .scatterlayer/.barlayer > .trace
+      // We must be careful because traces array index matches data index.
       const traceEl = traces[curveIdx];
 
       if(!traceEl) return;
@@ -973,12 +974,10 @@ main();
 
       if(!target) return;
 
-      // Identify chart type from data, not DOM class
       const isBar = pt.data.type === 'bar';
 
       if(isBar) {
         // --- BAR CHART: GHOST OVERLAY ---
-        // Get precise screen coordinates of the SVG element
         const rect = target.getBoundingClientRect();
 
         if(rect.width > 0 && rect.height > 0) {
@@ -989,8 +988,8 @@ main();
            ghostOverlay.style.display = 'block';
         }
       } else {
-        // --- SCATTER CHART: SVG STROKE (GLOW) ---
-        ghostOverlay.style.display = 'none'; // Hide ghost if moving to scatter
+        // --- SCATTER CHART: BIGGER + GLOW ---
+        ghostOverlay.style.display = 'none';
 
         if(lastEl !== target) {
             if(lastEl) reset(lastEl);
@@ -998,11 +997,15 @@ main();
             saved.stroke = target.style.stroke;
             saved.strokeWidth = target.style.strokeWidth;
             saved.paintOrder = target.style.paintOrder;
+            saved.cursor = target.style.cursor;
 
-            // Apply glow effect directly to SVG
-            target.style.stroke = 'rgba(255,255,255,0.9)';
-            target.style.strokeWidth = '3px';
-            target.style.paintOrder = 'stroke';
+            // Apply highlighting style:
+            // 10px white stroke drawn BEHIND the fill = 5px outer glow
+            target.style.stroke = '#ffffff';
+            target.style.strokeWidth = '10px';
+            target.style.paintOrder = 'stroke'; // Stroke drawn first (underneath)
+            target.style.opacity = '1';
+            target.style.cursor = 'pointer';
         }
       }
     });
@@ -1021,6 +1024,7 @@ main();
     el.style.stroke = saved.stroke;
     el.style.strokeWidth = saved.strokeWidth;
     el.style.paintOrder = saved.paintOrder;
+    el.style.cursor = saved.cursor;
   }
 
   function scan(){
