@@ -656,9 +656,9 @@ function buildTraces(view){
   const labelFont = {color:"rgba(229,231,235,.95)", size:12};
   const labelFontSmall = {color:"rgba(229,231,235,.95)", size:11};
 
-  // 重要修改：強制使用 'closest' 模式來獲得精確的 Hover 事件
-  // 並設置 hoverdistance 為 1，確保滑鼠必須非常接近才會觸發 (由自定義 Tooltip 處理寬容度)
-  const hoverConfig = { hovermode: "closest", hoverdistance: 1 };
+  // 重要設定：強制使用 'closest' 模式，並設定標準 hoverdistance
+  // 這讓 Plotly 會自動抓取滑鼠最近的那個點，解決了「顯示底層數值」的問題
+  const hoverConfig = { hovermode: "closest", hoverdistance: 20 };
 
   if(view==="subs"){
     return {
@@ -731,7 +731,6 @@ function layoutBase(){
     margin:{l:56,r:40,t:22,b:46},
     bargap:0.35,
     legend:{orientation:"h", x:0, y:1.12, font:{color:"rgba(229,231,235,.9)"}},
-    // 移除全域的 hovermode 設定，改由 buildTraces 個別控制
     hoverlabel:{bgcolor:"rgba(15,23,42,.95)", bordercolor:"rgba(255,255,255,.14)", font:{color:"#e5e7eb"}},
   };
 }
@@ -1007,10 +1006,8 @@ main();
 
 <script id="customTooltipCardScriptV2">
 (function(){
-  // 記錄滑鼠位置
   let lastMouse = {x: 0, y: 0};
 
-  // 建立 Tooltip 元素
   function ensureCard(){
     let el=document.getElementById('customTooltipCard');
     if(!el){
@@ -1027,7 +1024,6 @@ main();
   const nameEl=card.querySelector('.name');
   const valueEl=card.querySelector('.value');
 
-  // 輔助函式
   function colorOf(pt){
     try{
       const tr=pt.fullData||pt.data||{};
@@ -1083,51 +1079,36 @@ main();
     gd.on('plotly_hover', function(e){
       try{
         if(!e || !e.points || !e.points.length) return;
+        const pt = e.points[0];
 
-        let pt = e.points[0]; // 預設拿第一個
+        // --- 物理碰撞檢測 (Physical Hit Test) ---
+        // 這是解決「空白處誤判」的終極解法：
+        // 我們直接問瀏覽器：「滑鼠游標下方的元素是什麼？」
+        // 如果是 Plotly 畫的柱狀圖 (class="point")，才顯示。
 
-        // --- 關鍵修正：使用 Bounding Box (bbox) 進行碰撞檢測 ---
-        // 只有當有多個點 (Stacked) 且滑鼠有位置時才運算
-        if(lastMouse.y !== 0){
-          const graphRect = gd.getBoundingClientRect();
-          // 計算滑鼠相對於圖表區塊的 Y 座標 (Pixel)
-          const mouseY_rel = lastMouse.y - graphRect.top;
+        const elUnderMouse = document.elementFromPoint(lastMouse.x, lastMouse.y);
 
-          // 找出「bbox 包含滑鼠 Y 座標」的那個點
-          // bbox 格式: {y0: 上緣, y1: 下緣, ...} (注意：Plotly y0 可能是上面也可能是下面，視繪圖方向而定)
+        // 如果滑鼠下面沒有東西，或不是 SVG 路徑，就隱藏
+        if(!elUnderMouse) {
+            card.style.display='none';
+            return;
+        }
 
-          let hit = null;
+        // 判斷是否為圖表元素 (Bar 或 Scatter Point)
+        // Plotly 的柱狀圖通常是 <path class="point">
+        // 有些情況下可能是 <path> 包在 <g class="point"> 裡
+        const isPoint = elUnderMouse.classList.contains('point') || elUnderMouse.closest('.point');
 
-          // 如果 e.points 有多個（unified mode），從中找一個命中
-          if(e.points.length > 1) {
-            hit = e.points.find(p => {
-              if(!p.bbox) return false;
-              const yMin = Math.min(p.bbox.y0, p.bbox.y1);
-              const yMax = Math.max(p.bbox.y0, p.bbox.y1);
-              return mouseY_rel >= (yMin - 1) && mouseY_rel <= (yMax + 1);
-            });
-          }
-          // 如果 e.points 只有一個 (closest mode)，檢查它是否命中
-          else if(e.points.length === 1 && e.points[0].bbox) {
-              const p = e.points[0];
-              const yMin = Math.min(p.bbox.y0, p.bbox.y1);
-              const yMax = Math.max(p.bbox.y0, p.bbox.y1);
-              if(mouseY_rel >= (yMin - 1) && mouseY_rel <= (yMax + 1)) {
-                 hit = p;
-              }
-          }
+        // 如果是 Bar Chart (柱狀圖)，我們要求必須嚴格摸到柱子
+        const isBarChart = pt.data && pt.data.type === 'bar';
 
-          if(hit) {
-            pt = hit;
-          } else {
-             // 如果完全沒命中任何 Bbox (滑鼠在空白處)，則隱藏並返回
-             card.style.display='none';
-             return;
-          }
+        if(isBarChart && !isPoint){
+            // 如果是柱狀圖，但滑鼠沒摸到柱子 (摸到背景空白處)，隱藏字卡
+            card.style.display='none';
+            return;
         }
         // -----------------------------------------------------
 
-        // 讀取並顯示資料
         const xlab = pt.x;
         const name = (pt.fullData && pt.fullData.name) || (pt.data && pt.data.name) || 'Value';
         const yval = pt.y;
@@ -1149,7 +1130,6 @@ main();
     document.querySelectorAll('.js-plotly-plot, .plotly-graph-div').forEach(bind);
   }
 
-  // 啟動偵測
   const obs=new MutationObserver(()=>scan());
   obs.observe(document.documentElement,{childList:true,subtree:true});
   window.addEventListener('load', ()=>{ setTimeout(scan,500); setTimeout(scan,1500); });
@@ -1162,11 +1142,10 @@ main();
     if(!gd || !gd.classList || (!gd.classList.contains('js-plotly-plot') && !gd.classList.contains('plotly-graph-div'))) return;
     if(!window.Plotly || !gd._fullLayout) return;
 
-    // 這裡我們強制所有圖表使用 'closest' 模式，
-    // 即使是 Bar Chart，這樣才能區分堆疊圖中的不同區塊。
+    // 強制設定為 closest 模式
     const update = {
       hovermode: 'closest',
-      hoverdistance: 10, // 稍微寬容一點，讓滑鼠不用 100% 對準像素
+      hoverdistance: 20, // 設定合理的觸發距離
       spikedistance: -1
     };
 
