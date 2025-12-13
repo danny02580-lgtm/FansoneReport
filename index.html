@@ -658,7 +658,7 @@ function buildTraces(view){
 
   // 重要修改：強制使用 'closest' 模式來獲得精確的 Hover 事件
   // 並設置 hoverdistance 為 10，確保滑鼠必須非常接近才會觸發
-  const hoverConfig = { hovermode: "closest", hoverdistance: 10 };
+  const hoverConfig = { hovermode: "closest", hoverdistance: 20 };
 
   if(view==="subs"){
     return {
@@ -925,62 +925,74 @@ main();
 
 <script id="safeHoverEnhancer">
 (function(){
-  let lastHovered = null;
-  let originalStyle = { stroke: '', strokeWidth: '', paintOrder: '', opacity: '' };
+  let lastEl = null;
+  let saved = { stroke:'', strokeWidth:'', paintOrder:'', opacity:'', zIndex:'' };
 
   function enhance(gd){
     if(!gd || gd.__enhancerBound || !gd.on) return;
     gd.__enhancerBound = true;
 
     gd.on('plotly_hover', function(e){
-      // 1. Try to find the exact element under the mouse
-      // This works for both Scatter points and Bar rectangles
-      const mouseX = e.event ? e.event.clientX : 0;
-      const mouseY = e.event ? e.event.clientY : 0;
-      if(!mouseX || !mouseY) return;
+      if(!e || !e.points || !e.points.length) return;
+      const pt = e.points[0];
+      const curveIdx = pt.curveNumber;
+      const pointIdx = pt.pointNumber;
 
-      const el = document.elementFromPoint(mouseX, mouseY);
-      if(!el || !el.classList.contains('point')) return;
+      // 核心修正：直接使用數據索引找到對應的 DOM 元素
+      // 這種方式完全無視 draglayer (透明遮擋層)
 
-      // Avoid double processing
-      if(lastHovered === el) return;
+      // Plotly 的 DOM 結構： .trace -> .points -> path.point
+      const traces = gd.querySelectorAll('.trace');
+      if(!traces[curveIdx]) return;
 
-      // If we jumped from one point to another directly
-      if(lastHovered) clearHover();
+      const points = traces[curveIdx].querySelectorAll('.point');
+      const target = points[pointIdx];
+
+      if(!target) return;
+      if(lastEl === target) return;
+
+      if(lastEl) reset(lastEl);
 
       // Save state
-      lastHovered = el;
-      originalStyle.stroke = el.style.stroke;
-      originalStyle.strokeWidth = el.style.strokeWidth;
-      originalStyle.paintOrder = el.style.paintOrder;
-      originalStyle.opacity = el.style.opacity;
+      lastEl = target;
+      saved.stroke = target.style.stroke;
+      saved.strokeWidth = target.style.strokeWidth;
+      saved.paintOrder = target.style.paintOrder;
+      saved.opacity = target.style.opacity;
 
-      // Apply White Border Effect
-      el.style.stroke = '#ffffff';
-      el.style.strokeWidth = '3px';
-      el.style.opacity = '1';
-      el.style.paintOrder = 'stroke'; // ensure stroke is drawn on top of fill
+      // Apply Effect
+      const isBar = pt.data.type === 'bar';
 
-      // IMPORTANT: Move element to the end of parent to bring it to Z-index front
-      // This fixes the "thin line" issue on stacked bars
-      if(el.parentNode) {
-        el.parentNode.appendChild(el);
+      if(isBar) {
+        // Bar: White Border + Bring to Front
+        target.style.stroke = '#ffffff';
+        target.style.strokeWidth = '3px';
+        target.style.paintOrder = 'stroke';
+        target.style.opacity = '1';
+
+        // 關鍵：將柱子移到父層最後面，確保邊框蓋在鄰居上面
+        if(target.parentNode) target.parentNode.appendChild(target);
+      } else {
+        // Scatter: Scale up + Glow
+        // 注意：Scatter 的 path 通常已經有 transform，我們不能隨便蓋掉
+        // 但我們可以加粗 stroke 來模擬發光
+        target.style.stroke = 'rgba(255,255,255,0.9)';
+        target.style.strokeWidth = '3px'; // 原本通常是 0 或 1
+        target.style.paintOrder = 'stroke';
       }
     });
 
     gd.on('plotly_unhover', function(){
-      clearHover();
+      if(lastEl) reset(lastEl);
+      lastEl = null;
     });
   }
 
-  function clearHover(){
-    if(lastHovered){
-      lastHovered.style.stroke = originalStyle.stroke;
-      lastHovered.style.strokeWidth = originalStyle.strokeWidth;
-      lastHovered.style.paintOrder = originalStyle.paintOrder;
-      lastHovered.style.opacity = originalStyle.opacity;
-      lastHovered = null;
-    }
+  function reset(el){
+    el.style.stroke = saved.stroke;
+    el.style.strokeWidth = saved.strokeWidth;
+    el.style.paintOrder = saved.paintOrder;
+    el.style.opacity = saved.opacity;
   }
 
   function scan(){
