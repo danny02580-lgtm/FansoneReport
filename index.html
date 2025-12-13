@@ -929,8 +929,6 @@ main();
     if(!gd || gd.__safeHoverBound || !gd.on) return;
     gd.__safeHoverBound = true;
 
-    // 移除這裡的強制 relayout，避免與 plotlyHoverEnforcer 打架
-
     let orig = {};
 
     function remember(ti){
@@ -939,7 +937,7 @@ main();
       orig[ti] = {
         marker: tr.marker ? JSON.parse(JSON.stringify(tr.marker)) : null,
         mode: tr.mode,
-        type: tr.type // 記住類型
+        type: tr.type
       };
     }
 
@@ -947,14 +945,16 @@ main();
       Object.keys(orig).forEach(k=>{
         const ti = Number(k);
         const o = orig[ti];
-        // 嚴格檢查：只有當現在的 trace 類型跟記憶中的一樣時才還原
-        // 這能防止切換 Tab (折線 -> 柱狀) 時，把折線樣式套給柱子
         const currentTr = gd.data && gd.data[ti];
+        // Ensure type matches to avoid applying scatter styles to bar or vice versa if data changed
         if(currentTr && currentTr.type === o.type){
-           try{ Plotly.restyle(gd, {'marker':[o.marker], 'mode':[o.mode]}, [ti]); }catch(e){}
+           try{
+             // Restore generic marker and mode
+             Plotly.restyle(gd, {'marker':[o.marker], 'mode':[o.mode]}, [ti]);
+           }catch(e){}
         }
       });
-      orig = {}; // 清空記憶
+      orig = {};
     }
 
     gd.on('plotly_hover', function(e){
@@ -964,29 +964,55 @@ main();
         const ti = pt.curveNumber;
         const tr = gd.data[ti] || {};
 
-        // 【修正】嚴格限制只有 Scatter (折線/點) 才做特效，柱狀圖(Bar)完全忽略
-        if(!['scatter','scattergl'].includes(tr.type) || !String(tr.mode||'').includes('markers')) return;
+        // 1. Scatter Logic
+        const isScatter = ['scatter','scattergl'].includes(tr.type) && String(tr.mode||'').includes('markers');
+        // 2. Bar Logic
+        const isBar = tr.type === 'bar';
+
+        if(!isScatter && !isBar) return;
 
         remember(ti);
 
         const n = (tr.x && tr.x.length) || (tr.y && tr.y.length) || 0;
         const idx = pt.pointNumber;
-        const base = (tr.marker && tr.marker.size) || 8;
-        const baseNum = (typeof base === 'number') ? base : 8;
 
-        const sizeArr = Array(n).fill(baseNum);
-        if(idx!=null && idx>=0 && idx<n) sizeArr[idx] = Math.round(baseNum*1.8);
+        // Prepare new marker object based on original
+        const marker = JSON.parse(JSON.stringify(tr.marker || {}));
+        marker.line = marker.line || {};
 
-        const marker = Object.assign({}, tr.marker || {});
-        marker.size = sizeArr;
-        marker.line = Object.assign({}, marker.line || {});
-        marker.line.width = Array(n).fill(0).map((_,i)=> i===idx ? 3 : 0);
-        // 發光效果
-        marker.line.color = Array(n).fill('rgba(255,255,255,0)').map((_,i)=> i===idx ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0)');
+        if(isScatter) {
+            // Scatter: Increase size + White border
+            const base = (marker.size !== undefined) ? marker.size : 8;
+            const baseNum = (typeof base === 'number') ? base : 8;
 
-        const mode = (tr.mode || '').includes('markers') ? tr.mode : ((tr.mode ? tr.mode+'+' : '') + 'markers');
-        Plotly.restyle(gd, {'marker':[marker], 'mode':[mode]}, [ti]);
-      }catch(err){}
+            // Construct size array
+            const sizeArr = Array(n).fill(baseNum);
+            // Highlight current
+            if(idx >= 0 && idx < n) sizeArr[idx] = Math.round(baseNum * 1.5);
+
+            marker.size = sizeArr;
+
+            // Construct border arrays
+            marker.line.width = Array(n).fill(0).map((_,i)=> i===idx ? 3 : 0);
+            marker.line.color = Array(n).fill('rgba(255,255,255,0)').map((_,i)=> i===idx ? 'rgba(255,255,255,1)' : 'rgba(255,255,255,0)');
+
+            // Ensure mode includes markers
+            const mode = (tr.mode || '').includes('markers') ? tr.mode : ((tr.mode ? tr.mode+'+' : '') + 'markers');
+            Plotly.restyle(gd, {'marker':[marker], 'mode':[mode]}, [ti]);
+        }
+        else if(isBar) {
+            // Bar: White border only (no size change)
+            // Note: We use a slightly thinner border (2px) or standard (3px) for bars?
+            // User asked for "more obvious", so 2px white on dark background is good.
+
+            marker.line.width = Array(n).fill(0).map((_,i)=> i===idx ? 2 : 0);
+            marker.line.color = Array(n).fill('rgba(255,255,255,0)').map((_,i)=> i===idx ? '#ffffff' : 'rgba(255,255,255,0)');
+
+            // Bar doesn't need mode update
+            Plotly.restyle(gd, {'marker':[marker]}, [ti]);
+        }
+
+      }catch(err){ console.error(err); }
     });
 
     gd.on('plotly_unhover', function(){
@@ -1073,11 +1099,16 @@ main();
       lastMouse.y=ev.clientY;
     }, {passive:true});
 
-    gd.addEventListener('mouseleave', ()=>{ card.style.display='none'; }, {passive:true});
+    // 2. 避免閃爍，加入延遲隱藏
+    let hideTimer = null;
+    gd.on('plotly_unhover', function(){
+        hideTimer = setTimeout(() => { card.style.display='none'; }, 50);
+    });
 
-    // 2. Plotly Hover 事件 - 移除所有複雜判定，完全信任 Plotly
+    // 2. Plotly Hover 事件
     gd.on('plotly_hover', function(e){
       try{
+        if(hideTimer) clearTimeout(hideTimer);
         if(!e || !e.points || !e.points.length) return;
 
         // 直接取第一個點 (因為 hovermode='closest' 已經幫我們篩選好了)
@@ -1097,8 +1128,6 @@ main();
 
       }catch(err){ console.error(err); }
     });
-
-    gd.on('plotly_unhover', function(){ card.style.display='none'; });
   }
 
   function scan(){
@@ -1118,7 +1147,7 @@ main();
     if(!window.Plotly || !gd._fullLayout) return;
 
     // 這裡我們強制所有圖表使用 'closest' 模式，
-    // 並設定 hoverdistance 為 10，解決空白處顯示問題
+    // 並設定 hoverdistance 為 10，確保滑鼠必須非常接近才會觸發
     const update = {
       hovermode: 'closest',
       hoverdistance: 10,
