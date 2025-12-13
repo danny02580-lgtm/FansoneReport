@@ -946,17 +946,15 @@ main();
 <script id="safeHoverEnhancer">
 (function(){
   let lastEl = null;
-  // Saved state to restore original styles
   let saved = { stroke:'', strokeWidth:'', paintOrder:'', opacity:'', cursor:'', transform:'', transition:'', transformBox:'', transformOrigin:'' };
-
   let ghostOverlay = document.getElementById('ghost-overlay');
+
   if(!ghostOverlay) {
     ghostOverlay = document.createElement('div');
     ghostOverlay.id = 'ghost-overlay';
     document.body.appendChild(ghostOverlay);
   }
 
-  // --- NEW LOGIC: Use Plotly curveNumber mapping instead of hit-testing ---
   function enhance(gd){
     if(!gd || gd.__enhancerBound || !gd.on) return;
     gd.__enhancerBound = true;
@@ -967,35 +965,16 @@ main();
       const curveIdx = pt.curveNumber;
       const pointIdx = pt.pointNumber;
 
-      const traceType = gd.data[curveIdx].type;
-
-      // Calculate which visible trace index this corresponds to
-      // This fixes the issue when multiple chart types are mixed (e.g. Bar + Scatter)
-      let visibleTypeIdx = 0;
-      for(let i=0; i<curveIdx; i++){
-         const t = gd.data[i];
-         // Only count visible traces of the SAME type
-         if(t.type === traceType && t.visible !== false && t.visible !== 'legendonly'){
-             visibleTypeIdx++;
-         }
-      }
-
-      // Select the correct trace layer based on type
-      let layerSelector = '.trace';
-      if(traceType === 'bar') layerSelector = '.barlayer .trace';
-      else if(traceType === 'scatter') layerSelector = '.scatterlayer .trace';
-
-      const traces = gd.querySelectorAll(layerSelector);
-      const traceEl = traces[visibleTypeIdx];
-
+      // 直接使用 curveNumber 對應到 trace DOM 元素的 class
+      // Plotly 的輸出通常包含 class="trace trace_0", "trace trace_1" 等
+      const traceEl = gd.querySelector('.trace.trace_' + curveIdx);
       if(!traceEl) return;
 
       const points = traceEl.querySelectorAll('.point');
       const target = points[pointIdx];
-
       if(!target) return;
 
-      const isBar = traceType === 'bar';
+      const isBar = pt.data.type === 'bar';
 
       if(isBar) {
         // --- BAR CHART: GHOST OVERLAY ---
@@ -1031,12 +1010,12 @@ main();
             target.style.transformBox = "fill-box";
             target.style.transformOrigin = "center";
             target.style.transition = "all 0.1s ease-out";
-            target.style.transform = "scale(2)"; // 2x Scale
+            target.style.transform = "scale(1.5)";
 
             // Outer Glow effect
             target.style.stroke = 'rgba(255,255,255,0.6)';
-            target.style.strokeWidth = '10px';
-            target.style.paintOrder = 'stroke';
+            target.style.strokeWidth = '10px'; // Broad stroke
+            target.style.paintOrder = 'stroke'; // Stroke BEHIND fill
             target.style.opacity = '1';
             target.style.cursor = 'pointer';
 
