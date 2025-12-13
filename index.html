@@ -1006,7 +1006,7 @@ main();
   // 用來記錄滑鼠位置的全域變數
   let lastMouse = {x: 0, y: 0};
   let lock = {key:null, t:0};
-  const LOCK_MS = 100; // 降低鎖定時間，讓反應更靈敏
+  const LOCK_MS = 60; // 降低鎖定時間，讓反應更靈敏
 
   function ensureCard(){
     let el=document.getElementById('customTooltipCard');
@@ -1085,29 +1085,28 @@ main();
 
         // ---------------------------------------------------------
         // 修正邏輯：處理堆疊柱狀圖 (Stacked Bar) 的滑鼠判定
-        // 當同一個 X 軸有多個點時 (e.points.length > 1)，
-        // 我們需要算出滑鼠高度 (Y) 落在哪個區塊內
         // ---------------------------------------------------------
         try{
-          // 只要是多點重疊 (stacked)，就進行高度計算
-          if(e.points.length > 1 && lastMouse.x !== 0){
-            const ya = e.points[0].yaxis;
+          // 只要有多個點 (堆疊) 或滑鼠位置有效，就嘗試計算精確的垂直位置
+          if(e.points.length >= 1 && lastMouse.x !== 0 && gd._fullLayout && gd._fullLayout.yaxis){
             const rect = gd.getBoundingClientRect();
+            const layout = gd._fullLayout;
+            const yAxis = layout.yaxis;
 
-            // 算出滑鼠在圖表繪圖區內的 Y 座標
-            // ya._offset 是 Plotly 內部的屬性，代表繪圖區上緣距離 div 上緣的像素
-            const offsetY = ya._offset || 0;
-            const py = (lastMouse.y - rect.top) - offsetY;
+            // 【關鍵修正】
+            // 使用 _fullLayout 中的 margin 計算真正的繪圖區頂部
+            // 這樣才能得到正確的「相對於軸」的像素值
+            const plotTop = rect.top + (layout.margin.t || 0);
+            const relativeY = lastMouse.y - plotTop;
 
-            // 將像素轉回 Y 軸數值 (Data Value)
-            const dy = ya.p2l(py);
+            // 將像素轉換回 Y 軸數值 (Data Value)
+            const dy = yAxis.p2l(relativeY);
 
             let chosen = null;
 
-            // 1. 精準命中檢查
+            // 1. 精準命中檢查：數值是否落在 bar 的範圍內
             for(const p of e.points){
-              // y0 是堆疊的底部數值 (Plotly 自動計算)
-              // p.y 是該區塊的高度
+              // p.y0 是堆疊底部 (Plotly計算), p.base 是基礎底部
               const y0 = (p.y0!==undefined) ? p.y0 : ((p.base!==undefined) ? p.base : 0);
               const val = p.y || 0;
               const y1 = y0 + val;
@@ -1115,8 +1114,8 @@ main();
               const lo = Math.min(y0, y1);
               const hi = Math.max(y0, y1);
 
-              // 放寬一點判定範圍 (+/- 數值誤差)
-              if(dy >= lo && dy <= hi){ chosen = p; break; }
+              // 容許些微誤差
+              if(dy >= lo - 0.5 && dy <= hi + 0.5){ chosen = p; break; }
             }
 
             // 2. 如果沒命中 (可能在邊緣)，找中心點最近的那個
@@ -1132,9 +1131,11 @@ main();
 
             if(chosen) pt = chosen;
           }
-        }catch(err){ console.error(err); } // 容錯，若計算失敗則維持預設 pt
+        }catch(err){
+          // console.error(err); // 發生錯誤時保持預設 pt
+        }
 
-        // 防止 Tooltip 閃爍：如果資料點沒變，且時間很短，就不更新
+        // 防止 Tooltip 閃爍
         const now=Date.now();
         const key=(pt.curveNumber!=null?pt.curveNumber:'')+':' + (pt.pointNumber!=null?pt.pointNumber:'');
         if(lock.key && key!==lock.key && (now-lock.t)<LOCK_MS){ return; }
@@ -1152,9 +1153,7 @@ main();
         valueEl.textContent=fmt(yval, kindFor(name));
 
         // 更新位置
-        const cx = lastMouse.x;
-        const cy = lastMouse.y;
-        place(cx,cy);
+        place(lastMouse.x, lastMouse.y);
 
       }catch(err){ console.error(err); }
     });
