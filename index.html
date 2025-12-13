@@ -179,6 +179,18 @@
   #customTooltipCard .dot{width:10px;height:10px;border-radius:999px;flex:0 0 10px;box-shadow:0 0 0 3px rgba(255,255,255,.08)}
   #customTooltipCard .name{font-size:13px;font-weight:650;opacity:.92;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   #customTooltipCard .value{margin-left:auto;font-size:16px;font-weight:850;white-space:nowrap}
+
+  /* Bar Chart Overlay (The White Box) */
+  #bar-overlay {
+    position: fixed;
+    pointer-events: none;
+    z-index: 9999;
+    border: 2px solid white;
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.3);
+    display: none;
+    border-radius: 1px;
+    transition: all 0.05s ease-out;
+  }
 </style>
 </head>
 <body>
@@ -310,6 +322,7 @@
   </div>
 </div>
 
+<div id="bar-overlay"></div>
 <div id="customTooltip" style="display:none"></div>
 
 <script>
@@ -658,7 +671,7 @@ function buildTraces(view){
 
   // 重要修改：強制使用 'closest' 模式來獲得精確的 Hover 事件
   // 並設置 hoverdistance 為 10，確保滑鼠必須非常接近才會觸發
-  const hoverConfig = { hovermode: "closest", hoverdistance: 20 };
+  const hoverConfig = { hovermode: "closest", hoverdistance: 10 };
 
   if(view==="subs"){
     return {
@@ -926,7 +939,14 @@ main();
 <script id="safeHoverEnhancer">
 (function(){
   let lastEl = null;
-  let saved = { stroke:'', strokeWidth:'', paintOrder:'', opacity:'', zIndex:'' };
+  let saved = { stroke:'', strokeWidth:'', paintOrder:'', opacity:'' };
+  let overlayDiv = document.getElementById('bar-overlay');
+
+  if(!overlayDiv) {
+    overlayDiv = document.createElement('div');
+    overlayDiv.id = 'bar-overlay';
+    document.body.appendChild(overlayDiv);
+  }
 
   function enhance(gd){
     if(!gd || gd.__enhancerBound || !gd.on) return;
@@ -935,64 +955,84 @@ main();
     gd.on('plotly_hover', function(e){
       if(!e || !e.points || !e.points.length) return;
       const pt = e.points[0];
-      const curveIdx = pt.curveNumber;
-      const pointIdx = pt.pointNumber;
 
-      // 核心修正：直接使用數據索引找到對應的 DOM 元素
-      // 這種方式完全無視 draglayer (透明遮擋層)
-
-      // Plotly 的 DOM 結構： .trace -> .points -> path.point
-      const traces = gd.querySelectorAll('.trace');
-      if(!traces[curveIdx]) return;
-
-      const points = traces[curveIdx].querySelectorAll('.point');
-      const target = points[pointIdx];
-
-      if(!target) return;
-      if(lastEl === target) return;
-
-      if(lastEl) reset(lastEl);
-
-      // Save state
-      lastEl = target;
-      saved.stroke = target.style.stroke;
-      saved.strokeWidth = target.style.strokeWidth;
-      saved.paintOrder = target.style.paintOrder;
-      saved.opacity = target.style.opacity;
-
-      // Apply Effect
+      // Determine type
       const isBar = pt.data.type === 'bar';
+      const isScatter = ['scatter','scattergl'].includes(pt.data.type);
 
       if(isBar) {
-        // Bar: White Border + Bring to Front
-        target.style.stroke = '#ffffff';
-        target.style.strokeWidth = '3px';
-        target.style.paintOrder = 'stroke';
-        target.style.opacity = '1';
+        // --- BAR CHART: CSS OVERLAY STRATEGY ---
+        // Find the DOM element using the point index
+        const curveIdx = pt.curveNumber;
+        const pointIdx = pt.pointNumber;
 
-        // 關鍵：將柱子移到父層最後面，確保邊框蓋在鄰居上面
-        if(target.parentNode) target.parentNode.appendChild(target);
-      } else {
-        // Scatter: Scale up + Glow
-        // 注意：Scatter 的 path 通常已經有 transform，我們不能隨便蓋掉
-        // 但我們可以加粗 stroke 來模擬發光
-        target.style.stroke = 'rgba(255,255,255,0.9)';
-        target.style.strokeWidth = '3px'; // 原本通常是 0 或 1
-        target.style.paintOrder = 'stroke';
+        // Selector logic specific to Plotly's structure
+        // .trace.bars -> .points -> path
+        const traces = gd.querySelectorAll('.trace.bars');
+        if(!traces[curveIdx]) return;
+
+        const points = traces[curveIdx].querySelectorAll('path.point');
+        const target = points[pointIdx];
+
+        if(target) {
+           // Get exact screen coordinates of the SVG element
+           // This works even with draglayer on top
+           const rect = target.getBoundingClientRect();
+
+           if(rect.width > 0 && rect.height > 0) {
+             overlayDiv.style.top = rect.top + 'px';
+             overlayDiv.style.left = rect.left + 'px';
+             overlayDiv.style.width = rect.width + 'px';
+             overlayDiv.style.height = rect.height + 'px';
+             overlayDiv.style.display = 'block';
+           }
+        }
+
+      } else if (isScatter) {
+        // --- SCATTER CHART: SVG STROKE STRATEGY ---
+        const curveIdx = pt.curveNumber;
+        const pointIdx = pt.pointNumber;
+
+        const traces = gd.querySelectorAll('.trace.scatter');
+        if(!traces || !traces[curveIdx]) return;
+
+        // Scatter points can be complex (paths or grouped).
+        // For 'scatter' with 'markers', usually it's path.point
+        const points = traces[curveIdx].querySelectorAll('.point');
+        const target = points[pointIdx];
+
+        if(target) {
+            if(lastEl !== target) {
+                if(lastEl) reset(lastEl);
+                lastEl = target;
+                saved.stroke = target.style.stroke;
+                saved.strokeWidth = target.style.strokeWidth;
+                saved.paintOrder = target.style.paintOrder;
+
+                target.style.stroke = 'rgba(255,255,255,0.95)';
+                target.style.strokeWidth = '3px';
+                target.style.paintOrder = 'stroke';
+            }
+        }
+        // Hide bar overlay if we moved to a scatter point
+        overlayDiv.style.display = 'none';
       }
     });
 
     gd.on('plotly_unhover', function(){
-      if(lastEl) reset(lastEl);
-      lastEl = null;
+      overlayDiv.style.display = 'none';
+      if(lastEl) {
+        reset(lastEl);
+        lastEl = null;
+      }
     });
   }
 
   function reset(el){
+    if(!el) return;
     el.style.stroke = saved.stroke;
     el.style.strokeWidth = saved.strokeWidth;
     el.style.paintOrder = saved.paintOrder;
-    el.style.opacity = saved.opacity;
   }
 
   function scan(){
