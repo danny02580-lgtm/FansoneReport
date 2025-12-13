@@ -182,20 +182,23 @@
   }
   #customTooltipCard .tt-title{font-weight:800;font-size:14px;opacity:1;margin-bottom:8px;letter-spacing:0}
   #customTooltipCard .tt-row{display:flex;align-items:center;gap:10px}
-  #customTooltipCard .dot{width:8px;height:8px;border-radius:999px;flex:0 0 8px;box-shadow:0 0 0 3px rgba(255,255,255,.1)}
-  #customTooltipCard .name{font-size:13px;font-weight:500;opacity:.8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  #customTooltipCard .value{margin-left:auto;font-size:15px;font-weight:700;white-space:nowrap; font-feature-settings: "tnum";}
+  #customTooltipCard .dot{width:10px;height:10px;border-radius:999px;flex:0 0 10px;box-shadow:0 0 0 3px rgba(255,255,255,.08)}
+  #customTooltipCard .name{font-size:13px;font-weight:650;opacity:.92;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #customTooltipCard .value{margin-left:auto;font-size:16px;font-weight:850;white-space:nowrap}
 
   /* GHOST OVERLAY for Bar Chart */
   #ghost-overlay {
     position: fixed;
-    pointer-events: none; /* Allows click-through */
+    pointer-events: none;
     z-index: 9999;
     border: 2px solid white;
     box-shadow: 0 0 4px rgba(0,0,0,0.3);
     display: none;
     border-radius: 2px;
     transition: all 0.08s ease-out;
+    /* 關鍵修正：預設把它踢到螢幕外面，防止左上角出現白點 */
+    top: -9999px;
+    left: -9999px;
   }
 </style>
 </head>
@@ -945,10 +948,9 @@ main();
 <script id="safeHoverEnhancer">
 (function(){
   let lastEl = null;
-  // Saved state to restore original styles
   let saved = { stroke:'', strokeWidth:'', paintOrder:'', opacity:'', cursor:'', transform:'', transition:'', transformBox:'', transformOrigin:'' };
-
   let ghostOverlay = document.getElementById('ghost-overlay');
+
   if(!ghostOverlay) {
     ghostOverlay = document.createElement('div');
     ghostOverlay.id = 'ghost-overlay';
@@ -976,7 +978,7 @@ main();
       const isBar = pt.data.type === 'bar';
 
       if(isBar) {
-        // ... Bar logic (Keep existing ghost overlay) ...
+        // --- BAR CHART: GHOST OVERLAY ---
         const rect = target.getBoundingClientRect();
         if(rect.width > 0 && rect.height > 0) {
            ghostOverlay.style.top = rect.top + 'px';
@@ -988,12 +990,14 @@ main();
       } else {
         // --- SCATTER CHART: SCALE + GLOW ---
         ghostOverlay.style.display = 'none';
+        ghostOverlay.style.top = '-9999px'; // Move off-screen
+        ghostOverlay.style.left = '-9999px';
 
         if(lastEl !== target) {
             if(lastEl) reset(lastEl);
             lastEl = target;
 
-            // Save original styles
+            // Save styles
             saved.stroke = target.style.stroke;
             saved.strokeWidth = target.style.strokeWidth;
             saved.paintOrder = target.style.paintOrder;
@@ -1003,21 +1007,18 @@ main();
             saved.transformBox = target.style.transformBox;
             saved.transformOrigin = target.style.transformOrigin;
 
-            // Apply Enhance Styles
-            // 1. Scale up from center
+            // Apply Transform & Glow
             target.style.transformBox = "fill-box";
             target.style.transformOrigin = "center";
-            target.style.transition = "all 0.1s ease-out"; // Smooth transition
+            target.style.transition = "all 0.1s ease-out";
             target.style.transform = "scale(1.5)";
 
-            // 2. Add White Glow/Border
             target.style.stroke = '#ffffff';
-            target.style.strokeWidth = '8px'; // Slightly thinner than 10px since we scaled up
+            target.style.strokeWidth = '8px';
             target.style.paintOrder = 'stroke';
             target.style.opacity = '1';
             target.style.cursor = 'pointer';
 
-            // 3. Bring to front (optional for scatter, but good for overlapping points)
             if(target.parentNode) target.parentNode.appendChild(target);
         }
       }
@@ -1025,6 +1026,9 @@ main();
 
     gd.on('plotly_unhover', function(){
       ghostOverlay.style.display = 'none';
+      ghostOverlay.style.top = '-9999px'; // Move off-screen
+      ghostOverlay.style.left = '-9999px';
+
       if(lastEl) {
         reset(lastEl);
         lastEl = null;
