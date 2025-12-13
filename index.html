@@ -22,7 +22,7 @@
   body{
     margin:0;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    font-feature-settings: "tnum"; font-variant-numeric: tabular-nums; /* 強制等寬數字 */
+    font-feature-settings: "tnum"; font-variant-numeric: tabular-nums;
     color:var(--text);
     background:
       radial-gradient(1200px 600px at 20% 10%, rgba(52,152,219,.15), transparent 60%),
@@ -101,11 +101,8 @@
   .tablesGrid{display:grid; grid-template-columns:1.3fr 1fr; gap:16px; margin-top:16px}
   @media(max-width:980px){.tablesGrid{grid-template-columns:1fr}}
 
-  /* --- 表格核心優化 --- */
   table{width:100%; border-collapse:separate; border-spacing:0; font-size:13px}
-  /* 關鍵修正：white-space: nowrap 強制不換行 */
   th,td{padding:12px 12px; border-bottom:1px solid rgba(255,255,255,.06); white-space:nowrap;}
-
   th{
     text-align:left; color:var(--muted); font-weight:600; font-size:11px; text-transform:uppercase; letter-spacing:0.5px;
     background:rgba(19,29,48,0.95); position:sticky; top:0; z-index:10;
@@ -118,26 +115,17 @@
   .sheetlink:hover{color:var(--text)}
   .pill{padding:4px 10px; border:1px solid var(--stroke); border-radius:999px; font-size:11px; font-weight:600; color:var(--muted); background:rgba(255,255,255,.02); white-space:nowrap;}
 
-  /* --- 手機版專屬優化 --- */
   @media(max-width:860px){
     .wrap{padding:16px 12px 60px;}
     .topbar{flex-direction:column; align-items:stretch; gap:12px; padding:14px;}
     .kpis{display:grid; grid-template-columns:1fr 1fr; gap:8px;}
     .kpi{min-width:0; padding:12px 14px;}
     .kpi .kvalue{font-size:20px;}
-
     .grid{grid-template-columns:1fr; gap:12px; margin-top:12px;}
     #chart{height:340px!important;}
-
     .tablesGrid{grid-template-columns:1fr; gap:12px;}
-
-    /* 表格手機版：字稍微小一點，間距緊湊一點，但絕對不換行 */
-    th, td{
-      padding:10px 8px; /* 緊湊間距 */
-      font-size:12px;
-    }
-
     .hd{gap:8px;} .hd h2{font-size:13px;}
+    th, td{padding:10px 8px; font-size:12px;}
     .check{padding:8px;}
   }
 
@@ -150,7 +138,6 @@
   .userseg .userseg-btn.active{background:rgba(255,255,255,.12); color:#fff; box-shadow:inset 0 0 0 1px rgba(255,255,255,0.1);}
   #prevTotalRevenue{display:none!important;}
 
-  /* Tooltip & Overlay */
   #customTooltipCard{
     position:fixed; z-index:99999; display:none; pointer-events:none;
     padding:12px 14px; border-radius:14px; background:rgba(15,23,42,0.92);
@@ -166,10 +153,15 @@
   /* GHOST OVERLAY */
   #ghost-overlay {
     position:fixed; pointer-events:none; z-index:9999;
-    background:transparent; border:2px solid white;
+    background:transparent;
+    border:2px solid white;
+    /* 預設方形 */
+    border-radius:2px;
     box-shadow:0 0 6px rgba(255,255,255,0.5);
-    display:none; transition:all 0.05s ease-out;
-    border-radius:2px; top:-9999px; left:-9999px;
+    display:none;
+    /* 增加變形過渡動畫 */
+    transition: top 0.08s ease-out, left 0.08s ease-out, width 0.08s ease-out, height 0.08s ease-out, border-radius 0.15s ease;
+    top:-9999px; left:-9999px;
   }
 
   .js-plotly-plot .hoverlayer{opacity:0!important; pointer-events:none!important;}
@@ -924,16 +916,21 @@ main();
 
 <script id="safeHoverEnhancer">
 (function(){
+  // HYBRID ENGINE:
+  // 1. Bar Chart -> Use HTML Overlay (Ghost)
+  // 2. Scatter Chart -> Use HTML Overlay (Halo) - NEW! This fixes z-index issues.
+
   let lastEl = null;
   let saved = { stroke:'', strokeWidth:'', paintOrder:'', opacity:'', cursor:'', transform:'', transition:'', transformBox:'', transformOrigin:'' };
-  let ghostOverlay = document.getElementById('ghost-overlay');
 
+  let ghostOverlay = document.getElementById('ghost-overlay');
   if(!ghostOverlay) {
     ghostOverlay = document.createElement('div');
     ghostOverlay.id = 'ghost-overlay';
     document.body.appendChild(ghostOverlay);
   }
 
+  // --- NEW LOGIC: Use Plotly curveNumber mapping instead of hit-testing ---
   function enhance(gd){
     if(!gd || gd.__enhancerBound || !gd.on) return;
     gd.__enhancerBound = true;
@@ -943,8 +940,10 @@ main();
       const pt = e.points[0];
       const curveIdx = pt.curveNumber;
       const pointIdx = pt.pointNumber;
+
       const traceType = gd.data[curveIdx].type || 'scatter';
 
+      // Calculate which visible trace index this corresponds to
       let target = null;
       let isBar = (traceType === 'bar');
 
@@ -952,8 +951,10 @@ main();
           let barTraceCount = 0;
           for(let i=0; i<curveIdx; i++){
              const t = gd.data[i];
-             if(t.type === 'bar' && t.visible !== false && t.visible !== 'legendonly') barTraceCount++;
-            }
+             if(t.type === 'bar' && t.visible !== false && t.visible !== 'legendonly'){
+                 barTraceCount++;
+             }
+          }
           const traces = gd.querySelectorAll('.barlayer .trace');
           const traceEl = traces[barTraceCount];
           if(traceEl) {
@@ -961,11 +962,14 @@ main();
              target = points[pointIdx];
           }
       } else {
+          // Scatter
           let scatterTraceCount = 0;
            for(let i=0; i<curveIdx; i++){
              const t = gd.data[i];
              const tType = t.type || 'scatter';
-             if((tType === 'scatter' || tType === 'scattergl') && t.visible !== false && t.visible !== 'legendonly') scatterTraceCount++;
+             if((tType === 'scatter' || tType === 'scattergl') && t.visible !== false && t.visible !== 'legendonly'){
+                 scatterTraceCount++;
+             }
           }
           const traces = gd.querySelectorAll('.scatterlayer .trace');
           const traceEl = traces[scatterTraceCount];
@@ -977,46 +981,36 @@ main();
 
       if(!target) return;
 
-      if(isBar) {
-        if(lastEl) { reset(lastEl); lastEl = null; }
-        const rect = target.getBoundingClientRect();
-        if(rect.width > 0 && rect.height > 0) {
-           ghostOverlay.style.top = rect.top + 'px';
-           ghostOverlay.style.left = rect.left + 'px';
+      // --- UNIFIED GHOST OVERLAY ---
+      // We use the HTML overlay for BOTH bar and scatter to guarantee visibility on top of SVG lines
+      if(lastEl) { reset(lastEl); lastEl = null; }
+
+      const rect = target.getBoundingClientRect();
+      if(rect.width > 0 && rect.height > 0) {
+         if(isBar) {
+           // BAR: Rectangular
            ghostOverlay.style.width = rect.width + 'px';
            ghostOverlay.style.height = rect.height + 'px';
+           ghostOverlay.style.top = rect.top + 'px';
+           ghostOverlay.style.left = rect.left + 'px';
            ghostOverlay.style.borderRadius = "2px";
-           ghostOverlay.style.display = 'block';
-        }
-      } else {
-        ghostOverlay.style.display = 'none';
-        ghostOverlay.style.top = '-9999px';
-        ghostOverlay.style.left = '-9999px';
-        if(lastEl !== target) {
-            if(lastEl) reset(lastEl);
-            lastEl = target;
-            saved.stroke = target.style.stroke;
-            saved.strokeWidth = target.style.strokeWidth;
-            saved.paintOrder = target.style.paintOrder;
-            saved.cursor = target.style.cursor;
-            saved.transform = target.style.transform;
-            saved.transition = target.style.transition;
-            saved.transformBox = target.style.transformBox;
-            saved.transformOrigin = target.style.transformOrigin;
+           ghostOverlay.style.boxShadow = "0 0 6px rgba(255,255,255,0.5)"; // Bar glow
+         } else {
+           // SCATTER: Circular Halo (Bigger)
+           // Make overlay 20px fixed or relative size
+           const size = 20;
+           const cx = rect.left + rect.width/2;
+           const cy = rect.top + rect.height/2;
 
-            target.style.transformBox = "fill-box";
-            target.style.transformOrigin = "center";
-            target.style.transition = "all 0.08s ease-out";
-            target.style.transform = "scale(2)";
-
-            target.style.stroke = 'rgba(255,255,255,0.7)';
-            target.style.strokeWidth = '12px';
-            target.style.paintOrder = 'stroke';
-            target.style.opacity = '1';
-            target.style.cursor = 'pointer';
-
-            if(target.parentNode) target.parentNode.appendChild(target);
-        }
+           ghostOverlay.style.width = size + 'px';
+           ghostOverlay.style.height = size + 'px';
+           ghostOverlay.style.top = (cy - size/2) + 'px';
+           ghostOverlay.style.left = (cx - size/2) + 'px';
+           ghostOverlay.style.borderRadius = "50%";
+           // Stronger glow for scatter
+           ghostOverlay.style.boxShadow = "0 0 0 4px rgba(255,255,255,0.3)";
+         }
+         ghostOverlay.style.display = 'block';
       }
     });
 
@@ -1027,15 +1021,12 @@ main();
   }
 
   function reset(el){
+    // Clean up if we ever used direct DOM manipulation
     if(!el) return;
     el.style.stroke = saved.stroke;
     el.style.strokeWidth = saved.strokeWidth;
     el.style.paintOrder = saved.paintOrder;
-    el.style.cursor = saved.cursor;
-    el.style.transform = saved.transform;
-    el.style.transition = saved.transition;
-    el.style.transformBox = saved.transformBox;
-    el.style.transformOrigin = saved.transformOrigin;
+    el.style.opacity = saved.opacity;
   }
 
   function scan(){
