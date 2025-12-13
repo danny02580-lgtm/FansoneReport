@@ -925,99 +925,62 @@ main();
 
 <script id="safeHoverEnhancer">
 (function(){
+  let lastHovered = null;
+  let originalStyle = { stroke: '', strokeWidth: '', paintOrder: '', opacity: '' };
+
   function enhance(gd){
-    if(!gd || gd.__safeHoverBound || !gd.on) return;
-    gd.__safeHoverBound = true;
-
-    let orig = {};
-
-    function remember(ti){
-      if(orig[ti]) return;
-      const tr = gd.data[ti] || {};
-      orig[ti] = {
-        marker: tr.marker ? JSON.parse(JSON.stringify(tr.marker)) : null,
-        mode: tr.mode,
-        type: tr.type
-      };
-    }
-
-    function restore(){
-      Object.keys(orig).forEach(k=>{
-        const ti = Number(k);
-        const o = orig[ti];
-        const currentTr = gd.data && gd.data[ti];
-        // Ensure type matches to avoid applying scatter styles to bar or vice versa if data changed
-        if(currentTr && currentTr.type === o.type){
-           try{
-             // Restore generic marker and mode
-             Plotly.restyle(gd, {'marker':[o.marker], 'mode':[o.mode]}, [ti]);
-           }catch(e){}
-        }
-      });
-      orig = {};
-    }
+    if(!gd || gd.__enhancerBound || !gd.on) return;
+    gd.__enhancerBound = true;
 
     gd.on('plotly_hover', function(e){
-      try{
-        if(!e || !e.points || !e.points.length) return;
-        const pt = e.points[0];
-        const ti = pt.curveNumber;
-        const tr = gd.data[ti] || {};
+      // 1. Try to find the exact element under the mouse
+      // This works for both Scatter points and Bar rectangles
+      const mouseX = e.event ? e.event.clientX : 0;
+      const mouseY = e.event ? e.event.clientY : 0;
+      if(!mouseX || !mouseY) return;
 
-        // 1. Scatter Logic
-        const isScatter = ['scatter','scattergl'].includes(tr.type) && String(tr.mode||'').includes('markers');
-        // 2. Bar Logic
-        const isBar = tr.type === 'bar';
+      const el = document.elementFromPoint(mouseX, mouseY);
+      if(!el || !el.classList.contains('point')) return;
 
-        if(!isScatter && !isBar) return;
+      // Avoid double processing
+      if(lastHovered === el) return;
 
-        remember(ti);
+      // If we jumped from one point to another directly
+      if(lastHovered) clearHover();
 
-        const n = (tr.x && tr.x.length) || (tr.y && tr.y.length) || 0;
-        const idx = pt.pointNumber;
+      // Save state
+      lastHovered = el;
+      originalStyle.stroke = el.style.stroke;
+      originalStyle.strokeWidth = el.style.strokeWidth;
+      originalStyle.paintOrder = el.style.paintOrder;
+      originalStyle.opacity = el.style.opacity;
 
-        // Prepare new marker object based on original
-        const marker = JSON.parse(JSON.stringify(tr.marker || {}));
-        marker.line = marker.line || {};
+      // Apply White Border Effect
+      el.style.stroke = '#ffffff';
+      el.style.strokeWidth = '3px';
+      el.style.opacity = '1';
+      el.style.paintOrder = 'stroke'; // ensure stroke is drawn on top of fill
 
-        if(isScatter) {
-            // Scatter: Increase size + White border
-            const base = (marker.size !== undefined) ? marker.size : 8;
-            const baseNum = (typeof base === 'number') ? base : 8;
-
-            // Construct size array
-            const sizeArr = Array(n).fill(baseNum);
-            // Highlight current
-            if(idx >= 0 && idx < n) sizeArr[idx] = Math.round(baseNum * 1.5);
-
-            marker.size = sizeArr;
-
-            // Construct border arrays
-            marker.line.width = Array(n).fill(0).map((_,i)=> i===idx ? 3 : 0);
-            marker.line.color = Array(n).fill('rgba(255,255,255,0)').map((_,i)=> i===idx ? 'rgba(255,255,255,1)' : 'rgba(255,255,255,0)');
-
-            // Ensure mode includes markers
-            const mode = (tr.mode || '').includes('markers') ? tr.mode : ((tr.mode ? tr.mode+'+' : '') + 'markers');
-            Plotly.restyle(gd, {'marker':[marker], 'mode':[mode]}, [ti]);
-        }
-        else if(isBar) {
-            // Bar: White border only (no size change)
-            // Note: We use a slightly thinner border (2px) or standard (3px) for bars?
-            // User asked for "more obvious", so 2px white on dark background is good.
-
-            marker.line.width = Array(n).fill(0).map((_,i)=> i===idx ? 2 : 0);
-            marker.line.color = Array(n).fill('rgba(255,255,255,0)').map((_,i)=> i===idx ? '#ffffff' : 'rgba(255,255,255,0)');
-
-            // Bar doesn't need mode update
-            Plotly.restyle(gd, {'marker':[marker]}, [ti]);
-        }
-
-      }catch(err){ console.error(err); }
+      // IMPORTANT: Move element to the end of parent to bring it to Z-index front
+      // This fixes the "thin line" issue on stacked bars
+      if(el.parentNode) {
+        el.parentNode.appendChild(el);
+      }
     });
 
     gd.on('plotly_unhover', function(){
-      try{ restore(); }catch(e){}
+      clearHover();
     });
+  }
+
+  function clearHover(){
+    if(lastHovered){
+      lastHovered.style.stroke = originalStyle.stroke;
+      lastHovered.style.strokeWidth = originalStyle.strokeWidth;
+      lastHovered.style.paintOrder = originalStyle.paintOrder;
+      lastHovered.style.opacity = originalStyle.opacity;
+      lastHovered = null;
+    }
   }
 
   function scan(){
@@ -1026,7 +989,7 @@ main();
 
   const obs = new MutationObserver(()=>scan());
   obs.observe(document.documentElement, {childList:true, subtree:true});
-  window.addEventListener('load', ()=>{ setTimeout(scan,200); setTimeout(scan,800); setTimeout(scan,1500); });
+  window.addEventListener('load', ()=>{ setTimeout(scan,500); setTimeout(scan,1500); });
 })();
 </script>
 
