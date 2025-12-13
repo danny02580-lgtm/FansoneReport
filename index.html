@@ -6,6 +6,8 @@
 <title>Fansone Report</title>
 <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
 <style>
+.hover-card{position:absolute;z-index:50;display:none;padding:16px 18px;border-radius:22px;background:rgba(10,12,18,0.62);border:1px solid rgba(255,255,255,0.10);box-shadow:0 18px 50px rgba(0,0,0,0.45);backdrop-filter: blur(10px);-webkit-backdrop-filter: blur(10px);}
+
   :root{
     --bg0:#0b1220; --bg1:#0f1a2e; --panel:rgba(255,255,255,.06); --stroke:rgba(255,255,255,.14);
     --text:#e5e7eb; --muted:#9ca3af;
@@ -1330,6 +1332,132 @@ main();
   obs.observe(document.documentElement,{childList:true,subtree:true});
   addEventListener('load', ()=>{ setTimeout(scan,600); setTimeout(scan,1600); setTimeout(scan,3200); });
 })();
+
+/* === Plan chart: single-segment hover card + highlight (no color shift) === */
+(function(){
+  const planDiv = document.getElementById('chart-plan');
+  if(!planDiv) return;
+
+  // Cache plan % by month (x are numbers like 6..11)
+  // We read from the traces already rendered: trace order must be 1M, 3M, 6M (bottom->top).
+  function getPlanSeries(){
+    const gd = planDiv;
+    const d = gd.data || [];
+    const out = {};
+    d.forEach(tr=>{
+      const nm = (tr.name||'').trim();
+      if(!nm) return;
+      out[nm] = { x: (tr.x||[]).map(Number), y: (tr.y||[]).map(Number) };
+    });
+    return out;
+  }
+
+  function idxOfX(series, x){
+    if(!series || !series.x) return -1;
+    const xx = Number(x);
+    for(let i=0;i<series.x.length;i++){
+      if(Number(series.x[i]) === xx) return i;
+    }
+    return -1;
+  }
+
+  function computeBase(seriesMap, name, x){
+    // stack order: 1M bottom, 3M middle, 6M top
+    const order = ['1M','3M','6M'];
+    const xi = idxOfX(seriesMap[name], x);
+    if(xi < 0) return 0;
+    let base = 0;
+    for(const nm of order){
+      if(nm === name) break;
+      if(seriesMap[nm]){
+        base += Number(seriesMap[nm].y[xi] || 0);
+      }
+    }
+    return base;
+  }
+
+  let seriesMap = null;
+
+  function showCardFromPoint(pt){
+    // pt: {x, y, curveNumber, pointNumber, data:{name}}
+    const x = Number(pt.x);
+    const name = (pt.data && pt.data.name) ? pt.data.name.trim() : '';
+    const y = Number(pt.y);
+
+    const card = document.getElementById('hoverCard');
+    if(!card) return;
+
+    // Build content
+    card.innerHTML = `
+      <div class="hc-top">${x}</div>
+      <div class="hc-row">
+        <span class="hc-dot" style="background:${pt.data.marker && pt.data.marker.color ? pt.data.marker.color : '#fff'}"></span>
+        <span class="hc-label">${name}</span>
+        <span class="hc-value">${(Math.round(y*10)/10).toFixed(1)}%</span>
+      </div>
+    `;
+
+    // Position near cursor using event (fallback center)
+    // Plotly gives lastEvent via gd._fullLayout._lastHover? We'll use bounding box and x location.
+    const bb = planDiv.getBoundingClientRect();
+    const px = (pt.event && pt.event.clientX) ? pt.event.clientX - bb.left : bb.width*0.5;
+    const py = (pt.event && pt.event.clientY) ? pt.event.clientY - bb.top : bb.height*0.5;
+
+    card.style.display = 'block';
+    card.style.left = Math.max(12, Math.min(bb.width-260, px + 16)) + 'px';
+    card.style.top  = Math.max(12, Math.min(bb.height-140, py - 12)) + 'px';
+
+    // Highlight segment with a shape (no Plotly hover styling)
+    if(!seriesMap) seriesMap = getPlanSeries();
+    const base = computeBase(seriesMap, name, x);
+    const y0 = base;
+    const y1 = base + y;
+
+    const shape = {
+      type:'rect',
+      xref:'x', yref:'y',
+      x0: x - 0.35, x1: x + 0.35,
+      y0: y0, y1: y1,
+      line: {color:'rgba(255,255,255,0.85)', width:2},
+      fillcolor:'rgba(255,255,255,0.06)',
+      layer:'above'
+    };
+
+    Plotly.relayout(planDiv, { shapes: [shape] });
+  }
+
+  function hideCard(){
+    const card = document.getElementById('hoverCard');
+    if(card) card.style.display = 'none';
+    Plotly.relayout(planDiv, { shapes: [] });
+  }
+
+  // Disable Plotly native hover labels/crosshair by setting hoverlabel transparent and hoverdistance tight.
+  try{
+    Plotly.relayout(planDiv, { hoverlabel: {bgcolor:'rgba(0,0,0,0)', bordercolor:'rgba(0,0,0,0)', font:{color:'rgba(0,0,0,0)'}}, hoverdistance: 8 });
+  }catch(e){}
+
+  planDiv.on('plotly_hover', function(e){
+    if(!e || !e.points || !e.points.length) return;
+    // Only show for the hovered segment (single point)
+    const pt = e.points[0];
+    pt.event = e.event; // keep for positioning
+    showCardFromPoint(pt);
+  });
+
+  planDiv.on('plotly_unhover', function(){
+    hideCard();
+  });
+
+  // Mobile: tap to show, tap outside to hide
+  planDiv.addEventListener('touchstart', function(){ /* keep plotly hover */ }, {passive:true});
+  document.addEventListener('touchstart', function(ev){
+    if(!planDiv.contains(ev.target)){
+      hideCard();
+    }
+  }, {passive:true});
+})();
+
 </script>
 
 </body>
