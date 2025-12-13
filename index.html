@@ -136,10 +136,18 @@
   tbody tr:nth-child(even) td{background:rgba(255,255,255,0.01)}
   tr:hover td{background:rgba(255,255,255,.06)!important; transition:background 0.1s}
 
-  /* --- Top Users 表格 --- */
+  /* --- Top Users 表格 (修正：調整寬度比例) --- */
   .fixed-table { table-layout: fixed; width: 100%; }
-  .fixed-table th:nth-child(1) { width: 32%; }
-  .fixed-table th:nth-child(2), .fixed-table th:nth-child(3), .fixed-table th:nth-child(4), .fixed-table th:nth-child(5) { width: 17%; }
+
+  /* 原本 32% 改為 28% (讓出 4%) */
+  .fixed-table th:nth-child(1) { width: 28%; }
+
+  /* 原本 17% 改為 18% (獲得 1%) -> Single $ 就有更多空間了 */
+  .fixed-table th:nth-child(2),
+  .fixed-table th:nth-child(3),
+  .fixed-table th:nth-child(4),
+  .fixed-table th:nth-child(5) { width: 18%; }
+
   .fixed-table td { overflow: hidden; text-overflow: ellipsis; }
 
   .sheetlink{color:var(--muted); border:1px solid var(--stroke); padding:7px 9px; border-radius:999px; background:rgba(255,255,255,.04)}
@@ -152,23 +160,22 @@
   @media(min-width:861px) {
     #real-t1.table-scroll-container { overflow-x: hidden; }
 
-    /* Monthly Table 在電腦端的優化 */
     #monthlyTable {
-        table-layout: auto; /* 讓瀏覽器自動分配寬度，不要硬性平分 */
+        table-layout: auto;
         width: 100%;
     }
     #monthlyTable th, #monthlyTable td {
-        /* 關鍵：縮小內距，省下大量空間給文字 */
         padding: 12px 6px;
-
-        /* 關鍵：拿掉省略號，確保文字完整 */
         white-space: nowrap;
         overflow: visible;
         text-overflow: clip;
-
-        /* 稍微縮小字體與字距，增加容納量 */
         font-size: 13px;
         letter-spacing: -0.2px;
+    }
+
+    /* 修正：電腦端 Top Users 表格也縮小 padding，確保三角形不被切 */
+    .fixed-table th, .fixed-table td {
+        padding: 12px 8px; /* 比預設 14px 小 */
     }
   }
 
@@ -184,9 +191,7 @@
     .tablesGrid{grid-template-columns:1fr; gap:16px;}
     .check{padding:12px;}
 
-    /* 手機端 Top Users 強制滑動，避免切字 */
     .fixed-table { min-width: 550px; }
-
     .fixed-table th, .fixed-table td { padding: 12px 8px; font-size: 12px; }
     .seg-btn { font-size: 13px; padding: 8px 0; }
   }
