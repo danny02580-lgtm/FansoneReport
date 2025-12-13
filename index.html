@@ -656,6 +656,10 @@ function buildTraces(view){
   const labelFont = {color:"rgba(229,231,235,.95)", size:12};
   const labelFontSmall = {color:"rgba(229,231,235,.95)", size:11};
 
+  // 重要修改：強制使用 'closest' 模式來獲得精確的 Hover 事件
+  // 並設置 hoverdistance 為 1，確保滑鼠必須非常接近才會觸發 (由自定義 Tooltip 處理寬容度)
+  const hoverConfig = { hovermode: "closest", hoverdistance: 1 };
+
   if(view==="subs"){
     return {
       traces: [
@@ -666,9 +670,9 @@ function buildTraces(view){
           text:oldY.map(v=>String(v)), textposition:"inside", insidetextanchor:"middle", textfont:labelFontSmall,
           customdata:xText, hovertemplate:"%{customdata}<br>Old: <b>%{y}</b><extra></extra>"},
       ],
-      layout: { barmode:"stack", xaxis, yaxis: yCommon },
+      layout: { ...hoverConfig, barmode:"stack", xaxis, yaxis: yCommon },
       defaults: ["s_new","s_old"],
-};
+    };
   }
   if(view==="mix"){
     return {
@@ -683,9 +687,9 @@ function buildTraces(view){
           text:p6.map(v=>v.toFixed(1)+"%"), textposition:"inside", textfont:labelFontSmall,
           customdata:xText, hovertemplate:"%{customdata}<br>6M: <b>%{y:.1f}%</b><extra></extra>"},
       ],
-      layout: { barmode:"stack", xaxis, yaxis: {...yCommon, range:[0,100], ticksuffix:"%"} },
+      layout: { ...hoverConfig, barmode:"stack", xaxis, yaxis: {...yCommon, range:[0,100], ticksuffix:"%"} },
       defaults: ["p_1","p_3","p_6"],
-};
+    };
   }
   if(view==="arpu"){
     return {
@@ -695,9 +699,9 @@ function buildTraces(view){
           text:arpu.map(v=> (v==null? "" : String(v))), textposition:"top center", textfont:labelFont,
           customdata:xText, hovertemplate:"%{customdata}<br>ARPU: <b>%{y}</b><extra></extra>"},
       ],
-      layout: { xaxis, yaxis: yCommon },
+      layout: { ...hoverConfig, xaxis, yaxis: yCommon },
       defaults: [],
-};
+    };
   }
   return {
     traces: [
@@ -714,9 +718,9 @@ function buildTraces(view){
         text:singleRev.map(v=>String(v)), textposition:"top center", textfont:labelFont,
         customdata:xText, hovertemplate:"%{customdata}<br>Single: <b>%{y}</b><extra></extra>"},
     ],
-    layout: { xaxis, yaxis: yCommon },
+    layout: { ...hoverConfig, xaxis, yaxis: yCommon },
     defaults: ["r_total","r_sub","r_single"],
-};
+    };
 }
 
 function layoutBase(){
@@ -727,7 +731,7 @@ function layoutBase(){
     margin:{l:56,r:40,t:22,b:46},
     bargap:0.35,
     legend:{orientation:"h", x:0, y:1.12, font:{color:"rgba(229,231,235,.9)"}},
-    hovermode:"x unified",
+    // 移除全域的 hovermode 設定，改由 buildTraces 個別控制
     hoverlabel:{bgcolor:"rgba(15,23,42,.95)", bordercolor:"rgba(255,255,255,.14)", font:{color:"#e5e7eb"}},
   };
 }
@@ -1084,32 +1088,41 @@ main();
 
         // --- 關鍵修正：使用 Bounding Box (bbox) 進行碰撞檢測 ---
         // 只有當有多個點 (Stacked) 且滑鼠有位置時才運算
-        if(e.points.length > 1 && lastMouse.y !== 0){
+        if(lastMouse.y !== 0){
           const graphRect = gd.getBoundingClientRect();
           // 計算滑鼠相對於圖表區塊的 Y 座標 (Pixel)
           const mouseY_rel = lastMouse.y - graphRect.top;
 
           // 找出「bbox 包含滑鼠 Y 座標」的那個點
           // bbox 格式: {y0: 上緣, y1: 下緣, ...} (注意：Plotly y0 可能是上面也可能是下面，視繪圖方向而定)
-          const hit = e.points.find(p => {
-            if(!p.bbox) return false;
-            // 確保 yMin 是較小值，yMax 是較大值
-            const yMin = Math.min(p.bbox.y0, p.bbox.y1);
-            const yMax = Math.max(p.bbox.y0, p.bbox.y1);
-            // 寬鬆判定 (+/- 1px 誤差)
-            return mouseY_rel >= (yMin - 1) && mouseY_rel <= (yMax + 1);
-          });
+
+          let hit = null;
+
+          // 如果 e.points 有多個（unified mode），從中找一個命中
+          if(e.points.length > 1) {
+            hit = e.points.find(p => {
+              if(!p.bbox) return false;
+              const yMin = Math.min(p.bbox.y0, p.bbox.y1);
+              const yMax = Math.max(p.bbox.y0, p.bbox.y1);
+              return mouseY_rel >= (yMin - 1) && mouseY_rel <= (yMax + 1);
+            });
+          }
+          // 如果 e.points 只有一個 (closest mode)，檢查它是否命中
+          else if(e.points.length === 1 && e.points[0].bbox) {
+              const p = e.points[0];
+              const yMin = Math.min(p.bbox.y0, p.bbox.y1);
+              const yMax = Math.max(p.bbox.y0, p.bbox.y1);
+              if(mouseY_rel >= (yMin - 1) && mouseY_rel <= (yMax + 1)) {
+                 hit = p;
+              }
+          }
 
           if(hit) {
-            pt = hit; // 命中！切換成該資料點
+            pt = hit;
           } else {
-            // 如果沒命中 (可能在縫隙)，找「中心點」離滑鼠最近的
-            pt = e.points.reduce((prev, curr) => {
-               if(!curr.bbox) return prev;
-               const currMid = (curr.bbox.y0 + curr.bbox.y1) / 2;
-               const prevMid = (prev.bbox.y0 + prev.bbox.y1) / 2;
-               return (Math.abs(mouseY_rel - currMid) < Math.abs(mouseY_rel - prevMid)) ? curr : prev;
-            });
+             // 如果完全沒命中任何 Bbox (滑鼠在空白處)，則隱藏並返回
+             card.style.display='none';
+             return;
           }
         }
         // -----------------------------------------------------
@@ -1149,14 +1162,11 @@ main();
     if(!gd || !gd.classList || (!gd.classList.contains('js-plotly-plot') && !gd.classList.contains('plotly-graph-div'))) return;
     if(!window.Plotly || !gd._fullLayout) return;
 
-    // 【修正】如果有 Bar (柱狀圖)，不要強制套用 closest 模式
-    // closest 模式會讓 Plotly 自動把非 hover 的柱子變半透明，導致看起來像顏色跑掉
-    const hasBar = gd.data && gd.data.some(t => t.type === 'bar');
-    if(hasBar) return;
-
+    // 這裡我們強制所有圖表使用 'closest' 模式，
+    // 即使是 Bar Chart，這樣才能區分堆疊圖中的不同區塊。
     const update = {
       hovermode: 'closest',
-      hoverdistance: 8,
+      hoverdistance: 10, // 稍微寬容一點，讓滑鼠不用 100% 對準像素
       spikedistance: -1
     };
 
