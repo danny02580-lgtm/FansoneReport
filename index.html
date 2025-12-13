@@ -1523,112 +1523,245 @@ main();
 </script>
 
 
-<script id="disableHoverForBars_and_TapTooltip">
+
+<script id="noColorShift_hoverless_customTip">
 (function(){
-  function getTitle(gd){
+  // --- helpers ---
+  function anyTraceNameMatches(gd, re){
+    try{
+      return (gd.data||[]).some(tr => tr && typeof tr.name==='string' && re.test(tr.name));
+    }catch(e){ return false; }
+  }
+  function titleText(gd){
     try{
       const t = (gd && gd._fullLayout && gd._fullLayout.title && (gd._fullLayout.title.text||gd._fullLayout.title)) || '';
       return String(t||'');
     }catch(e){ return ''; }
   }
   function isSensitive(gd){
-    const s = getTitle(gd).toLowerCase();
-    return s.includes('user') || s.includes('用戶') || s.includes('plan') || s.includes('方案');
+    const s = (titleText(gd)||'').toLowerCase();
+    const byTitle = (s.includes('user') || s.includes('用戶') || s.includes('plan') || s.includes('方案') || s.includes('方案比例'));
+    const byTrace =
+      anyTraceNameMatches(gd, /(new|old|新客|舊客|new users|old users)/i) ||
+      anyTraceNameMatches(gd, /(單月|三月|六月|1\s*month|3\s*month|6\s*month|1m|3m|6m)/i);
+    return byTitle || byTrace;
   }
 
-  // Simple reusable tooltip card (HTML overlay) for click/tap
+  // --- tooltip card overlay ---
   const tip = document.createElement('div');
   tip.style.position = 'fixed';
   tip.style.zIndex = '9999';
   tip.style.pointerEvents = 'none';
   tip.style.display = 'none';
   tip.style.padding = '14px 16px';
-  tip.style.borderRadius = '18px';
+  tip.style.borderRadius = '20px';
   tip.style.background = 'rgba(10,14,20,0.72)';
-  tip.style.backdropFilter = 'blur(10px)';
-  tip.style.webkitBackdropFilter = 'blur(10px)';
+  tip.style.backdropFilter = 'blur(12px)';
+  tip.style.webkitBackdropFilter = 'blur(12px)';
   tip.style.border = '1px solid rgba(255,255,255,0.10)';
-  tip.style.boxShadow = '0 18px 40px rgba(0,0,0,0.45)';
+  tip.style.boxShadow = '0 18px 44px rgba(0,0,0,0.5)';
   tip.style.color = '#e8eefc';
   tip.style.fontFamily = 'ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial';
   tip.style.fontSize = '16px';
   tip.style.lineHeight = '1.25';
-  tip.style.maxWidth = '320px';
-  document.addEventListener('DOMContentLoaded', ()=>document.body.appendChild(tip));
+  tip.style.maxWidth = '340px';
+  tip.style.transform = 'translate3d(0,0,0)';
 
-  function showTip(x,y,html){
+  function mountTip(){
+    if(!tip.parentNode) document.body.appendChild(tip);
+  }
+  function showTip(cx, cy, html){
+    mountTip();
     tip.innerHTML = html;
     tip.style.display = 'block';
-    // keep on-screen
+
     const pad = 14;
+    // temporarily place to measure
+    tip.style.left = '0px'; tip.style.top = '0px';
     const rect = tip.getBoundingClientRect();
-    let left = x + 14;
-    let top = y + 14;
-    if(left + rect.width + pad > window.innerWidth) left = x - rect.width - 14;
-    if(top + rect.height + pad > window.innerHeight) top = y - rect.height - 14;
+
+    let left = cx + 14, top = cy + 14;
+    if(left + rect.width + pad > window.innerWidth) left = cx - rect.width - 14;
+    if(top + rect.height + pad > window.innerHeight) top = cy - rect.height - 14;
+
     tip.style.left = Math.max(pad,left) + 'px';
-    tip.style.top = Math.max(pad,top) + 'px';
+    tip.style.top  = Math.max(pad,top) + 'px';
   }
   function hideTip(){ tip.style.display = 'none'; }
 
-  function formatRow(label, value){
-    return `<div style="display:flex;gap:12px;justify-content:space-between;align-items:baseline;margin-top:6px;">
-      <span style="opacity:.9">${label}</span>
-      <span style="font-weight:800;letter-spacing:.2px">${value}</span>
+  function row(label, value){
+    return `<div style="display:flex;gap:14px;justify-content:space-between;align-items:baseline;margin-top:8px;">
+      <span style="opacity:.88">${label}</span>
+      <span style="font-weight:900;letter-spacing:.2px">${value}</span>
     </div>`;
   }
 
-  function attach(gd){
-    if(!window.Plotly || !gd || !gd._fullLayout || gd.__noHoverPatched) return;
-    if(!isSensitive(gd)) return;
-    gd.__noHoverPatched = true;
+  // --- custom nearest-point picking (no Plotly hover = no color shift) ---
+  function getPlotOrigin(gd){
+    const r = gd.getBoundingClientRect();
+    const sz = gd._fullLayout && gd._fullLayout._size;
+    if(!sz) return null;
+    return { ox: r.left + sz.l, oy: r.top + sz.t, w: sz.w, h: sz.h };
+  }
 
-    // Disable hover (prevents Plotly hover highlight / color shift)
+  function pickNearest(gd, clientX, clientY){
+    const fl = gd._fullLayout;
+    if(!fl) return null;
+    const xa = fl.xaxis, ya = fl.yaxis;
+    if(!xa || !ya || typeof xa.d2p!=='function' || typeof ya.d2p!=='function') return null;
+
+    const origin = getPlotOrigin(gd);
+    if(!origin) return null;
+
+    // collect candidate points from traces
+    let best = null;
+    for(const tr of (gd.data||[])){
+      if(!tr) continue;
+      const xArr = tr.x || [];
+      const yArr = tr.y || [];
+      if(!xArr.length || !yArr.length) continue;
+
+      // find nearest x index by pixel distance in x
+      let bestIdx = 0;
+      let bestDx = Infinity;
+      for(let i=0;i<xArr.length;i++){
+        const px = origin.ox + xa.d2p(xArr[i]);
+        const dx = Math.abs(px - clientX);
+        if(dx < bestDx){
+          bestDx = dx; bestIdx = i;
+        }
+      }
+
+      const x = xArr[bestIdx];
+      const y = yArr[bestIdx];
+      if(y===null || y===undefined || Number.isNaN(y)) continue;
+
+      const px = origin.ox + xa.d2p(x);
+      const py = origin.oy + ya.d2p(y);
+
+      const d = Math.hypot(px - clientX, py - clientY);
+      if(best === null || d < best.d){
+        best = { tr, x, y, px, py, d };
+      }
+    }
+    return best;
+  }
+
+  function glowPoint(gd, picked){
+    // Subtle glow by drawing a temporary circle in an overlay SVG
+    const overlayId = '__glowOverlay';
+    const fl = gd._fullLayout;
+    const origin = getPlotOrigin(gd);
+    if(!origin || !fl) return;
+
+    let svg = gd.querySelector('svg#'+overlayId);
+    if(!svg){
+      svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
+      svg.setAttribute('id', overlayId);
+      svg.style.position = 'absolute';
+      svg.style.left = fl._size.l + 'px';
+      svg.style.top  = fl._size.t + 'px';
+      svg.style.width = fl._size.w + 'px';
+      svg.style.height= fl._size.h + 'px';
+      svg.style.pointerEvents = 'none';
+      svg.style.overflow = 'visible';
+      const plotDiv = gd.querySelector('.svg-container') || gd;
+      plotDiv.style.position = plotDiv.style.position || 'relative';
+      plotDiv.appendChild(svg);
+    }
+    while(svg.firstChild) svg.removeChild(svg.firstChild);
+
+    if(!picked) return;
+    // convert client px/py back to plot-local
+    const cx = picked.px - origin.ox;
+    const cy = picked.py - origin.oy;
+
+    const color = (picked.tr && picked.tr.marker && picked.tr.marker.color) || (picked.tr && picked.tr.line && picked.tr.line.color) || '#ffffff';
+
+    const c1 = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    c1.setAttribute('cx', cx); c1.setAttribute('cy', cy); c1.setAttribute('r', 10);
+    c1.setAttribute('fill', color);
+    c1.setAttribute('opacity','0.18');
+
+    const c2 = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    c2.setAttribute('cx', cx); c2.setAttribute('cy', cy); c2.setAttribute('r', 5.5);
+    c2.setAttribute('fill', color);
+    c2.setAttribute('opacity','0.55');
+
+    const c3 = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    c3.setAttribute('cx', cx); c3.setAttribute('cy', cy); c3.setAttribute('r', 3.2);
+    c3.setAttribute('fill', '#ffffff');
+    c3.setAttribute('opacity','0.85');
+
+    svg.appendChild(c1); svg.appendChild(c2); svg.appendChild(c3);
+  }
+
+  function buildHtml(picked){
+    const month = (picked.x!==undefined && picked.x!==null) ? picked.x : '';
+    const name  = (picked.tr && picked.tr.name) ? picked.tr.name : 'Value';
+    const val   = (picked.y!==undefined && picked.y!==null) ? picked.y : '';
+    const title = `<div style="font-weight:900;font-size:22px;margin-bottom:6px;">${month}</div>`;
+    return title + row(name, val);
+  }
+
+  function hardDisablePlotlyHover(gd){
     try{
       Plotly.relayout(gd, {hovermode:false, hoverdistance:0, spikedistance:-1}).catch(()=>{});
-      // Also ensure no hover template on traces
       const idx = gd.data.map((_,i)=>i);
       Plotly.restyle(gd, {hoverinfo:'skip', hovertemplate:null}, idx).catch(()=>{});
     }catch(e){}
+  }
 
-    // Tap/Click to show tooltip
-    gd.on('plotly_click', function(ev){
-      try{
-        const pt = ev && ev.points && ev.points[0];
-        if(!pt) return;
+  function attach(gd){
+    if(!window.Plotly || !gd || !gd._fullLayout || gd.__customTipPatched) return;
+    if(!isSensitive(gd)) return;
+    gd.__customTipPatched = true;
 
-        const month = (pt.x !== undefined ? pt.x : '');
-        const traceName = pt.data && pt.data.name ? pt.data.name : '';
-        const val = (pt.y !== undefined ? pt.y : '');
+    // Ensure Plotly won't apply hover styling (color shift)
+    hardDisablePlotlyHover(gd);
 
-        // If stacked bar, pt has pt.data.name to distinguish (New/Old etc.)
-        const title = `<div style="font-weight:900;font-size:22px;margin-bottom:6px;">${month}</div>`;
-        const main = formatRow(traceName || 'Value', val);
+    // Mouse move (desktop)
+    gd.addEventListener('mousemove', (e)=>{
+      const picked = pickNearest(gd, e.clientX, e.clientY);
+      if(!picked){ hideTip(); glowPoint(gd,null); return; }
+      glowPoint(gd, picked);
+      showTip(e.clientX, e.clientY, buildHtml(picked));
+    }, {passive:true});
 
-        const html = title + main;
-        const e = ev.event || {};
-        const cx = (e.clientX !== undefined) ? e.clientX : (window.innerWidth/2);
-        const cy = (e.clientY !== undefined) ? e.clientY : (window.innerHeight/2);
-        showTip(cx, cy, html);
-      }catch(e){}
+    gd.addEventListener('mouseleave', ()=>{
+      hideTip(); glowPoint(gd,null);
     });
 
-    // Hide on background tap/click
-    gd.addEventListener('click', function(e){
-      // if click didn't originate from a point, plotly_click won't fire; hide
-      // delay to allow point-click handler to run first
-      setTimeout(()=>{ 
-        const active = (gd._hoverdata && gd._hoverdata.length) || false;
-        if(!active) hideTip();
-      }, 0);
-    });
+    // Touch (mobile): touchmove behaves like hover; tap to "pin" for 1.5s
+    let pinnedUntil = 0;
+    gd.addEventListener('touchstart', (e)=>{
+      const t = e.touches && e.touches[0];
+      if(!t) return;
+      const picked = pickNearest(gd, t.clientX, t.clientY);
+      if(!picked) return;
+      pinnedUntil = Date.now() + 1500;
+      glowPoint(gd, picked);
+      showTip(t.clientX, t.clientY, buildHtml(picked));
+    }, {passive:true});
 
-    // Hide on escape
-    window.addEventListener('keydown', (e)=>{ if(e.key==='Escape') hideTip(); });
+    gd.addEventListener('touchmove', (e)=>{
+      const t = e.touches && e.touches[0];
+      if(!t) return;
+      if(Date.now() < pinnedUntil) return; // keep pinned briefly
+      const picked = pickNearest(gd, t.clientX, t.clientY);
+      if(!picked){ hideTip(); glowPoint(gd,null); return; }
+      glowPoint(gd, picked);
+      showTip(t.clientX, t.clientY, buildHtml(picked));
+    }, {passive:true});
 
-    // On touch scroll/resize, hide
-    window.addEventListener('scroll', hideTip, {passive:true});
-    window.addEventListener('resize', hideTip);
+    gd.addEventListener('touchend', ()=>{
+      // let it fade after short delay
+      setTimeout(()=>{ hideTip(); glowPoint(gd,null); }, 350);
+    }, {passive:true});
+
+    // On resize/scroll: hide
+    window.addEventListener('scroll', ()=>{ hideTip(); glowPoint(gd,null); }, {passive:true});
+    window.addEventListener('resize', ()=>{ hideTip(); glowPoint(gd,null); }, {passive:true});
   }
 
   function scan(){
@@ -1639,7 +1772,7 @@ main();
 
   const obs = new MutationObserver(()=>scan());
   obs.observe(document.documentElement,{childList:true,subtree:true});
-  window.addEventListener('load', ()=>{ setTimeout(scan,600); setTimeout(scan,1600); setTimeout(scan,3000); });
+  window.addEventListener('load', ()=>{ setTimeout(scan,600); setTimeout(scan,1600); setTimeout(scan,3200); });
 })();
 </script>
 
