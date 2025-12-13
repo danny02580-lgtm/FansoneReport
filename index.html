@@ -180,19 +180,16 @@
   #customTooltipCard .name{font-size:13px;font-weight:650;opacity:.92;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   #customTooltipCard .value{margin-left:auto;font-size:16px;font-weight:850;white-space:nowrap}
 
-  /* GHOST OVERLAY:
-     This div sits on top of everything (z-index 9999) to provide the white border.
-     It mimics the position of the bar exactly.
-  */
+  /* GHOST OVERLAY for Bar Chart */
   #ghost-overlay {
     position: fixed;
     pointer-events: none; /* Allows click-through */
     z-index: 9999;
     border: 2px solid white;
-    box-shadow: 0 0 2px rgba(0,0,0,0.5); /* Slight shadow to pop */
+    box-shadow: 0 0 2px rgba(0,0,0,0.5);
     display: none;
     border-radius: 2px;
-    transition: all 0.08s ease-out; /* Smooth follow */
+    transition: all 0.05s ease-out;
   }
 </style>
 </head>
@@ -943,12 +940,12 @@ main();
 (function(){
   let lastEl = null;
   let saved = { stroke:'', strokeWidth:'', paintOrder:'', opacity:'' };
-  let overlayDiv = document.getElementById('ghost-overlay');
+  let ghostOverlay = document.getElementById('ghost-overlay');
 
-  if(!overlayDiv) {
-    overlayDiv = document.createElement('div');
-    overlayDiv.id = 'ghost-overlay';
-    document.body.appendChild(overlayDiv);
+  if(!ghostOverlay) {
+    ghostOverlay = document.createElement('div');
+    ghostOverlay.id = 'ghost-overlay';
+    document.body.appendChild(ghostOverlay);
   }
 
   function enhance(gd){
@@ -962,35 +959,38 @@ main();
       const curveIdx = pt.curveNumber;
       const pointIdx = pt.pointNumber;
 
-      // Select the bar element from the DOM using its index
-      // Structure: .trace.bars (container) -> .points (group) -> path (element)
-      // Or for Scatter: .trace.scatter -> .points -> path
-
+      // CRITICAL FIX: Robustly find the trace element by index
+      // Plotly renders traces in order, but skips hidden ones.
+      // We query ALL traces and assume Plotly's curveNumber maps to DOM order.
       const traces = gd.querySelectorAll('.trace');
-      if(!traces[curveIdx]) return;
+      const traceEl = traces[curveIdx];
 
-      const points = traces[curveIdx].querySelectorAll('path.point');
+      if(!traceEl) return;
+
+      // Find the specific point (path)
+      const points = traceEl.querySelectorAll('.point');
       const target = points[pointIdx];
 
       if(!target) return;
 
+      // Identify chart type from data, not DOM class
       const isBar = pt.data.type === 'bar';
 
       if(isBar) {
-        // --- Bar Chart: Ghost Overlay ---
-        // Get the position of the underlying SVG element
+        // --- BAR CHART: GHOST OVERLAY ---
+        // Get precise screen coordinates of the SVG element
         const rect = target.getBoundingClientRect();
 
         if(rect.width > 0 && rect.height > 0) {
-           overlayDiv.style.display = 'block';
-           overlayDiv.style.top = rect.top + 'px';
-           overlayDiv.style.left = rect.left + 'px';
-           overlayDiv.style.width = rect.width + 'px';
-           overlayDiv.style.height = rect.height + 'px';
+           ghostOverlay.style.top = rect.top + 'px';
+           ghostOverlay.style.left = rect.left + 'px';
+           ghostOverlay.style.width = rect.width + 'px';
+           ghostOverlay.style.height = rect.height + 'px';
+           ghostOverlay.style.display = 'block';
         }
       } else {
-        // --- Scatter Chart: Scale + Stroke ---
-        overlayDiv.style.display = 'none'; // Hide overlay
+        // --- SCATTER CHART: SVG STROKE (GLOW) ---
+        ghostOverlay.style.display = 'none'; // Hide ghost if moving to scatter
 
         if(lastEl !== target) {
             if(lastEl) reset(lastEl);
@@ -999,7 +999,7 @@ main();
             saved.strokeWidth = target.style.strokeWidth;
             saved.paintOrder = target.style.paintOrder;
 
-            // Apply highlighting style
+            // Apply glow effect directly to SVG
             target.style.stroke = 'rgba(255,255,255,0.9)';
             target.style.strokeWidth = '3px';
             target.style.paintOrder = 'stroke';
@@ -1008,7 +1008,7 @@ main();
     });
 
     gd.on('plotly_unhover', function(){
-      overlayDiv.style.display = 'none';
+      ghostOverlay.style.display = 'none';
       if(lastEl) {
         reset(lastEl);
         lastEl = null;
@@ -1017,6 +1017,7 @@ main();
   }
 
   function reset(el){
+    if(!el) return;
     el.style.stroke = saved.stroke;
     el.style.strokeWidth = saved.strokeWidth;
     el.style.paintOrder = saved.paintOrder;
