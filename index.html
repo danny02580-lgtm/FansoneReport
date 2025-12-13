@@ -75,12 +75,11 @@
 
   .table-scroll-container {
     width: 100%;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    max-height: 400px;
+    /* 這裡拿掉 auto，盡量不滑動 */
+    overflow-x: hidden;
   }
 
-  /* --- 上方 Chart Controls (維持上一版修正) --- */
+  /* --- 上方 Chart Controls --- */
   .segmented {
     background: rgba(0,0,0,.2);
     border: 1px solid rgba(255,255,255,.1);
@@ -173,23 +172,30 @@
   tbody tr:nth-child(even) td{background:rgba(255,255,255,0.01)}
   tr:hover td{background:rgba(255,255,255,.06)!important; transition:background 0.1s}
 
-  /* --- 修正開始：Top Users 表格固定欄寬 --- */
+  /* --- 修正開始：Top Users 表格固定欄寬 & 不滑動 --- */
   .fixed-table {
-    table-layout: fixed; /* 強制固定寬度，不隨內容伸縮 */
-    min-width: 600px;    /* 手機上保持最小寬度，避免擠壓，允許橫向滑動 */
+    table-layout: fixed; /* 強制固定寬度 */
+    width: 100%;
+    /* 拿掉 min-width，確保不超出螢幕 */
   }
 
-  /* 第一欄 User ID：給予 30% 寬度 */
+  /* 第一欄 User ID：15% (30% 的一半) */
   .fixed-table th:nth-child(1) {
-    width: 30%;
+    width: 15%;
   }
 
-  /* 後面四欄 (Metric, Sub, Single, Total)：平均分配剩下的 70% (各 17.5%) */
+  /* 後面四欄：均分剩下的 85% (約 21.25% 每一欄) */
   .fixed-table th:nth-child(2),
   .fixed-table th:nth-child(3),
   .fixed-table th:nth-child(4),
   .fixed-table th:nth-child(5) {
-    width: 17.5%;
+    width: 21.25%;
+  }
+
+  /* 超出部分用 ... 省略 (防止破版) */
+  .fixed-table td {
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   /* --- 修正結束 --- */
 
@@ -213,9 +219,15 @@
     .tablesGrid{grid-template-columns:1fr; gap:16px;}
     .check{padding:12px;}
 
+    /* 手機版表格內距縮小，字體變小，以塞入 5 欄 */
+    .fixed-table th, .fixed-table td {
+        padding: 12px 4px; /* 極限內距 */
+        font-size: 11px;   /* 字體縮小 */
+    }
+
     /* 手機版按鈕微調 */
     .seg-btn {
-      font-size: 13px; /* 改回 Subs 後，字體可以稍微大一點點回來，比較好看 */
+      font-size: 13px;
       padding: 8px 0;
     }
   }
