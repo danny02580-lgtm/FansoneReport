@@ -771,15 +771,15 @@ function buildTraces(view){
   return {
     traces: [
       {name:"Total revenue", type:"scatter", mode:"lines+markers+text", x, y:totalRev,
-        line:{color:CTOT,width:3}, marker:{size:8,color:CTOT},
+        line:{color:CTOT,width:3}, marker:{size:8,color:CTOT,line:{width:0,color:CTOT}},
         text:totalRev.map(v=>String(v)), textposition:"top center", textfont:labelFont,
         customdata:xText, hovertemplate:"%{customdata}<br>Total: <b>%{y}</b><extra></extra>"},
       {name:"Sub revenue", type:"scatter", mode:"lines+markers+text", x, y:subRev,
-        line:{color:CREV,width:3}, marker:{size:8,color:CREV},
+        line:{color:CREV,width:3}, marker:{size:8,color:CREV,line:{width:0,color:CREV}},
         text:subRev.map(v=>String(v)), textposition:"top center", textfont:labelFont,
         customdata:xText, hovertemplate:"%{customdata}<br>Sub: <b>%{y}</b><extra></extra>"},
       {name:"Single revenue", type:"scatter", mode:"lines+markers+text", x, y:singleRev,
-        line:{color:CSIN,width:3,dash:"dot"}, marker:{size:8,color:CSIN},
+        line:{color:CSIN,width:3,dash:"dot"}, marker:{size:8,color:CSIN,line:{width:0,color:CSIN}},
         text:singleRev.map(v=>String(v)), textposition:"top center", textfont:labelFont,
         customdata:xText, hovertemplate:"%{customdata}<br>Single: <b>%{y}</b><extra></extra>"},
     ],
