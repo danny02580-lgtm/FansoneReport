@@ -189,15 +189,14 @@
   /* GHOST OVERLAY for Bar Chart */
   #ghost-overlay {
     position: fixed;
-    pointer-events: none; /* Allows click-through */
+    pointer-events: none;
     z-index: 9999;
     border: 2px solid white;
     box-shadow: 0 0 4px rgba(0,0,0,0.3);
     display: none;
     border-radius: 2px;
     transition: all 0.08s ease-out;
-    top: -9999px; /* Init off-screen */
-    left: -9999px;
+    top: -9999px; left: -9999px; /* Hide initially */
   }
 </style>
 </head>
@@ -957,37 +956,45 @@ main();
     document.body.appendChild(ghostOverlay);
   }
 
-  // --- NEW LOGIC: Use elementsFromPoint to pierce through the drag layer ---
   function enhance(gd){
     if(!gd || gd.__enhancerBound || !gd.on) return;
     gd.__enhancerBound = true;
 
-    // Listen to mousemove globally to get true screen coordinates
-    let globalX = 0, globalY = 0;
-    document.addEventListener('mousemove', function(e){
-        globalX = e.clientX;
-        globalY = e.clientY;
-    });
-
     gd.on('plotly_hover', function(e){
-      // Use the global mouse coordinates or the event's coordinates
-      const cx = (e.event && e.event.clientX) || globalX;
-      const cy = (e.event && e.event.clientY) || globalY;
+      if(!e || !e.points || !e.points.length) return;
+      const pt = e.points[0];
+      const curveIdx = pt.curveNumber;
+      const pointIdx = pt.pointNumber;
 
-      // Pierce through layers!
-      const els = document.elementsFromPoint(cx, cy);
-      // Find the first SVG element that is a point (scatter or bar)
-      // Usually Plotly points are <path class="point ...">
-      const target = els.find(el => el.classList && el.classList.contains('point'));
+      const traceType = gd.data[curveIdx].type;
+
+      // Calculate which visible trace index this corresponds to
+      // This fixes the issue when multiple chart types are mixed (e.g. Bar + Scatter)
+      let visibleTypeIdx = 0;
+      for(let i=0; i<curveIdx; i++){
+         const t = gd.data[i];
+         // Only count visible traces of the SAME type
+         if(t.type === traceType && t.visible !== false && t.visible !== 'legendonly'){
+             visibleTypeIdx++;
+         }
+      }
+
+      // Select the correct trace layer based on type
+      let layerSelector = '.trace';
+      if(traceType === 'bar') layerSelector = '.barlayer .trace';
+      else if(traceType === 'scatter') layerSelector = '.scatterlayer .trace';
+
+      const traces = gd.querySelectorAll(layerSelector);
+      const traceEl = traces[visibleTypeIdx];
+
+      if(!traceEl) return;
+
+      const points = traceEl.querySelectorAll('.point');
+      const target = points[pointIdx];
 
       if(!target) return;
 
-      // Determine if it's Bar or Scatter based on the event data (safer)
-      // or try to guess from DOM properties (less safe).
-      // We use the event data `pt` just to know the type.
-      if(!e.points || !e.points.length) return;
-      const pt = e.points[0];
-      const isBar = pt.data.type === 'bar';
+      const isBar = traceType === 'bar';
 
       if(isBar) {
         // --- BAR CHART: GHOST OVERLAY ---
@@ -1023,12 +1030,12 @@ main();
             target.style.transformBox = "fill-box";
             target.style.transformOrigin = "center";
             target.style.transition = "all 0.1s ease-out";
-            target.style.transform = "scale(1.5)";
+            target.style.transform = "scale(2)"; // 2x Scale
 
-            // Outer Glow effect using stroke (behind fill)
+            // Outer Glow effect
             target.style.stroke = 'rgba(255,255,255,0.6)';
-            target.style.strokeWidth = '6px'; // Thick stroke
-            target.style.paintOrder = 'stroke'; // Draw stroke BEHIND fill
+            target.style.strokeWidth = '10px';
+            target.style.paintOrder = 'stroke';
             target.style.opacity = '1';
             target.style.cursor = 'pointer';
 
