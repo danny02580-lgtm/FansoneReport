@@ -1333,132 +1333,176 @@ main();
   addEventListener('load', ()=>{ setTimeout(scan,600); setTimeout(scan,1600); setTimeout(scan,3200); });
 })();
 
-/* === Plan chart: single-segment hover card + highlight (no color shift) === */
+/* === Plan chart: deterministic segment hover (by cursor Y) + highlight (no color shift) === */
 (function(){
   const planDiv = document.getElementById('chart-plan');
   if(!planDiv) return;
 
-  // Cache plan % by month (x are numbers like 6..11)
-  // We read from the traces already rendered: trace order must be 1M, 3M, 6M (bottom->top).
-  function getPlanSeries(){
+  // Helper: safely read rendered traces
+  function getSeries(){
     const gd = planDiv;
     const d = gd.data || [];
-    const out = {};
+    const map = {};
     d.forEach(tr=>{
       const nm = (tr.name||'').trim();
       if(!nm) return;
-      out[nm] = { x: (tr.x||[]).map(Number), y: (tr.y||[]).map(Number) };
+      map[nm] = { x:(tr.x||[]).map(Number), y:(tr.y||[]).map(Number), color:(tr.marker&&tr.marker.color)||'#fff' };
     });
-    return out;
+    return map;
   }
-
-  function idxOfX(series, x){
-    if(!series || !series.x) return -1;
-    const xx = Number(x);
-    for(let i=0;i<series.x.length;i++){
-      if(Number(series.x[i]) === xx) return i;
-    }
-    return -1;
-  }
-
-  function computeBase(seriesMap, name, x){
-    // stack order: 1M bottom, 3M middle, 6M top
-    const order = ['1M','3M','6M'];
-    const xi = idxOfX(seriesMap[name], x);
-    if(xi < 0) return 0;
-    let base = 0;
-    for(const nm of order){
-      if(nm === name) break;
-      if(seriesMap[nm]){
-        base += Number(seriesMap[nm].y[xi] || 0);
-      }
-    }
-    return base;
-  }
-
+  const order = ['1M','3M','6M']; // stack bottom->top
   let seriesMap = null;
 
-  function showCardFromPoint(pt){
-    // pt: {x, y, curveNumber, pointNumber, data:{name}}
-    const x = Number(pt.x);
-    const name = (pt.data && pt.data.name) ? pt.data.name.trim() : '';
-    const y = Number(pt.y);
+  function nearestX(x){
+    // x are numeric months (6..11). Snap to nearest available.
+    const xs = (seriesMap[order[0]] && seriesMap[order[0]].x) ? seriesMap[order[0]].x : [];
+    if(!xs.length) return null;
+    let best = xs[0], bd = Math.abs(x - xs[0]);
+    for(let i=1;i<xs.length;i++){
+      const d = Math.abs(x - xs[i]);
+      if(d < bd){ bd=d; best=xs[i]; }
+    }
+    return best;
+  }
 
+  function segmentAt(xMonth, yPct){
+    // yPct in [0,100]. Return {name, value, base}
+    let base = 0;
+    for(const nm of order){
+      const s = seriesMap[nm];
+      if(!s) continue;
+      const idx = s.x.findIndex(v => Number(v) === Number(xMonth));
+      if(idx < 0) continue;
+      const v = Number(s.y[idx] || 0);
+      const y0 = base, y1 = base + v;
+      if(yPct >= y0 - 1e-6 && yPct <= y1 + 1e-6){
+        return { name:nm, value:v, base:y0, color:s.color };
+      }
+      base = y1;
+    }
+    return null;
+  }
+
+  function showCard(xMonth, seg, clientX, clientY){
     const card = document.getElementById('hoverCard');
     if(!card) return;
 
-    // Build content
     card.innerHTML = `
-      <div class="hc-top">${x}</div>
+      <div class="hc-top">${xMonth}</div>
       <div class="hc-row">
-        <span class="hc-dot" style="background:${pt.data.marker && pt.data.marker.color ? pt.data.marker.color : '#fff'}"></span>
-        <span class="hc-label">${name}</span>
-        <span class="hc-value">${(Math.round(y*10)/10).toFixed(1)}%</span>
+        <span class="hc-dot" style="background:${seg.color}"></span>
+        <span class="hc-label">${seg.name}</span>
+        <span class="hc-value">${(Math.round(seg.value*10)/10).toFixed(1)}%</span>
       </div>
     `;
 
-    // Position near cursor using event (fallback center)
-    // Plotly gives lastEvent via gd._fullLayout._lastHover? We'll use bounding box and x location.
     const bb = planDiv.getBoundingClientRect();
-    const px = (pt.event && pt.event.clientX) ? pt.event.clientX - bb.left : bb.width*0.5;
-    const py = (pt.event && pt.event.clientY) ? pt.event.clientY - bb.top : bb.height*0.5;
+    const px = (clientX != null) ? (clientX - bb.left) : bb.width*0.5;
+    const py = (clientY != null) ? (clientY - bb.top) : bb.height*0.5;
 
     card.style.display = 'block';
     card.style.left = Math.max(12, Math.min(bb.width-260, px + 16)) + 'px';
-    card.style.top  = Math.max(12, Math.min(bb.height-140, py - 12)) + 'px';
-
-    // Highlight segment with a shape (no Plotly hover styling)
-    if(!seriesMap) seriesMap = getPlanSeries();
-    const base = computeBase(seriesMap, name, x);
-    const y0 = base;
-    const y1 = base + y;
+    card.style.top  = Math.max(12, Math.min(bb.height-140, py - 18)) + 'px';
 
     const shape = {
       type:'rect',
       xref:'x', yref:'y',
-      x0: x - 0.35, x1: x + 0.35,
-      y0: y0, y1: y1,
-      line: {color:'rgba(255,255,255,0.85)', width:2},
+      x0: xMonth - 0.35, x1: xMonth + 0.35,
+      y0: seg.base, y1: seg.base + seg.value,
+      line: {color:'rgba(255,255,255,0.90)', width:2},
       fillcolor:'rgba(255,255,255,0.06)',
       layer:'above'
     };
-
-    Plotly.relayout(planDiv, { shapes: [shape] });
+    Plotly.relayout(planDiv, { shapes:[shape] });
   }
 
   function hideCard(){
     const card = document.getElementById('hoverCard');
     if(card) card.style.display = 'none';
-    Plotly.relayout(planDiv, { shapes: [] });
+    Plotly.relayout(planDiv, { shapes:[] });
   }
 
-  // Disable Plotly native hover labels/crosshair by setting hoverlabel transparent and hoverdistance tight.
-  try{
-    Plotly.relayout(planDiv, { hoverlabel: {bgcolor:'rgba(0,0,0,0)', bordercolor:'rgba(0,0,0,0)', font:{color:'rgba(0,0,0,0)'}}, hoverdistance: 8 });
-  }catch(e){}
+  // Disable Plotly default hover (we do our own)
+  function disableNativeHover(){
+    try{
+      Plotly.relayout(planDiv, { hovermode:false, hoverdistance:0 });
+    }catch(e){}
+  }
 
-  planDiv.on('plotly_hover', function(e){
-    if(!e || !e.points || !e.points.length) return;
-    // Only show for the hovered segment (single point)
-    const pt = e.points[0];
-    pt.event = e.event; // keep for positioning
-    showCardFromPoint(pt);
-  });
+  // Convert pixel -> data coords using Plotly axis transforms
+  function pixelToData(clientX, clientY){
+    const gd = planDiv;
+    const fl = gd._fullLayout;
+    if(!fl || !fl.xaxis || !fl.yaxis) return null;
+    const bb = planDiv.getBoundingClientRect();
+    const xpx = clientX - bb.left;
+    const ypx = clientY - bb.top;
 
-  planDiv.on('plotly_unhover', function(){
-    hideCard();
-  });
+    // plot area origin offsets
+    const xa = fl.xaxis;
+    const ya = fl.yaxis;
+    // Convert to plot coordinates (relative to plot area)
+    const plotX = xpx - fl._size.l;
+    const plotY = ypx - fl._size.t;
+    if(plotX < 0 || plotY < 0 || plotX > fl._size.w || plotY > fl._size.h) return null;
 
-  // Mobile: tap to show, tap outside to hide
-  planDiv.addEventListener('touchstart', function(){ /* keep plotly hover */ }, {passive:true});
-  document.addEventListener('touchstart', function(ev){
-    if(!planDiv.contains(ev.target)){
-      hideCard();
+    const xVal = xa.p2c ? xa.p2c(plotX) : null;
+    const yVal = ya.p2c ? ya.p2c(plotY) : null; // yVal in data units
+    return { x:xVal, y:yVal, bb };
+  }
+
+  let raf = null;
+  let lastKey = '';
+  function onMove(clientX, clientY){
+    if(!seriesMap) seriesMap = getSeries();
+    const d = pixelToData(clientX, clientY);
+    if(!d) { hideCard(); return; }
+
+    const xMonth = nearestX(d.x);
+    if(xMonth == null) { hideCard(); return; }
+
+    const yPct = Math.max(0, Math.min(100, Number(d.y)));
+    const seg = segmentAt(xMonth, yPct);
+    if(!seg){ hideCard(); return; }
+
+    const key = xMonth + '|' + seg.name;
+    if(key === lastKey) {
+      // keep card position responsive
+      showCard(xMonth, seg, clientX, clientY);
+      return;
     }
-  }, {passive:true});
-})();
+    lastKey = key;
+    showCard(xMonth, seg, clientX, clientY);
+  }
 
-</script>
+  function scheduleMove(ev){
+    const cx = ev.clientX, cy = ev.clientY;
+    if(raf) cancelAnimationFrame(raf);
+    raf = requestAnimationFrame(()=>onMove(cx, cy));
+  }
+
+  planDiv.addEventListener('mousemove', scheduleMove, {passive:true});
+  planDiv.addEventListener('mouseleave', ()=>{ lastKey=''; hideCard(); }, {passive:true});
+
+  // Mobile: tap/drag to update
+  planDiv.addEventListener('touchstart', (ev)=>{
+    const t = ev.touches && ev.touches[0]; if(!t) return;
+    onMove(t.clientX, t.clientY);
+  }, {passive:true});
+  planDiv.addEventListener('touchmove', (ev)=>{
+    const t = ev.touches && ev.touches[0]; if(!t) return;
+    onMove(t.clientX, t.clientY);
+  }, {passive:true});
+  document.addEventListener('touchstart', (ev)=>{
+    if(!planDiv.contains(ev.target)){ lastKey=''; hideCard(); }
+  }, {passive:true});
+
+  // Run once after plot renders
+  setTimeout(()=>{
+    disableNativeHover();
+    seriesMap = getSeries();
+  }, 400);
+})();</script>
 
 </body>
 </html>
