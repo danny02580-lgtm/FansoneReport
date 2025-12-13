@@ -159,8 +159,7 @@
     box-shadow: 0 0 6px rgba(0,0,0,0.5);
     display: none; transition: all 0.05s ease-out;
     border-radius: 2px;
-    /* Move off-screen initially */
-    top: -9999px; left: -9999px;
+    top: -9999px; left: -9999px; /* Init off-screen */
   }
 
   /* Plotly Fixes */
@@ -306,7 +305,6 @@ const SUB_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQiAPNDCD7q
 const SINGLE_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQiAPNDCD7qn6atO4VB6Ei63AacDK00AMKM16hK8c-wVWFadPPOj-P8olYQ-ofMFwy0maGU1A4CBneW/pub?gid=1226262547&single=true&output=csv";
 
 function el(id){ return document.getElementById(id); }
-// Safe setter
 function setText(id, txt){
   const e=document.getElementById(id);
   if(e) e.textContent=txt;
@@ -650,7 +648,6 @@ function buildTraces(view){
   const labelFont = {color:"rgba(229,231,235,.95)", size:12};
   const labelFontSmall = {color:"rgba(229,231,235,.95)", size:11};
 
-  // 核心修正：強制 closest 模式
   const hoverConfig = { hovermode: "closest", hoverdistance: 20 };
 
   if(view==="subs"){
@@ -933,89 +930,79 @@ main();
     gd.__enhancerBound = true;
 
     gd.on('plotly_hover', function(e){
-      if(!e || !e.points || !e.points.length) return;
-      const pt = e.points[0];
-      const curveIdx = pt.curveNumber;
-      const pointIdx = pt.pointNumber;
+      try{
+        if(!e || !e.points || !e.points.length) return;
+        const pt = e.points[0];
+        const curveIdx = pt.curveNumber;
+        const pointIdx = pt.pointNumber;
 
-      const traceType = gd.data[curveIdx].type || 'scatter'; // Default
+        // 核心修復：使用最穩定的 Class Selector 抓取 DOM
+        const traceEl = gd.querySelector('.trace.trace_' + curveIdx);
+        if(!traceEl) return;
 
-      // Calculate DOM index by counting visible traces of SAME type
-      let visibleTypeIdx = 0;
-      for(let i=0; i<curveIdx; i++){
-         const t = gd.data[i];
-         const tType = t.type || 'scatter';
-         if(tType === traceType && t.visible !== false && t.visible !== 'legendonly'){
-             visibleTypeIdx++;
-         }
-      }
+        const points = traceEl.querySelectorAll('.point');
+        const target = points[pointIdx];
+        if(!target) return;
 
-      let layerSelector = '.trace';
-      if(traceType === 'bar') layerSelector = '.barlayer .trace';
-      else layerSelector = '.scatterlayer .trace';
+        const isBar = pt.data.type === 'bar';
 
-      const traces = gd.querySelectorAll(layerSelector);
-      const traceEl = traces[visibleTypeIdx];
+        if(isBar) {
+          // --- Bar: Ghost Overlay ---
+          if(lastEl) { reset(lastEl); lastEl = null; }
 
-      if(!traceEl) return;
+          const rect = target.getBoundingClientRect();
+          if(rect.width > 0 && rect.height > 0) {
+             ghostOverlay.style.top = rect.top + 'px';
+             ghostOverlay.style.left = rect.left + 'px';
+             ghostOverlay.style.width = rect.width + 'px';
+             ghostOverlay.style.height = rect.height + 'px';
+             ghostOverlay.style.display = 'block';
+          }
+        } else {
+          // --- Scatter: Scale + Glow ---
+          ghostOverlay.style.display = 'none';
 
-      const points = traceEl.querySelectorAll('.point');
-      const target = points[pointIdx];
+          if(lastEl !== target) {
+              if(lastEl) reset(lastEl);
+              lastEl = target;
 
-      if(!target) return;
+              saved.stroke = target.style.stroke;
+              saved.strokeWidth = target.style.strokeWidth;
+              saved.paintOrder = target.style.paintOrder;
+              saved.cursor = target.style.cursor;
+              saved.transform = target.style.transform;
+              saved.transition = target.style.transition;
+              saved.transformBox = target.style.transformBox;
+              saved.transformOrigin = target.style.transformOrigin;
 
-      const isBar = traceType === 'bar';
+              // 放大 + 發光
+              target.style.transformBox = "fill-box";
+              target.style.transformOrigin = "center";
+              target.style.transition = "all 0.08s ease-out";
+              target.style.transform = "scale(2.5)"; // 2.5倍放大，確保夠明顯
 
-      if(isBar) {
-        // BAR: GHOST OVERLAY
-        if(lastEl) { reset(lastEl); lastEl = null; }
+              target.style.stroke = 'rgba(255,255,255,0.7)'; // 半透明白光
+              target.style.strokeWidth = '12px'; // 粗邊框作為光暈
+              target.style.paintOrder = 'stroke'; // 邊框畫在填充後面，不遮擋顏色
+              target.style.opacity = '1';
+              target.style.cursor = 'pointer';
 
-        const rect = target.getBoundingClientRect();
-        if(rect.width > 0 && rect.height > 0) {
-           ghostOverlay.style.top = rect.top + 'px';
-           ghostOverlay.style.left = rect.left + 'px';
-           ghostOverlay.style.width = rect.width + 'px';
-           ghostOverlay.style.height = rect.height + 'px';
-           ghostOverlay.style.display = 'block';
+              // 強制置頂
+              if(target.parentNode) target.parentNode.appendChild(target);
+          }
         }
-      } else {
-        // SCATTER: DIRECT SVG TRANSFORM (SCALE + GLOW)
-        ghostOverlay.style.display = 'none';
-
-        if(lastEl !== target) {
-            if(lastEl) reset(lastEl);
-            lastEl = target;
-
-            // Save
-            saved.stroke = target.style.stroke;
-            saved.strokeWidth = target.style.strokeWidth;
-            saved.paintOrder = target.style.paintOrder;
-            saved.cursor = target.style.cursor;
-            saved.transform = target.style.transform;
-            saved.transition = target.style.transition;
-            saved.transformBox = target.style.transformBox;
-            saved.transformOrigin = target.style.transformOrigin;
-
-            // Apply
-            target.style.transformBox = "fill-box";
-            target.style.transformOrigin = "center";
-            target.style.transition = "all 0.08s ease-out";
-            target.style.transform = "scale(2.5)"; // Aggressive Scale
-
-            target.style.stroke = 'rgba(255,255,255,0.7)';
-            target.style.strokeWidth = '6px';
-            target.style.paintOrder = 'stroke';
-            target.style.opacity = '1';
-            target.style.cursor = 'pointer';
-
-            if(target.parentNode) target.parentNode.appendChild(target);
-        }
-      }
+      }catch(err){ console.error(err); }
     });
 
     gd.on('plotly_unhover', function(){
       ghostOverlay.style.display = 'none';
-      if(lastEl) { reset(lastEl); lastEl = null; }
+      ghostOverlay.style.top = '-9999px';
+      ghostOverlay.style.left = '-9999px';
+
+      if(lastEl) {
+        reset(lastEl);
+        lastEl = null;
+      }
     });
   }
 
@@ -1104,19 +1091,19 @@ main();
     if(!gd||gd.__cardBound||!gd.on) return;
     gd.__cardBound=true;
 
-    // 1. 全域監聽滑鼠，隨時更新座標
+    // Global mouse tracking
     gd.addEventListener('mousemove', (ev)=>{
       lastMouse.x=ev.clientX;
       lastMouse.y=ev.clientY;
     }, {passive:true});
 
-    // 2. 避免閃爍，加入延遲隱藏
+    // Prevent flicker
     let hideTimer = null;
     gd.on('plotly_unhover', function(){
         hideTimer = setTimeout(() => { card.style.display='none'; }, 50);
     });
 
-    // 2. Plotly Hover 事件
+    // Hover event
     gd.on('plotly_hover', function(e){
       try{
         if(hideTimer) clearTimeout(hideTimer);
@@ -1155,7 +1142,7 @@ main();
     if(!gd || !gd.classList || (!gd.classList.contains('js-plotly-plot') && !gd.classList.contains('plotly-graph-div'))) return;
     if(!window.Plotly || !gd._fullLayout) return;
 
-    // 強制 closest 模式
+    // Enforce closest hover
     const update = {
       hovermode: 'closest',
       hoverdistance: 20,
