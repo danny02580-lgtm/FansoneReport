@@ -1003,9 +1003,10 @@ main();
 
 <script id="customTooltipCardScriptV2">
 (function(){
-  let lastMouse = {x: null, y: null};
+  // 用來記錄滑鼠位置的全域變數
+  let lastMouse = {x: 0, y: 0};
   let lock = {key:null, t:0};
-  const LOCK_MS = 140;
+  const LOCK_MS = 100; // 降低鎖定時間，讓反應更靈敏
 
   function ensureCard(){
     let el=document.getElementById('customTooltipCard');
@@ -1047,23 +1048,33 @@ main();
     return n.toLocaleString(undefined,{maximumFractionDigits:1});
   }
   function place(x,y){
-    const pad=10;
+    const pad=12;
     if(typeof x!=='number'||typeof y!=='number') return;
     card.style.display='block';
+
+    // 邊界檢查，避免 Tooltip 超出螢幕
     const rect=card.getBoundingClientRect();
-    let px=x+14, py=y+14;
-    const vw=window.innerWidth, vh=window.innerHeight;
-    if(px+rect.width+pad>vw) px=x-rect.width-14;
-    if(py+rect.height+pad>vh) py=y-rect.height-14;
-    card.style.left=Math.max(8,px)+'px';
-    card.style.top =Math.max(8,py)+'px';
+    const vw=window.innerWidth;
+    const vh=window.innerHeight;
+
+    let px=x+16, py=y+16;
+    if(px+rect.width+pad>vw) px=x-rect.width-16;
+    if(py+rect.height+pad>vh) py=y-rect.height-16;
+
+    card.style.left=Math.max(4,px)+'px';
+    card.style.top =Math.max(4,py)+'px';
   }
 
   function bind(gd){
     if(!gd||gd.__cardBound||!gd.on) return;
     gd.__cardBound=true;
 
-    gd.addEventListener('mousemove', (ev)=>{ lastMouse.x=ev.clientX; lastMouse.y=ev.clientY; }, {passive:true});
+    // 監聽滑鼠移動，隨時更新座標
+    gd.addEventListener('mousemove', (ev)=>{
+      lastMouse.x=ev.clientX;
+      lastMouse.y=ev.clientY;
+    }, {passive:true});
+
     gd.addEventListener('mouseleave', ()=>{ card.style.display='none'; }, {passive:true});
 
     gd.on('plotly_hover', function(e){
@@ -1071,58 +1082,85 @@ main();
         if(!e||!e.points||!e.points.length) return;
 
         let pt=e.points[0];
-        // 修正堆疊柱狀圖的選取邏輯
+
+        // ---------------------------------------------------------
+        // 修正邏輯：處理堆疊柱狀圖 (Stacked Bar) 的滑鼠判定
+        // 當同一個 X 軸有多個點時 (e.points.length > 1)，
+        // 我們需要算出滑鼠高度 (Y) 落在哪個區塊內
+        // ---------------------------------------------------------
         try{
-          const isPlan = gd && gd._fullLayout && gd._fullLayout.yaxis && gd._fullLayout.yaxis.range && gd._fullLayout.yaxis.range[1]===100
-            && gd._fullData && gd._fullData.length===3 && ['1M','3M','6M'].every(n=>gd._fullData.some(t=>t.name===n));
+          // 只要是多點重疊 (stacked)，就進行高度計算
+          if(e.points.length > 1 && lastMouse.x !== 0){
+            const ya = e.points[0].yaxis;
+            const rect = gd.getBoundingClientRect();
 
-          // 【修正】這裡原本寫 lastMove，修正為 lastMouse
-          if(isPlan && e.points && e.points.length>1 && lastMouse){
-            const ya=e.points[0].yaxis;
-            const rect=gd.getBoundingClientRect();
-            const py=(lastMouse.y-rect.top) - ya._offset;
-            const dy=ya.p2l(py);
-            let chosen=null;
+            // 算出滑鼠在圖表繪圖區內的 Y 座標
+            // ya._offset 是 Plotly 內部的屬性，代表繪圖區上緣距離 div 上緣的像素
+            const offsetY = ya._offset || 0;
+            const py = (lastMouse.y - rect.top) - offsetY;
+
+            // 將像素轉回 Y 軸數值 (Data Value)
+            const dy = ya.p2l(py);
+
+            let chosen = null;
+
+            // 1. 精準命中檢查
             for(const p of e.points){
-              const y0=(p.y0!=null)?p.y0:((p.base!=null)?p.base:0);
-              const y1=y0 + (p.y||0);
-              const lo=Math.min(y0,y1), hi=Math.max(y0,y1);
-              if(dy>=lo-1e-6 && dy<=hi+1e-6){ chosen=p; break; }
-            }
-            if(!chosen){
-              chosen=e.points.reduce((best,p)=>{
-                const y0=(p.y0!=null)?p.y0:((p.base!=null)?p.base:0);
-                const mid=y0 + (p.y||0)/2;
-                const db=Math.abs(dy-mid);
-                if(!best) return {p,db};
-                return db<best.db?{p,db}:best;
-              },null).p;
-            }
-            pt=chosen||pt;
-          }
-        }catch(err){}
+              // y0 是堆疊的底部數值 (Plotly 自動計算)
+              // p.y 是該區塊的高度
+              const y0 = (p.y0!==undefined) ? p.y0 : ((p.base!==undefined) ? p.base : 0);
+              const val = p.y || 0;
+              const y1 = y0 + val;
 
+              const lo = Math.min(y0, y1);
+              const hi = Math.max(y0, y1);
+
+              // 放寬一點判定範圍 (+/- 數值誤差)
+              if(dy >= lo && dy <= hi){ chosen = p; break; }
+            }
+
+            // 2. 如果沒命中 (可能在邊緣)，找中心點最近的那個
+            if(!chosen){
+              chosen = e.points.reduce((best, p)=>{
+                const y0 = (p.y0!==undefined) ? p.y0 : ((p.base!==undefined) ? p.base : 0);
+                const mid = y0 + (p.y||0)/2;
+                const dist = Math.abs(dy - mid);
+                if(!best) return {p, dist};
+                return dist < best.dist ? {p, dist} : best;
+              }, null).p;
+            }
+
+            if(chosen) pt = chosen;
+          }
+        }catch(err){ console.error(err); } // 容錯，若計算失敗則維持預設 pt
+
+        // 防止 Tooltip 閃爍：如果資料點沒變，且時間很短，就不更新
         const now=Date.now();
         const key=(pt.curveNumber!=null?pt.curveNumber:'')+':' + (pt.pointNumber!=null?pt.pointNumber:'');
         if(lock.key && key!==lock.key && (now-lock.t)<LOCK_MS){ return; }
         lock.key=key; lock.t=now;
 
+        // 讀取資料
         const xlab=pt.x;
         const name=(pt.fullData&&pt.fullData.name)||(pt.data&&pt.data.name)||'Value';
         const yval=pt.y;
 
+        // 更新內容
         titleEl.textContent=String(xlab);
         dotEl.style.background=colorOf(pt);
         nameEl.textContent=name;
         valueEl.textContent=fmt(yval, kindFor(name));
 
-        const ev=e.event||pt.event;
-        const cx=(ev&&typeof ev.clientX==='number')?ev.clientX:lastMouse.x;
-        const cy=(ev&&typeof ev.clientY==='number')?ev.clientY:lastMouse.y;
+        // 更新位置
+        const cx = lastMouse.x;
+        const cy = lastMouse.y;
         place(cx,cy);
-      }catch(err){}
+
+      }catch(err){ console.error(err); }
     });
+
     gd.on('plotly_unhover', function(){ card.style.display='none'; lock.key=null; lock.t=0; });
+
     window.addEventListener('scroll', ()=>{ card.style.display='none'; }, {passive:true});
     window.addEventListener('resize', ()=>{ card.style.display='none'; }, {passive:true});
   }
@@ -1132,7 +1170,7 @@ main();
   }
   const obs=new MutationObserver(()=>scan());
   obs.observe(document.documentElement,{childList:true,subtree:true});
-  window.addEventListener('load', ()=>{ setTimeout(scan,200); setTimeout(scan,800); setTimeout(scan,1500); });
+  window.addEventListener('load', ()=>{ setTimeout(scan,500); setTimeout(scan,1500); });
 })();
 </script>
 
