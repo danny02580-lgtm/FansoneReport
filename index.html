@@ -21,6 +21,7 @@
   html, body{ margin:0; padding:0; width:100%; height:100%; overflow-x: hidden; }
   body{
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-feature-settings: "tnum"; font-variant-numeric: tabular-nums;
     color:var(--text);
     background: radial-gradient(1200px 600px at 20% 10%, rgba(52,152,219,.15), transparent 60%),
                 radial-gradient(900px 500px at 85% 25%, rgba(231,76,60,.12), transparent 60%),
@@ -30,6 +31,7 @@
   a{color:inherit; text-decoration:none}
   .wrap{max-width:1200px; margin:0 auto; padding:24px 20px 48px; width: 100%;}
 
+  /* Topbar & KPI */
   .topbar{
     display:flex; align-items:flex-start; justify-content:space-between; gap:16px;
     padding:16px; border:1px solid var(--stroke); border-radius:20px; background:var(--panel); backdrop-filter: blur(12px);
@@ -47,6 +49,7 @@
   .kpi .klabel{font-size:13px; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px; white-space:nowrap;}
   .kpi .kvalue{font-size:28px; font-weight:800; letter-spacing:-0.5px; color:var(--text); white-space:nowrap;}
 
+  /* Grid Layout */
   .grid{display:grid; grid-template-columns:360px 1fr; gap:16px; margin-top:20px}
   @media(max-width:980px){.grid{grid-template-columns:1fr}}
 
@@ -59,7 +62,7 @@
   .hd h2{margin:0; font-size:15px; font-weight:700; color:#fff; white-space:nowrap;}
   .bd{padding:16px}
 
-  /* Skeleton */
+  /* Skeleton Loading */
   .loading-hide { display: none !important; }
   .skeleton-container { width: 100%; }
   .skeleton {
@@ -89,7 +92,7 @@
   .userseg .userseg-btn { all: unset; cursor: pointer; padding: 6px 12px; border-radius: 99px; font-weight: 600; font-size: 11px; color: var(--muted); transition: all 0.2s; }
   .userseg .userseg-btn.active { background: rgba(255,255,255,.12); color: #fff; }
 
-  /* Checkboxes - 回歸原生樣式但美化 */
+  /* Checkboxes - 使用原生樣式 + accent-color，保證不會消失 */
   .checks { display:grid; grid-template-columns:1fr; gap:8px; margin-top:4px; }
   .check {
     display: flex; align-items: center; padding: 12px 14px;
@@ -97,19 +100,22 @@
     background: rgba(255,255,255,.02); cursor: pointer;
   }
   .check:hover { background: rgba(255,255,255,0.05); }
-  /* 原生 Checkbox 樣式調整 */
+
   .check input {
-    appearance: auto; width: 18px; height: 18px;
-    accent-color: var(--accent); /* 關鍵：設定勾選顏色 */
+    appearance: auto; /* 強制使用瀏覽器原生樣式 */
+    -webkit-appearance: checkbox; /* Safari 支援 */
+    width: 18px; height: 18px;
+    accent-color: var(--accent); /* 設定勾選顏色為藍色 */
     cursor: pointer; margin-right: 12px;
+    opacity: 1 !important; /* 強制顯示 */
+    position: static !important; /* 確保位置正確 */
   }
+
   .dot { width: 8px; height: 8px; border-radius: 50%; margin-right: 8px; flex-shrink: 0; }
   .label b { font-size:14px; font-weight:600; white-space:nowrap; color: rgba(255,255,255,0.95); }
 
   #chart{width:100%; height:560px}
-
   .select.hidden{display:none!important;}
-  .select{width:100%; padding:12px; border:1px solid var(--stroke); border-radius:14px; background:rgba(255,255,255,.04); color:var(--text); font-size:14px; outline:none;}
 
   /* Tables */
   .table-scroll-container { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; -ms-overflow-style: none; }
@@ -151,9 +157,13 @@
     .tablesGrid{grid-template-columns:1fr;}
     .fixed-table { min-width: 550px; }
     .fixed-table th, .fixed-table td { padding: 12px 8px; font-size: 12px; }
+    .seg-btn { font-size: 13px; padding: 8px 0; }
   }
 
-  /* Tooltip */
+  .sheetlink{color:var(--muted); border:1px solid var(--stroke); padding:7px 9px; border-radius:999px; background:rgba(255,255,255,.04)}
+  .sheetlink:hover{color:var(--text)}
+
+  /* Custom Tooltip */
   #customTooltipCard { position:fixed; z-index:99999; display:none; pointer-events:none; padding:14px 16px; border-radius:14px; background:rgba(15,23,42,0.92); border:1px solid rgba(255,255,255,.15); box-shadow:0 18px 60px rgba(0,0,0,.6); backdrop-filter:blur(16px); color:#fff; font-family:'Inter', sans-serif; }
   #customTooltipCard .tt-title { font-weight:700; font-size:14px; margin-bottom:6px; }
   #customTooltipCard .tt-row { display:flex; align-items:center; gap:10px; }
@@ -323,10 +333,9 @@ let RAW_DATA = { sub:[], single:[] };
 let STATE = { agg:[], singles:[], users:[], sort:{ monthly:{c:'month',d:'desc'}, users:{c:'metricVal',d:'desc'}, singles:{c:'sum',d:'desc'} }, dateRange:'all' };
 
 function buildAgg(subRows, singleRows){
-    // Filtering Logic
+    // Filtering
     let filteredSub = subRows, filteredSingle = singleRows;
     if(STATE.dateRange !== 'all'){
-        // Find absolute max date across ALL data
         let maxT = "";
         const check = (rows, k) => rows.forEach(r => { const t=parseTime(r[k]); if(t && t>maxT) maxT=t; });
         const subK = pickKey(Object.keys(subRows[0]||{}), ["時間","time"]);
@@ -334,26 +343,22 @@ function buildAgg(subRows, singleRows){
         check(subRows, subK); check(singleRows, sinK);
 
         if(maxT) {
-            const d = new Date(maxT); d.setDate(1); // First day of max month
+            const d = new Date(maxT); d.setDate(1);
             d.setMonth(d.getMonth() - (parseInt(STATE.dateRange)-1));
-            const minT = d.toISOString().slice(0,7); // YYYY-MM
+            const minT = d.toISOString().slice(0,7);
             const filterFn = (r, k) => { const t=parseTime(r[k]); return t && t.slice(0,7) >= minT; };
             filteredSub = subRows.filter(r => filterFn(r, subK));
             filteredSingle = singleRows.filter(r => filterFn(r, sinK));
         }
     }
 
-    // Aggregation Logic (Standard)
     const monthMap = new Map(), userMap = new Map(), titleMap = new Map();
-
-    // Helpers
     const getU = (id) => { if(!userMap.has(id)) userMap.set(id, {id, subSpend:0, singleSpend:0, totalSpend:0, activeMonths:new Set()}); return userMap.get(id); };
     const getM = (m) => {
         if(!monthMap.has(m)) monthMap.set(m, {month:m, subIds:new Set(), subRev:0, singleRev:0, plan:{"1M":0,"3M":0,"6M":0}});
         return monthMap.get(m);
     };
 
-    // Sub Data
     const subH = Object.keys(subRows[0]||{});
     const subTime = pickKey(subH, ["時間","time"]), subPlan = pickKey(subH, ["方案","plan"]), subId = pickKey(subH, ["id","用戶"]), subPrice = pickKey(subH, ["價格","金額"]);
     filteredSub.forEach(r => {
@@ -366,7 +371,6 @@ function buildAgg(subRows, singleRows){
         }
     });
 
-    // Single Data
     const sinH = Object.keys(singleRows[0]||{});
     const sinTime = pickKey(sinH, ["時間","time"]), sinTitle = pickKey(sinH, ["標題","title"]), sinId = pickKey(sinH, ["id","用戶"]), sinPrice = pickKey(sinH, ["價格","金額"]), sinLink = pickKey(sinH, ["網址","url"]);
     filteredSingle.forEach(r => {
@@ -383,13 +387,11 @@ function buildAgg(subRows, singleRows){
         }
     });
 
-    // Finalize
     const agg = Array.from(monthMap.values()).map(d => {
         const subs = d.subIds.size;
         const total = d.subRev + d.singleRev;
         const orders = d.plan["1M"]+d.plan["3M"]+d.plan["6M"] || 1;
-        // Approximation for New/Old (Simple)
-        const newUsers = Math.round(subs * 0.4);
+        const newUsers = Math.round(subs * 0.4); // Simplified logic
         const oldUsers = subs - newUsers;
         return {
             month: d.month, subs, newUsers, oldUsers,
@@ -401,40 +403,39 @@ function buildAgg(subRows, singleRows){
 
     const users = Array.from(userMap.values()).map(u => ({...u, monthsActive: u.activeMonths.size}));
     const singles = Array.from(titleMap.values());
-
     return { agg, users, singles };
 }
 
-function calcKPI() {
-    // 獨立計算 KPI，不受 Filter 影響
-    const subK = pickKey(Object.keys(RAW_DATA.sub[0]||{}), ["時間","time"]), subP = pickKey(Object.keys(RAW_DATA.sub[0]||{}), ["價格","金額"]);
-    const sinK = pickKey(Object.keys(RAW_DATA.single[0]||{}), ["時間","time"]), sinP = pickKey(Object.keys(RAW_DATA.single[0]||{}), ["價格","金額"]);
+// Fixed KPI Calculation (Run ONCE)
+function calcFixedKPI() {
+    const sub = RAW_DATA.sub, single = RAW_DATA.single;
+    const subT = pickKey(Object.keys(sub[0]),["時間","time"]), subP = pickKey(Object.keys(sub[0]),["價格","金額"]);
+    const sinT = pickKey(Object.keys(single[0]),["時間","time"]), sinP = pickKey(Object.keys(single[0]),["價格","金額"]);
 
-    let maxM = "", monthlySum = {};
-    let totalAll = 0;
+    let maxM = "", totalRev = 0, mRev = {};
 
-    const proc = (rows, kTime, kPrice) => {
-        rows.forEach(r => {
-            const m = toMonthKey(r[kTime]), p = parseMoney(r[kPrice]);
-            if(isFinite(p)) {
-                totalAll += p;
-                if(m) {
-                    monthlySum[m] = (monthlySum[m] || 0) + p;
-                    if(m > maxM) maxM = m;
-                }
-            }
-        });
-    };
-    proc(RAW_DATA.sub, subK, subP);
-    proc(RAW_DATA.single, sinK, sinP);
+    // Process Sub
+    sub.forEach(r => {
+        const m = toMonthKey(r[subT]), p = parseMoney(r[subP]);
+        if(isFinite(p)) {
+            totalRev += p;
+            if(m) { mRev[m] = (mRev[m]||0) + p; if(m > maxM) maxM = m; }
+        }
+    });
+    // Process Single
+    single.forEach(r => {
+        const m = toMonthKey(r[sinT]), p = parseMoney(r[sinP]);
+        if(isFinite(p)) {
+            totalRev += p;
+            if(m) { mRev[m] = (mRev[m]||0) + p; if(m > maxM) maxM = m; }
+        }
+    });
 
-    setText("months", maxM ? money(Math.round(monthlySum[maxM])) : "-");
-    setText("totalRevenue", money(Math.round(totalAll)));
+    setText("months", maxM ? money(Math.round(mRev[maxM])) : "-");
+    setText("totalRevenue", money(Math.round(totalRev)));
 }
 
-// Rendering Logic
 function renderTables() {
-    // Monthly
     const s1 = STATE.sort.monthly;
     const sortedAgg = [...STATE.agg].sort((a,b) => (a[s1.c] < b[s1.c] ? 1 : -1) * (s1.d==='asc'?-1:1));
     el("tbodyMonthly").innerHTML = sortedAgg.map(d => `
@@ -443,11 +444,9 @@ function renderTables() {
         <td class="right">${Math.round(d.totalRevenue).toLocaleString()}</td><td class="right">${d.arpu.toFixed(1)}</td></tr>
     `).join("");
 
-    // Singles
     const s3 = STATE.sort.singles;
     const sortedSingles = [...STATE.singles].sort((a,b) => {
-        const vA = (typeof a[s3.c] === 'string') ? a[s3.c] : a[s3.c];
-        const vB = (typeof b[s3.c] === 'string') ? b[s3.c] : b[s3.c];
+        const vA = a[s3.c], vB = b[s3.c];
         return (vA < vB ? 1 : -1) * (s3.d==='asc'?-1:1);
     }).slice(0, 10);
     el("tbodySingles").innerHTML = sortedSingles.map(d => `
@@ -459,14 +458,12 @@ function renderTables() {
 function renderUsers(metric) {
     if(!metric) metric = document.querySelector('.userseg .active').dataset.metric;
     const s2 = STATE.sort.users;
-
     const rows = STATE.users.map(u => {
         let val = u.totalSpend;
         if(metric==='spend_sub') val = u.subSpend;
         if(metric==='active_months') val = u.monthsActive;
         return { ...u, metricVal: val };
     });
-
     const sorted = rows.sort((a,b) => (a[s2.c] < b[s2.c] ? 1 : -1) * (s2.d==='asc'?-1:1)).slice(0, 10);
 
     el("tbodyUsers").innerHTML = sorted.map(u => `
@@ -477,7 +474,7 @@ function renderUsers(metric) {
 }
 
 function renderChart(view) {
-    // Make Checks
+    // Generate Checkboxes
     const conf = {
         money: [{id:'r_t',c:'var(--totalrev)',l:'總營收'}, {id:'r_s',c:'var(--rev)',l:'訂閱營收'}, {id:'r_i',c:'var(--single)',l:'單片營收'}],
         subs: [{id:'s_n',c:'var(--new)',l:'新客'}, {id:'s_o',c:'var(--old)',l:'舊客'}],
@@ -520,25 +517,26 @@ function renderChart(view) {
     };
 
     Plotly.newPlot('chart', traces, layout, {displayModeBar:false, responsive:true}).then(gd => {
-        // Remove Loaders
         el("skel-chart").classList.add("loading-hide");
         el("chart").classList.remove("loading-hide");
 
-        // Tooltip Binding
+        // --- Tooltip Logic (Simplified & Robust) ---
+        gd.removeAllListeners('plotly_hover');
+        gd.removeAllListeners('plotly_unhover');
+
         gd.on('plotly_hover', d => {
             const pt = d.points[0];
             const card = el('customTooltipCard');
             card.querySelector('.tt-title').innerText = pt.x;
             card.querySelector('.name').innerText = pt.data.name;
+
             let val = pt.y;
             if(view!=='subs') val = Math.round(val).toLocaleString();
             card.querySelector('.value').innerText = val;
 
-            // Color dot
             let c = pt.data.marker?.color || pt.data.line?.color || '#fff';
-            if(typeof c === 'object' && c.length) c = c[0]; // handle array colors
+            if(typeof c === 'object') c = c[0];
             card.querySelector('.dot').style.background = c;
-
             card.style.display = 'block';
         });
         gd.on('plotly_unhover', () => el('customTooltipCard').style.display='none');
@@ -555,38 +553,31 @@ function renderChart(view) {
     }
 }
 
-// Global Init
 async function main() {
     try {
         if(location.protocol==='file:') throw new Error("Please open via localhost (http://) not file://");
         const [d1, d2] = await Promise.all([fetchCsvPapa(SUB_CSV_URL), fetchCsvPapa(SINGLE_CSV_URL)]);
         RAW_DATA.sub = d1; RAW_DATA.single = d2;
 
-        calcKPI(); // Calculated ONCE, never changes
-        updateAll(); // Initial Render
+        calcFixedKPI(); // Run Once
+        updateAll();
 
         el("status").className = "sub ok"; el("status").innerText = "● Data Loaded";
-
-        // Remove skeletons
         document.querySelectorAll('.skeleton-container').forEach(e=>e.remove());
         document.querySelectorAll('.loading-hide').forEach(e=>e.classList.remove('loading-hide'));
-
     } catch(e) { el("status").innerText = "Error: " + e.message; }
 }
 
 function updateAll() {
-    // 1. Process Data based on Date Filter
     const res = buildAgg(RAW_DATA.sub, RAW_DATA.single);
     STATE.agg = res.agg; STATE.users = res.users; STATE.singles = res.singles;
-
-    // 2. Render Components
     renderTables();
-    renderUsers(); // uses default metric or current active
+    renderUsers();
     const activeView = document.querySelector('#viewControl .active').dataset.value;
     renderChart(activeView);
 }
 
-// Event Bindings
+// Bindings
 document.querySelectorAll('#dateRangeControl .seg-btn').forEach(b => b.onclick = (e) => {
     document.querySelectorAll('#dateRangeControl .seg-btn').forEach(x=>x.classList.remove('active'));
     e.target.classList.add('active');
@@ -604,7 +595,7 @@ document.querySelectorAll('.userseg .userseg-btn').forEach(b => b.onclick = (e) 
     renderUsers(e.target.dataset.metric);
 });
 
-// Tooltip Follow Mouse
+// Tooltip Move
 window.onmousemove = (e) => {
     const card = el('customTooltipCard');
     if(card.style.display === 'block') {
@@ -614,11 +605,10 @@ window.onmousemove = (e) => {
     }
 };
 
-// Sort Handlers
+// Sort
 window.sortTable = (t, k) => {
     const s = STATE.sort[t];
     if(s.c === k) s.d = s.d==='desc'?'asc':'desc'; else { s.c=k; s.d='desc'; }
-    // Update Icons
     document.querySelector(`#tbody${t.charAt(0).toUpperCase()+t.slice(1)}`).parentNode.querySelectorAll('th').forEach(th => {
         th.classList.remove('sort-asc', 'sort-desc');
         if(th.dataset.key === k) th.classList.add(s.d==='asc'?'sort-asc':'sort-desc');
