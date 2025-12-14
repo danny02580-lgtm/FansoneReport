@@ -84,27 +84,39 @@
   .skeleton-container { width: 100%; }
 
   /* --- Chart Controls --- */
+  .control-group { margin-bottom: 12px; }
+  .control-label { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px; }
+
   .segmented { background: rgba(0,0,0,.2); border: 1px solid rgba(255,255,255,.1); border-radius: 14px; padding: 4px; overflow: hidden; }
-  .segmented:not(.userseg) { display: flex; width: 100%; margin: 0 0 12px 0; }
+  .segmented:not(.userseg) { display: flex; width: 100%; }
   .seg-btn {
     flex: 1; min-width: 0; padding: 8px 0; margin: 0;
     border-radius: 10px; border: 0; background: transparent;
     color: rgba(255,255,255,.6); font-weight: 600; font-size: 14px;
     cursor: pointer; font-family: inherit; white-space: nowrap; text-align: center;
     transition: all 0.2s cubic-bezier(0.4,0,0.2,1); text-overflow: clip;
+    outline: none; /* Remove default focus */
   }
+  /* [A11y] Focus visible state */
+  .seg-btn:focus-visible { box-shadow: 0 0 0 2px var(--bg0), 0 0 0 4px var(--accent); z-index: 10; }
+
   .seg-btn.active { background: var(--accent); color: #fff; box-shadow: 0 4px 12px var(--accent-glow); text-shadow: 0 1px 2px rgba(0,0,0,0.2); }
   .seg-btn:hover:not(.active) { color: #e5e7eb; background: rgba(255,255,255,0.05); }
 
   .segmented.userseg { display: inline-flex; width: auto; margin: 0; }
   .userseg .userseg-btn { all: unset; cursor: pointer; padding: 6px 12px; border-radius: 99px; font-weight: 600; font-size: 11px; color: var(--muted); transition: all 0.2s; }
   .userseg .userseg-btn.active { background: rgba(255,255,255,.12); color: #fff; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); }
+  .userseg .userseg-btn:focus-visible { box-shadow: 0 0 0 2px var(--accent); }
 
   .select.hidden{display:none!important;}
   .select{width:100%; padding:12px; border:1px solid var(--stroke); border-radius:14px; background:rgba(255,255,255,.04); color:var(--text); font-size:14px; outline:none;}
 
-  .checks{display:grid; grid-template-columns:1fr; gap:8px; margin-top:12px}
-  .check{ display:flex; gap:12px; align-items:center; padding:12px 14px; border:1px solid var(--stroke); border-radius:12px; background:rgba(255,255,255,.02); cursor:pointer; }
+  .checks{display:grid; grid-template-columns:1fr; gap:8px; margin-top:4px}
+  .check{ display:flex; gap:12px; align-items:center; padding:12px 14px; border:1px solid var(--stroke); border-radius:12px; background:rgba(255,255,255,.02); cursor:pointer; transition:background 0.2s; }
+  .check:hover { background: rgba(255,255,255,0.05); }
+  /* [A11y] Focus for checks */
+  .check:focus-within { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+
   .check input{width:20px; height:20px; accent-color:var(--accent)}
   .dot{width:10px; height:10px; border-radius:999px; background:#fff; flex-shrink:0;}
   .label{overflow:hidden; display:flex; align-items:center; flex:1;}
@@ -114,7 +126,7 @@
 
   .tablesGrid{display:grid; grid-template-columns:1.3fr 1fr; gap:16px; margin-top:16px; width: 100%;}
 
-  /* --- 表格與排序樣式 --- */
+  /* --- 表格與排序樣式 (Sorting UI Enhanced) --- */
   .table-scroll-container { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; -ms-overflow-style: none; }
   .table-scroll-container::-webkit-scrollbar { display: none; }
 
@@ -124,11 +136,17 @@
   th {
     text-align:left; color:var(--muted); font-weight:700; font-size:12px; text-transform:uppercase; letter-spacing:0.5px;
     background:rgba(19,29,48,0.95); position:sticky; top:0; z-index:10;
-    cursor: pointer; user-select: none; transition: color 0.2s;
+    cursor: pointer; user-select: none; transition: all 0.2s;
   }
-  th:hover { color: #fff; background:rgba(30,41,59,0.95); }
+  th:hover { color: #fff; background:rgba(255,255,255,0.1); } /* 明顯的 Hover 背景 */
 
-  th::after { content: ''; display: inline-block; margin-left: 6px; width: 8px; opacity: 0.3; }
+  /* 排序圖示優化 */
+  th::after {
+    content: '⇅'; /* 預設顯示雙向箭頭 */
+    display: inline-block; margin-left: 6px; width: 10px;
+    opacity: 0.2; font-size: 11px; vertical-align: middle;
+  }
+  th:hover::after { opacity: 0.6; }
   th.sort-asc::after { content: '▲'; opacity: 1; color: var(--accent); }
   th.sort-desc::after { content: '▼'; opacity: 1; color: var(--accent); }
 
@@ -136,7 +154,7 @@
   tbody tr:nth-child(even) td{background:rgba(255,255,255,0.01)}
   tr:hover td{background:rgba(255,255,255,.06)!important; transition:background 0.1s}
 
-  /* --- Top Users 表格 (固定寬度) --- */
+  /* --- Top Users 表格 --- */
   .fixed-table { table-layout: fixed; width: 100%; }
   .fixed-table th:nth-child(1) { width: 28%; }
   .fixed-table th:nth-child(2), .fixed-table th:nth-child(3), .fixed-table th:nth-child(4), .fixed-table th:nth-child(5) { width: 18%; }
@@ -147,30 +165,17 @@
   .pill{padding:4px 10px; border:1px solid var(--stroke); border-radius:999px; font-size:11px; font-weight:600; color:var(--muted); background:rgba(255,255,255,.02); white-space:nowrap;}
 
   /* --- RWD 設定 --- */
-
-  /* 電腦端 (大於 860px) */
   @media(min-width:861px) {
-    /* 強制隱藏捲軸 */
     #real-t1.table-scroll-container { overflow-x: hidden !important; }
-
-    #monthlyTable {
-        table-layout: auto;
-        width: 100%;
-    }
+    #monthlyTable { table-layout: auto; width: 100%; }
     #monthlyTable th, #monthlyTable td {
-        padding: 12px 6px; /* 緊湊內距 */
-        white-space: nowrap;
-        overflow: visible;
-        text-overflow: clip;
-        font-size: 13px;
-        letter-spacing: -0.2px;
+        padding: 12px 6px;
+        white-space: nowrap; overflow: visible; text-overflow: clip;
+        font-size: 13px; letter-spacing: -0.2px;
     }
-
-    /* Top Users 表格調整 */
     .fixed-table th, .fixed-table td { padding: 12px 8px; }
   }
 
-  /* 手機端 (小於 860px) */
   @media(max-width:860px){
     .wrap{padding:16px 12px 60px; overflow-x: hidden;}
     .topbar{flex-direction:column; align-items:stretch; gap:12px; padding:16px;}
@@ -181,7 +186,6 @@
     #chart{height:480px!important;}
     .tablesGrid{grid-template-columns:1fr; gap:16px;}
     .check{padding:12px;}
-
     .fixed-table { min-width: 550px; }
     .fixed-table th, .fixed-table td { padding: 12px 8px; font-size: 12px; }
     .seg-btn { font-size: 13px; padding: 8px 0; }
@@ -230,12 +234,26 @@
     <div class="panel">
       <div class="hd"><h2>Chart Controls</h2><span class="pill" id="orderTag">新 → 舊</span></div>
       <div class="bd">
-        <div class="segmented" role="tablist">
-          <button class="seg-btn active" type="button" data-value="money">Revenue</button>
-          <button class="seg-btn" type="button" data-value="subs">Subs</button>
-          <button class="seg-btn" type="button" data-value="mix">Plans</button>
-          <button class="seg-btn" type="button" data-value="arpu">ARPU</button>
+        <div class="control-group">
+            <div class="control-label">Time Range</div>
+            <div class="segmented" role="tablist" id="dateRangeControl">
+              <button class="seg-btn active" type="button" data-range="all" aria-label="Show All Time">All</button>
+              <button class="seg-btn" type="button" data-range="12" aria-label="Show Last 12 Months">12M</button>
+              <button class="seg-btn" type="button" data-range="6" aria-label="Show Last 6 Months">6M</button>
+              <button class="seg-btn" type="button" data-range="3" aria-label="Show Last 3 Months">3M</button>
+            </div>
         </div>
+
+        <div class="control-group">
+            <div class="control-label">Metric</div>
+            <div class="segmented" role="tablist" id="viewControl">
+              <button class="seg-btn active" type="button" data-value="money" aria-label="View Revenue">Revenue</button>
+              <button class="seg-btn" type="button" data-value="subs" aria-label="View Subscribers">Subs</button>
+              <button class="seg-btn" type="button" data-value="mix" aria-label="View Plans">Plans</button>
+              <button class="seg-btn" type="button" data-value="arpu" aria-label="View ARPU">ARPU</button>
+            </div>
+        </div>
+
         <select id="viewSelect" class="select hidden">
           <option value="money">金額</option><option value="subs">人數</option><option value="mix">方案</option><option value="arpu">ARPU</option>
         </select>
@@ -256,7 +274,7 @@
       <div class="hd"><h2>Monthly Summary</h2></div>
       <div class="bd" style="padding:0;">
         <div id="skel-t1" class="skeleton-container" style="padding:16px">
-            <div class="skeleton skeleton-table-row"></div><div class="skeleton skeleton-table-row"></div><div class="skeleton skeleton-table-row"></div><div class="skeleton skeleton-table-row"></div>
+            <div class="skeleton skeleton-table-row"></div><div class="skeleton skeleton-table-row"></div><div class="skeleton skeleton-table-row"></div>
         </div>
 
         <div id="real-t1" class="table-scroll-container loading-hide">
@@ -283,14 +301,14 @@
       <div class="hd">
         <div style="display:flex; align-items:center; gap:8px;"><h2>Top Users</h2></div>
         <div class="segmented userseg" role="tablist">
-          <button class="userseg-btn active" type="button" data-metric="spend_total">Spend</button>
-          <button class="userseg-btn" type="button" data-metric="active_months">Loyalty</button>
+          <button class="userseg-btn active" type="button" data-metric="spend_total" aria-label="Sort by Total Spend">Spend</button>
+          <button class="userseg-btn" type="button" data-metric="active_months" aria-label="Sort by Loyalty">Loyalty</button>
         </div>
         <select id="userMetric" style="display:none" class="select"><option value="spend_total">A</option><option value="active_months">B</option></select>
       </div>
       <div class="bd" style="padding:0;">
         <div id="skel-t2" class="skeleton-container" style="padding:16px">
-            <div class="skeleton skeleton-table-row"></div><div class="skeleton skeleton-table-row"></div><div class="skeleton skeleton-table-row"></div>
+            <div class="skeleton skeleton-table-row"></div><div class="skeleton skeleton-table-row"></div>
         </div>
 
         <div id="real-t2" class="table-scroll-container loading-hide">
@@ -385,15 +403,20 @@ function parseTimeToSortable(s){
   return `${m[1]}-${m[2]}-${m[3]} ${m[4]}:${m[5]}:${m[6]||"00"}`;
 }
 
+// --- STATE ---
+// Store raw data to support re-aggregation (Date Filtering)
+let RAW_DATA = { sub: [], single: [] };
 let STATE = {
     aggAsc:[], aggDesc:[], topSingles:[], users:[],
     sort: {
         monthly: { col: 'month', dir: 'desc' },
         users: { col: 'metricVal', dir: 'desc' },
         singles: { col: 'sum', dir: 'desc' }
-    }
+    },
+    dateRange: 'all' // all, 12, 6, 3
 };
 
+// --- Sorting Logic ---
 function sortTable(tableId, colKey) {
     const s = STATE.sort[tableId];
     if (s.col === colKey) { s.dir = (s.dir === 'desc') ? 'asc' : 'desc'; }
@@ -426,6 +449,30 @@ function getSortedData(data, tableId) {
     return sorted;
 }
 
+// --- Filtering Helper ---
+function filterRowsByDate(rows, timeKey) {
+    if (STATE.dateRange === 'all') return rows;
+
+    // Find latest date in dataset to act as "Now"
+    // (This ensures report works for old datasets)
+    let maxDate = "";
+    rows.forEach(r => {
+        const d = parseTimeToSortable(r[timeKey]);
+        if(d && d > maxDate) maxDate = d;
+    });
+    if(!maxDate) return rows;
+
+    const targetDate = new Date(maxDate);
+    const monthsToSubtract = parseInt(STATE.dateRange);
+    targetDate.setMonth(targetDate.getMonth() - monthsToSubtract);
+    const limitStr = targetDate.toISOString().slice(0,10);
+
+    return rows.filter(r => {
+        const d = parseTimeToSortable(r[timeKey]);
+        return d && d >= limitStr;
+    });
+}
+
 function buildAgg(subRows, singleRows){
   const subHeaders = Object.keys(subRows[0]||{});
   const timeKey  = pickKey(subHeaders, ["時間","time","date","datetime"]) || subHeaders[0];
@@ -433,10 +480,21 @@ function buildAgg(subRows, singleRows){
   const idKey    = pickKey(subHeaders, ["用戶id","user id","userid","id","用戶","user"]) || subHeaders[2];
   const priceKey = pickKey(subHeaders, ["價格","price","金額","amount","收入"]) || subHeaders[Math.min(3, subHeaders.length-1)];
 
+  const sHeaders = Object.keys(singleRows[0]||{});
+  const sTimeKey  = pickKey(sHeaders, ["時間","time","date","datetime"]) || sHeaders[0];
+  const sTitleKey = pickKey(sHeaders, ["影片標題","標題","title","影片","內容"]) || sHeaders[1];
+  const sUrlKey   = pickKey(sHeaders, ["網址","url","link"]) || sHeaders[2];
+  const sIdKey    = pickKey(sHeaders, ["用戶id","user id","userid","id","用戶","user"]) || sHeaders[3];
+  const sPriceKey = pickKey(sHeaders, ["價格","price","金額","amount","收入"]) || sHeaders[Math.min(4, sHeaders.length-1)];
+
+  // --- Apply Filtering ---
+  const filteredSub = filterRowsByDate(subRows, timeKey);
+  const filteredSingle = filterRowsByDate(singleRows, sTimeKey);
+
   const monthMap = new Map();
   const seenBefore = new Set();
 
-  const parsedSub = subRows.map(r=>({
+  const parsedSub = filteredSub.map(r=>({
     month: toMonthKey(r[timeKey]),
     time: parseTimeToSortable(r[timeKey]) || String(r[timeKey]||""),
     id: String(r[idKey]||"").trim(),
@@ -487,15 +545,8 @@ function buildAgg(subRows, singleRows){
     updateTime(u, rec.time);
   }
 
-  const sHeaders = Object.keys(singleRows[0]||{});
-  const sTimeKey  = pickKey(sHeaders, ["時間","time","date","datetime"]) || sHeaders[0];
-  const sTitleKey = pickKey(sHeaders, ["影片標題","標題","title","影片","內容"]) || sHeaders[1];
-  const sUrlKey   = pickKey(sHeaders, ["網址","url","link"]) || sHeaders[2];
-  const sIdKey    = pickKey(sHeaders, ["用戶id","user id","userid","id","用戶","user"]) || sHeaders[3];
-  const sPriceKey = pickKey(sHeaders, ["價格","price","金額","amount","收入"]) || sHeaders[Math.min(4, sHeaders.length-1)];
-
   const titleAgg = new Map();
-  for(const r of singleRows){
+  for(const r of filteredSingle){
     const title = String(r[sTitleKey]||"").trim();
     const url = String(r[sUrlKey]||"").trim();
     const price = parseMoney(r[sPriceKey]);
@@ -518,7 +569,7 @@ function buildAgg(subRows, singleRows){
     }
   }
 
-  for(const r of singleRows){
+  for(const r of filteredSingle){
     const month = toMonthKey(r[sTimeKey]);
     if(!month) continue;
     const price = parseMoney(r[sPriceKey]);
@@ -547,7 +598,7 @@ function buildAgg(subRows, singleRows){
     return { month:k, subs, newUsers, oldUsers, p1, p3, p6, subRevenue, singleRevenue, totalRevenue, arpu };
   });
 
-  const topSingles = Array.from(titleAgg.values()).sort((a,b)=>b.sum-a.sum).slice(0,10); // Initial sort
+  const topSingles = Array.from(titleAgg.values()).sort((a,b)=>b.sum-a.sum).slice(0,10);
 
   const users = Array.from(userMap.values()).map(u=>{
     const monthsActive = u.activeMonths.size;
@@ -656,8 +707,8 @@ function makeChecksFor(view){
   const items = itemsByView[view] || [];
   const box = el("checks");
   box.innerHTML = items.map(it=>(
-    `<label class="check">
-      <input type="checkbox" id="${it.id}" />
+    `<label class="check" tabindex="0" role="checkbox" aria-checked="true" aria-label="Toggle ${it.title}">
+      <input type="checkbox" id="${it.id}" tabindex="-1" />
       <span class="dot" style="background:${it.color}"></span>
       <span class="label"><b>${it.title}</b></span>
     </label>`
@@ -769,43 +820,142 @@ function applyVisibility(view, traces){
   Plotly.restyle("chart", "visible", vis);
 }
 
+// 綁定 Plotly 互動效果的函式，不再使用 MutationObserver
+function attachPlotlyEnhancers(gd) {
+    if(!gd || !gd.on) return;
+
+    // 1. Hover Ghost Overlay
+    const ghostOverlay = document.getElementById('ghost-overlay');
+    let lastEl = null;
+    let saved = {}; // Simplified save structure
+
+    // reset helper
+    const reset = (el) => { if(el) { el.style.stroke = saved.stroke || ''; el.style.strokeWidth = saved.strokeWidth || ''; el.style.opacity = saved.opacity || ''; } };
+
+    gd.on('plotly_hover', function(e){
+        try{
+            if(!e || !e.points || !e.points.length) return;
+            const pt = e.points[0];
+            const curveIdx = pt.curveNumber;
+            const pointIdx = pt.pointNumber;
+
+            // Find target (DOM element) for effect
+            // Simplified selector logic
+            const isBar = (e.points[0].data.type === 'bar');
+            let target = null;
+
+            // Try to find specific point element
+            const traceEls = gd.querySelectorAll(`g.trace:nth-of-type(${curveIdx + 1}) .point`);
+            if (traceEls && traceEls[pointIdx]) target = traceEls[pointIdx];
+
+            if(target && ghostOverlay) {
+                const rect = target.getBoundingClientRect();
+                if (isBar) {
+                    ghostOverlay.style.top = rect.top + 'px';
+                    ghostOverlay.style.left = rect.left + 'px';
+                    ghostOverlay.style.width = rect.width + 'px';
+                    ghostOverlay.style.height = rect.height + 'px';
+                    ghostOverlay.style.borderRadius = "2px";
+                } else {
+                    const size = 20;
+                    const cx = rect.left + rect.width/2;
+                    const cy = rect.top + rect.height/2;
+                    ghostOverlay.style.width = size + 'px';
+                    ghostOverlay.style.height = size + 'px';
+                    ghostOverlay.style.top = (cy - size/2) + 'px';
+                    ghostOverlay.style.left = (cx - size/2) + 'px';
+                    ghostOverlay.style.borderRadius = "50%";
+                }
+                ghostOverlay.style.display = 'block';
+            }
+
+            // 2. Custom Tooltip
+            const card = document.getElementById('customTooltipCard');
+            if(card) {
+                const tEl = card.querySelector('.tt-title');
+                const dotEl = card.querySelector('.dot');
+                const nameEl = card.querySelector('.name');
+                const valueEl = card.querySelector('.value');
+
+                const xlab = pt.x;
+                const name = pt.data.name || 'Value';
+                const yval = pt.y;
+                let color = pt.data.marker?.color || pt.data.line?.color || '#fff';
+                if(Array.isArray(color)) color = color[0] || '#fff';
+
+                if(tEl) tEl.textContent = String(xlab);
+                if(dotEl) dotEl.style.background = color;
+                if(nameEl) nameEl.textContent = name;
+
+                // Format helper
+                const kindFor = (n) => {
+                    const s = (n||'').toLowerCase();
+                    if(s.includes('revenue')||s.includes('營收')||s.includes('total')||s.includes('arpu')) return 'money';
+                    if(s.includes('%')||s.includes('rate')||s.includes('ratio')) return 'pct';
+                    return 'num';
+                };
+                const fmtVal = (v, k) => {
+                    if(v==null||isNaN(v)) return '-';
+                    const n = Number(v);
+                    if(k==='money') return 'NT$ '+n.toLocaleString(undefined,{maximumFractionDigits:0});
+                    if(k==='pct') return n.toFixed(1)+'%';
+                    return n.toLocaleString(undefined,{maximumFractionDigits:0});
+                };
+
+                if(valueEl) valueEl.textContent = fmtVal(yval, kindFor(name));
+
+                // Position logic
+                const lastMouseX = window.lastMouseX || 0;
+                const lastMouseY = window.lastMouseY || 0;
+                // Use stored mouse pos if available, else approximate
+                card.style.display = 'block';
+                // Positioning happens in mousemove listener globally
+            }
+
+        } catch(err){ console.error(err); }
+    });
+
+    gd.on('plotly_unhover', function(){
+        if(ghostOverlay) ghostOverlay.style.display = 'none';
+        const card = document.getElementById('customTooltipCard');
+        if(card) card.style.display = 'none';
+        if(lastEl) { reset(lastEl); lastEl = null; }
+    });
+}
+
 function renderChart(view){
   makeChecksFor(view);
   const built = buildTraces(view);
   const layout = {...layoutBase(), ...built.layout};
   const config = {responsive:true, displaylogo:false, displayModeBar:false, scrollZoom:false, doubleClick:false};
 
-  // --- 修正：確保事件綁定邏輯正確 ---
-  // 1. 設定預設勾選
+  // 1. Set visibility BEFORE drawing (Fix for checkbox issue)
   if(view!=="arpu"){
+    // Default checks in DOM
     const defaultIds = built.defaults || [];
     defaultIds.forEach(id => {
       const node = document.getElementById(id);
       if(node) node.checked = true;
     });
 
-    // 2. 關鍵修正：在初始化圖表前，先修改 traces 的 visible 屬性
-    // 這樣第一張圖畫出來的時候就是正確的，不需要依賴 Plotly.restyle
-    // 因為此時 chart 還沒畫出來，restyle 會失敗
-
-    // 取得當前所有 checkbox 的狀態
+    // Apply visibility to trace data objects directly
     const getChecked = (id) => { const n=document.getElementById(id); return n && n.checked; };
 
     if(view === "money"){
-        built.traces[0].visible = getChecked("r_total");
-        built.traces[1].visible = getChecked("r_sub");
-        built.traces[2].visible = getChecked("r_single");
+        built.traces[0].visible = getChecked("r_total") ? true : 'legendonly';
+        built.traces[1].visible = getChecked("r_sub") ? true : 'legendonly';
+        built.traces[2].visible = getChecked("r_single") ? true : 'legendonly';
     } else if(view === "subs"){
-        built.traces[0].visible = getChecked("s_new");
-        built.traces[1].visible = getChecked("s_old");
+        built.traces[0].visible = getChecked("s_new") ? true : 'legendonly';
+        built.traces[1].visible = getChecked("s_old") ? true : 'legendonly';
     } else if(view === "mix"){
-        built.traces[0].visible = getChecked("p_1");
-        built.traces[1].visible = getChecked("p_3");
-        built.traces[2].visible = getChecked("p_6");
+        built.traces[0].visible = getChecked("p_1") ? true : 'legendonly';
+        built.traces[1].visible = getChecked("p_3") ? true : 'legendonly';
+        built.traces[2].visible = getChecked("p_6") ? true : 'legendonly';
     }
   }
 
-  // 3. 綁定事件 (讓之後的點擊觸發 restyle)
+  // 2. Bind Events
   const checkboxes = document.querySelectorAll("#checks input[type=checkbox]");
   checkboxes.forEach(cb => {
       cb.addEventListener("change", () => {
@@ -813,11 +963,61 @@ function renderChart(view){
       });
   });
 
-  // 4. 畫圖 (使用已經設定好 visible 的 traces)
-  Plotly.react("chart", built.traces, layout, config).then(()=>{
+  // 3. Draw Chart
+  Plotly.react("chart", built.traces, layout, config).then((gd)=>{
+    // Remove loading state
     el("skel-chart").classList.add("loading-hide");
     el("chart").classList.remove("loading-hide");
+
+    // Attach Enhancers (Replacing MutationObserver logic)
+    attachPlotlyEnhancers(gd);
   });
+}
+
+// Global mouse tracker for tooltip
+window.addEventListener('mousemove', (ev)=>{
+    window.lastMouseX = ev.clientX;
+    window.lastMouseY = ev.clientY;
+
+    const card = document.getElementById('customTooltipCard');
+    if(card && card.style.display === 'block'){
+        const rect = card.getBoundingClientRect();
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+        const pad = 16;
+        let px = ev.clientX + 20, py = ev.clientY + 20;
+        if(px + rect.width + pad > vw) px = ev.clientX - rect.width - 20;
+        if(py + rect.height + pad > vh) py = ev.clientY - rect.height - 20;
+        card.style.left = Math.max(4, px) + 'px';
+        card.style.top = Math.max(4, py) + 'px';
+    }
+}, {passive:true});
+
+// --- Date Filter Logic Update ---
+function updateDashboard() {
+    // 1. Filter Data
+    const built = buildAgg(RAW_DATA.sub, RAW_DATA.single);
+    STATE.aggAsc = built.aggAsc;
+    STATE.topSingles = built.topSingles;
+    STATE.users = built.users;
+
+    applyOrder(true);
+
+    // 2. Update KPIs
+    setText("months", String(STATE.aggAsc.length));
+    const totalRev = Math.round(STATE.aggAsc.reduce((a,b)=>a+(b.totalRevenue||0),0));
+    setText("totalRevenue", money(totalRev));
+
+    // 3. Update Components
+    renderTables();
+
+    // Trigger user table update
+    const activeUserBtn = document.querySelector('.userseg-btn.active');
+    renderUsers(activeUserBtn ? activeUserBtn.getAttribute('data-metric') : 'spend_total');
+
+    // Trigger chart update
+    const activeViewBtn = document.querySelector('.segmented:not(.userseg) .seg-btn.active');
+    if(activeViewBtn) renderChart(activeViewBtn.getAttribute('data-value'));
 }
 
 async function main(){
@@ -830,33 +1030,32 @@ async function main(){
 
     const [subRows, singleRows] = await Promise.all([fetchCsvPapa(SUB_CSV_URL), fetchCsvPapa(SINGLE_CSV_URL)]);
 
-    if(!subRows.length) throw new Error("訂閱CSV 沒抓到資料（可能還沒 publish 或 gid 錯）");
-    if(!singleRows.length) throw new Error("單片CSV 沒抓到資料（可能還沒 publish 或 gid 錯）");
+    if(!subRows.length) throw new Error("訂閱CSV 沒抓到資料");
+    if(!singleRows.length) throw new Error("單片CSV 沒抓到資料");
 
-    const built = buildAgg(subRows, singleRows);
-    STATE.aggAsc = built.aggAsc;
-    STATE.topSingles = built.topSingles;
-    STATE.users = built.users;
+    // Store Raw Data
+    RAW_DATA.sub = subRows;
+    RAW_DATA.single = singleRows;
 
-    applyOrder(true);
+    // Initial Dashboard Render
+    updateDashboard();
 
-    setText("months", String(STATE.aggAsc.length));
-    setText("totalRevenue", money(Math.round(STATE.aggAsc.reduce((a,b)=>a+(b.totalRevenue||0),0))));
+    // Bind Date Range Events
+    document.querySelectorAll('#dateRangeControl .seg-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            // Update active state
+            document.querySelectorAll('#dateRangeControl .seg-btn').forEach(b => b.classList.remove('active'));
+            e.target.classList.add('active');
 
-    // 移除骨架屏
-    document.querySelectorAll(".skeleton-container").forEach(e => e.remove());
-    document.querySelectorAll(".loading-hide").forEach(e => e.classList.remove("loading-hide"));
-
-    renderTables();
-    renderUsers(el("userMetric").value);
-    el("userMetric").addEventListener("change", (e)=> {
-        STATE.sort.users.col = 'metricVal';
-        STATE.sort.users.dir = 'desc';
-        renderUsers(e.target.value);
+            // Update State & Redraw
+            STATE.dateRange = e.target.getAttribute('data-range');
+            updateDashboard();
+        });
     });
 
-    renderChart("money");
-    el("viewSelect").addEventListener("change", (e)=> renderChart(e.target.value));
+    // Remove skeletons
+    document.querySelectorAll(".skeleton-container").forEach(e => e.remove());
+    document.querySelectorAll(".loading-hide").forEach(e => e.classList.remove("loading-hide"));
 
     el("status").className = "sub ok"; el("status").textContent = "● Data loaded • Last updated: " + new Date().toLocaleString();
   } catch(err) {
@@ -864,377 +1063,36 @@ async function main(){
     console.error(err);
   }
 }
-main();
-</script>
 
-<script>
+// Init Control Events (View Selection)
 (function(){
   const sel = document.getElementById('viewSelect');
-  const buttons = Array.from(document.querySelectorAll('.seg-btn'));
-  if(!sel || buttons.length===0) return;
-  function setActive(val){ buttons.forEach(b=>b.classList.toggle('active', b.dataset.value===val)); }
-  setActive(sel.value || 'money');
+  const buttons = document.querySelectorAll('.segmented:not(.userseg) .seg-btn');
   buttons.forEach(btn=>{
     btn.addEventListener('click', ()=>{
-      const val = btn.dataset.value; sel.value = val; setActive(val);
-      sel.dispatchEvent(new Event('change', {bubbles:true}));
+      buttons.forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      const val = btn.getAttribute('data-value');
+      if(sel) sel.value = val;
+      renderChart(val);
     });
   });
 })();
-</script>
 
-<script>
+// Init User Metric Events
 (function(){
-  const userSel = document.getElementById("userMetric");
   const userBtns = document.querySelectorAll(".userseg .userseg-btn");
-  if(userSel && userBtns.length){
-    userBtns.forEach(btn=>{
-      btn.addEventListener("click", ()=>{
-        userBtns.forEach(b=>b.classList.remove("active"));
-        btn.classList.add("active");
-        const v = btn.getAttribute("data-metric");
-        if(v){ userSel.value = v; userSel.dispatchEvent(new Event("change", {bubbles:true})); }
-      });
+  userBtns.forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      userBtns.forEach(b=>b.classList.remove("active"));
+      btn.classList.add("active");
+      const v = btn.getAttribute("data-metric");
+      renderUsers(v);
     });
-  }
+  });
 })();
-</script>
 
-<script>
-(function(){
-  function moneyFmt(n){
-    if(typeof window.money==="function") return window.money(n);
-    return "NT$ " + n.toLocaleString("en-US");
-  }
-  function parseMonth(s){
-    s = (s||"").trim();
-    let m = s.match(/(\d{4})\D(\d{1,2})/);
-    if(m) return {y:+m[1], mo:+m[2]};
-    m = s.match(/^\s*(\d{1,2})\s*$/);
-    if(m) return {y:0, mo:+m[1]};
-    const nums = s.match(/(\d{1,2})/g);
-    if(nums && nums.length) return {y:0, mo:+nums[nums.length-1]};
-    return null;
-  }
-  function findTotalColIndex(){
-    const table = document.querySelector("#tbodyMonthly")?.closest("table");
-    if(!table) return null;
-    const ths = Array.from(table.querySelectorAll("thead th"));
-    const labels = ths.map(th=>th.textContent.trim().toLowerCase());
-    const candidates = ["total","total revenue","總營收","總收入","營收","revenue"];
-    for(const c of candidates){
-      const idx = labels.findIndex(t=>t.includes(c));
-      if(idx>=0) return idx;
-    }
-    return null;
-  }
-  function setLatest(){
-    const monthsEl = document.getElementById("months");
-    const tbody = document.getElementById("tbodyMonthly");
-    if(!tbody) return;
-    const rows = Array.from(tbody.querySelectorAll("tr"));
-    if(!rows.length) return;
-    const totalIdx = findTotalColIndex();
-    let best = null;
-    for(const r of rows){
-      const tds = Array.from(r.querySelectorAll("td"));
-      if(!tds.length) continue;
-      const mi = parseMonth(tds[0].textContent);
-      if(!mi) continue;
-      let cell = null;
-      if(totalIdx != null && tds[totalIdx]) cell = tds[totalIdx];
-      else cell = tds[Math.max(0, tds.length-2)];
-      const val = parseInt((cell.textContent||"").replace(/[^0-9]/g,""),10);
-      if(isNaN(val)) continue;
-      const key = mi.y*100 + mi.mo;
-      if(!best || key > best.key) best = {key, val};
-    }
-    if(!best) return;
-    if(monthsEl) monthsEl.textContent = moneyFmt(best.val);
-  }
-  setLatest();
-  setTimeout(setLatest, 400);
-  setTimeout(setLatest, 1200);
-  const tbody = document.getElementById("tbodyMonthly");
-  if(tbody && window.MutationObserver){
-    const obs = new MutationObserver(()=>setLatest());
-    obs.observe(tbody, {childList:true, subtree:true});
-  }
-})();
-</script>
-
-<script>
-(function(){
-  function syncKpiStyles(){
-    const totalCard = document.querySelector('.kpi-card[data-kpi="total"], #kpiTotal, #totalKpi, [data-kpi="totalRevenue"]');
-    const latestCard = document.querySelector('.kpi-card[data-kpi="latest"], #kpiLatest, #latestKpi, [data-kpi="latestRevenue"]');
-    if(totalCard && latestCard){
-      ["kpi-primary","kpi-big","primary","big"].forEach(cls=>{
-        if(totalCard.classList.contains(cls)) latestCard.classList.add(cls);
-      });
-    }
-  }
-  setTimeout(syncKpiStyles, 0);
-  setTimeout(syncKpiStyles, 300);
-})();
-</script>
-
-<script id="safeHoverEnhancer">
-(function(){
-  let lastEl = null;
-  let saved = { stroke:'', strokeWidth:'', paintOrder:'', opacity:'', cursor:'', transform:'', transition:'', transformBox:'', transformOrigin:'' };
-  let ghostOverlay = document.getElementById('ghost-overlay');
-
-  if(!ghostOverlay) {
-    ghostOverlay = document.createElement('div');
-    ghostOverlay.id = 'ghost-overlay';
-    document.body.appendChild(ghostOverlay);
-  }
-
-  function enhance(gd){
-    if(!gd || gd.__enhancerBound || !gd.on) return;
-    gd.__enhancerBound = true;
-
-    gd.on('plotly_hover', function(e){
-      try{
-        if(!e || !e.points || !e.points.length) return;
-        const pt = e.points[0];
-        const curveIdx = pt.curveNumber;
-        const pointIdx = pt.pointNumber;
-        const traceType = gd.data[curveIdx].type || 'scatter';
-
-        let target = null;
-        let isBar = (traceType === 'bar');
-
-        if(isBar){
-            let barTraceCount = 0;
-            for(let i=0; i<curveIdx; i++){
-               const t = gd.data[i];
-               if(t.type === 'bar' && t.visible !== false && t.visible !== 'legendonly') barTraceCount++;
-            }
-            const traces = gd.querySelectorAll('.barlayer .trace');
-            const traceEl = traces[barTraceCount];
-            if(traceEl) {
-               const points = traceEl.querySelectorAll('.point');
-               target = points[pointIdx];
-            }
-        } else {
-            let scatterTraceCount = 0;
-             for(let i=0; i<curveIdx; i++){
-               const t = gd.data[i];
-               const tType = t.type || 'scatter';
-               if((tType === 'scatter' || tType === 'scattergl') && t.visible !== false && t.visible !== 'legendonly') scatterTraceCount++;
-            }
-            const traces = gd.querySelectorAll('.scatterlayer .trace');
-            const traceEl = traces[scatterTraceCount];
-            if(traceEl) {
-               const points = traceEl.querySelectorAll('.point');
-               target = points[pointIdx];
-            }
-        }
-
-        if(!target) return;
-
-        if(isBar) {
-          if(lastEl) { reset(lastEl); lastEl = null; }
-          const rect = target.getBoundingClientRect();
-          if(rect.width > 0 && rect.height > 0) {
-             ghostOverlay.style.top = rect.top + 'px';
-             ghostOverlay.style.left = rect.left + 'px';
-             ghostOverlay.style.width = rect.width + 'px';
-             ghostOverlay.style.height = rect.height + 'px';
-             ghostOverlay.style.borderRadius = "2px";
-             ghostOverlay.style.boxShadow = "0 0 6px rgba(255,255,255,0.5)";
-             ghostOverlay.style.display = 'block';
-          }
-        } else {
-          // UNIFIED GHOST OVERLAY for SCATTER
-          if(lastEl) { reset(lastEl); lastEl = null; }
-
-          const rect = target.getBoundingClientRect();
-          if(rect.width > 0 && rect.height > 0) {
-             const size = 20;
-             const cx = rect.left + rect.width/2;
-             const cy = rect.top + rect.height/2;
-
-             ghostOverlay.style.width = size + 'px';
-             ghostOverlay.style.height = size + 'px';
-             ghostOverlay.style.top = (cy - size/2) + 'px';
-             ghostOverlay.style.left = (cx - size/2) + 'px';
-             ghostOverlay.style.borderRadius = "50%";
-             ghostOverlay.style.boxShadow = "0 0 0 6px rgba(255,255,255,0.6)";
-             ghostOverlay.style.display = 'block';
-          }
-        }
-      }catch(err){ console.error(err); }
-    });
-
-    gd.on('plotly_unhover', function(){
-      ghostOverlay.style.display = 'none';
-      if(lastEl) { reset(lastEl); lastEl = null; }
-    });
-  }
-
-  function reset(el){
-    if(!el) return;
-    el.style.stroke = saved.stroke;
-    el.style.strokeWidth = saved.strokeWidth;
-    el.style.paintOrder = saved.paintOrder;
-    el.style.opacity = saved.opacity;
-  }
-
-  function scan(){
-    document.querySelectorAll('.js-plotly-plot, .plotly-graph-div').forEach(enhance);
-  }
-
-  const obs = new MutationObserver(()=>scan());
-  obs.observe(document.documentElement, {childList:true, subtree:true});
-  window.addEventListener('load', ()=>{ setTimeout(scan,500); setTimeout(scan,1500); });
-})();
-</script>
-
-<script id="customTooltipCardScriptV2">
-(function(){
-  let lastMouse = {x: 0, y: 0};
-
-  function ensureCard(){
-    let el=document.getElementById('customTooltipCard');
-    if(!el){
-      el=document.createElement('div');
-      el.id='customTooltipCard';
-      el.innerHTML='<div class="tt-title"></div><div class="tt-row"><span class="dot"></span><span class="name"></span><span class="value"></span></div>';
-      document.body.appendChild(el);
-    }
-    return el;
-  }
-  let card = ensureCard();
-  const titleEl=card.querySelector('.tt-title') || card.appendChild(document.createElement('div'));
-  if(!titleEl.className) titleEl.className='tt-title';
-
-  if(!card.querySelector('.tt-row')){
-     card.innerHTML='<div class="tt-title"></div><div class="tt-row"><span class="dot"></span><span class="name"></span><span class="value"></span></div>';
-  }
-  const dotEl=card.querySelector('.dot');
-  const nameEl=card.querySelector('.name');
-  const valueEl=card.querySelector('.value');
-  const tEl=card.querySelector('.tt-title');
-
-  function colorOf(pt){
-    try{
-      const tr=pt.fullData||pt.data||{};
-      let c=(tr.line&&tr.line.color)||(tr.marker&&tr.marker.color)||'#fff';
-      if(Array.isArray(c)) c=c[0]||'#fff';
-      return c;
-    }catch(e){return '#fff';}
-  }
-  function kindFor(name){
-    const s=(name||'').toLowerCase();
-    if(s.includes('revenue')||s.includes('營收')||s.includes('total')||s.includes('arpu')) return 'money';
-    if(s.includes('%')||s.includes('rate')||s.includes('ratio')||s.includes('比例')||s.includes('成長')) return 'pct';
-    if(s.includes('user')||s.includes('subscriber')||s.includes('客')||s.includes('人數')) return 'int';
-    return 'num';
-  }
-  function fmt(v, kind){
-    if(v==null||isNaN(v)) return '-';
-    const n=Number(v);
-    if(kind==='money') return 'NT$ '+n.toLocaleString(undefined,{maximumFractionDigits:0});
-    if(kind==='pct') return n.toFixed(1)+'%';
-    if(kind==='int') return n.toLocaleString(undefined,{maximumFractionDigits:0});
-    return n.toLocaleString(undefined,{maximumFractionDigits:1});
-  }
-  function place(x,y){
-    if(typeof x!=='number'||typeof y!=='number') return;
-    card.style.display='block';
-    const rect=card.getBoundingClientRect();
-    const vw=window.innerWidth;
-    const vh=window.innerHeight;
-    const pad=16;
-
-    let px=x+20, py=y+20;
-    if(px+rect.width+pad>vw) px=x-rect.width-20;
-    if(py+rect.height+pad>vh) py=y-rect.height-20;
-
-    card.style.left=Math.max(4,px)+'px';
-    card.style.top =Math.max(4,py)+'px';
-  }
-
-  function bind(gd){
-    if(!gd||gd.__cardBound||!gd.on) return;
-    gd.__cardBound=true;
-
-    gd.addEventListener('mousemove', (ev)=>{
-      lastMouse.x=ev.clientX;
-      lastMouse.y=ev.clientY;
-    }, {passive:true});
-
-    let hideTimer = null;
-    gd.on('plotly_unhover', function(){
-        hideTimer = setTimeout(() => { card.style.display='none'; }, 50);
-    });
-
-    gd.on('plotly_hover', function(e){
-      try{
-        if(hideTimer) clearTimeout(hideTimer);
-        if(!e || !e.points || !e.points.length) return;
-
-        let pt = e.points[0];
-
-        const xlab = pt.x;
-        const name = (pt.fullData && pt.fullData.name) || (pt.data && pt.data.name) || 'Value';
-        const yval = pt.y;
-
-        if(tEl) tEl.textContent = String(xlab);
-        if(dotEl) dotEl.style.background = colorOf(pt);
-        if(nameEl) nameEl.textContent = name;
-        if(valueEl) valueEl.textContent = fmt(yval, kindFor(name));
-
-        place(lastMouse.x, lastMouse.y);
-
-      }catch(err){ console.error(err); }
-    });
-  }
-
-  function scan(){
-    document.querySelectorAll('.js-plotly-plot, .plotly-graph-div').forEach(bind);
-  }
-
-  const obs=new MutationObserver(()=>scan());
-  obs.observe(document.documentElement,{childList:true,subtree:true});
-  window.addEventListener('load', ()=>{ setTimeout(scan,500); setTimeout(scan,1500); });
-})();
-</script>
-
-<script id="plotlyHoverEnforcer">
-(function(){
-  function fixLayout(gd){
-    if(!gd || !gd.classList || (!gd.classList.contains('js-plotly-plot') && !gd.classList.contains('plotly-graph-div'))) return;
-    if(!window.Plotly || !gd._fullLayout) return;
-
-    const update = {
-      hovermode: 'closest',
-      hoverdistance: 20,
-      spikedistance: -1
-    };
-
-    try{
-      const axKeys = Object.keys(gd._fullLayout).filter(k=>/^xaxis\d*$|^yaxis\d*$/.test(k));
-      axKeys.forEach(k=>{
-        update[`${k}.showspikes`] = false;
-        update[`${k}.spikesnap`] = 'cursor';
-      });
-    }catch(e){}
-
-    window.Plotly.relayout(gd, update).catch(()=>{});
-  }
-
-  function scan(){
-    document.querySelectorAll('.js-plotly-plot, .plotly-graph-div').forEach(fixLayout);
-  }
-
-  const obs = new MutationObserver(()=>scan());
-  obs.observe(document.documentElement,{childList:true,subtree:true});
-  window.addEventListener('load', ()=>{ setTimeout(scan,300); setTimeout(scan,1000); setTimeout(scan,2000); });
-})();
+main();
 </script>
 </body>
 </html>
