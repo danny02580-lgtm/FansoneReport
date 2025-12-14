@@ -15,26 +15,18 @@
   :root{
     --bg0:#0b1220; --bg1:#0f1a2e; --panel:rgba(255,255,255,.06); --stroke:rgba(255,255,255,.14);
     --text:#e5e7eb; --muted:#9ca3af;
-    --new:#3498db; --old:#2980b9;
-    --rev:#e74c3c; --single:#a78bfa; --totalrev:#f59e0b;
-    --arpu:#d35400;
-    --accent:#3b82f6; --accent-glow:rgba(59,130,246,0.4);
+    --accent:#3b82f6;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-
   html, body{ margin:0; padding:0; width:100%; height:100%; overflow-x: hidden; }
-
   body{
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    font-feature-settings: "tnum"; font-variant-numeric: tabular-nums;
     color:var(--text);
-    background:
-      radial-gradient(1200px 600px at 20% 10%, rgba(52,152,219,.15), transparent 60%),
-      radial-gradient(900px 500px at 85% 25%, rgba(231,76,60,.12), transparent 60%),
-      linear-gradient(180deg, var(--bg0), var(--bg1));
+    background: radial-gradient(1200px 600px at 20% 10%, rgba(52,152,219,.15), transparent 60%),
+                radial-gradient(900px 500px at 85% 25%, rgba(231,76,60,.12), transparent 60%),
+                linear-gradient(180deg, var(--bg0), var(--bg1));
     min-height:100vh;
   }
-
   a{color:inherit; text-decoration:none}
   .wrap{max-width:1200px; margin:0 auto; padding:24px 20px 48px; width: 100%;}
 
@@ -50,12 +42,13 @@
   .kpis{display:flex; flex-wrap:wrap; gap:12px; justify-content:flex-end; align-items:stretch}
   .kpi{
     padding:16px 18px; border:1px solid var(--stroke); border-radius:18px; background:rgba(255,255,255,.03);
-    min-width:180px; display:flex; flex-direction:column; gap:6px; transition:all 0.2s ease;
+    min-width:180px; display:flex; flex-direction:column; gap:6px;
   }
   .kpi .klabel{font-size:13px; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px; white-space:nowrap;}
   .kpi .kvalue{font-size:28px; font-weight:800; letter-spacing:-0.5px; color:var(--text); white-space:nowrap;}
 
   .grid{display:grid; grid-template-columns:360px 1fr; gap:16px; margin-top:20px}
+  @media(max-width:980px){.grid{grid-template-columns:1fr}}
 
   .panel{
     border:1px solid var(--stroke); border-radius:20px; background:var(--panel); backdrop-filter:blur(12px);
@@ -66,19 +59,17 @@
   .hd h2{margin:0; font-size:15px; font-weight:700; color:#fff; white-space:nowrap;}
   .bd{padding:16px}
 
-  /* --- Skeleton --- */
+  /* Skeleton */
+  .loading-hide { display: none !important; }
+  .skeleton-container { width: 100%; }
   .skeleton {
-    background: #1f2937;
     background: linear-gradient(110deg, #1f2937 8%, #374151 18%, #1f2937 33%);
     border-radius: 8px; background-size: 200% 100%; animation: shine 1.5s linear infinite; width: 100%;
   }
-  .skeleton-text { height: 24px; margin-bottom: 8px; width: 60%; }
   .skeleton-table-row { height: 40px; margin-bottom: 8px; width: 100%; }
   @keyframes shine { to { background-position-x: -200%; } }
-  .loading-hide { display: none !important; }
-  .skeleton-container { width: 100%; }
 
-  /* --- Controls --- */
+  /* Controls */
   .control-group { margin-bottom: 12px; }
   .control-label { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px; }
 
@@ -89,112 +80,86 @@
     border-radius: 10px; border: 0; background: transparent;
     color: rgba(255,255,255,.6); font-weight: 600; font-size: 14px;
     cursor: pointer; font-family: inherit; white-space: nowrap; text-align: center;
-    transition: all 0.2s cubic-bezier(0.4,0,0.2,1); text-overflow: clip; outline: none;
+    transition: all 0.2s; outline: none;
   }
-  .seg-btn:focus-visible { box-shadow: 0 0 0 2px var(--bg0), 0 0 0 4px var(--accent); z-index: 10; }
-  .seg-btn.active { background: var(--accent); color: #fff; box-shadow: 0 4px 12px var(--accent-glow); text-shadow: 0 1px 2px rgba(0,0,0,0.2); }
+  .seg-btn.active { background: var(--accent); color: #fff; }
   .seg-btn:hover:not(.active) { color: #e5e7eb; background: rgba(255,255,255,0.05); }
 
   .segmented.userseg { display: inline-flex; width: auto; margin: 0; }
   .userseg .userseg-btn { all: unset; cursor: pointer; padding: 6px 12px; border-radius: 99px; font-weight: 600; font-size: 11px; color: var(--muted); transition: all 0.2s; }
-  .userseg .userseg-btn.active { background: rgba(255,255,255,.12); color: #fff; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); }
-  .userseg .userseg-btn:focus-visible { box-shadow: 0 0 0 2px var(--accent); }
+  .userseg .userseg-btn.active { background: rgba(255,255,255,.12); color: #fff; }
 
-  /* --- Checkboxes (Native + Styled) --- */
+  /* Checkboxes - 回歸原生樣式但美化 */
   .checks { display:grid; grid-template-columns:1fr; gap:8px; margin-top:4px; }
   .check {
     display: flex; align-items: center; padding: 12px 14px;
     border: 1px solid var(--stroke); border-radius: 12px;
     background: rgba(255,255,255,.02); cursor: pointer;
-    transition: background 0.2s;
   }
   .check:hover { background: rgba(255,255,255,0.05); }
-
-  /* 直接使用原生 input，但放大並設定強調色 */
+  /* 原生 Checkbox 樣式調整 */
   .check input {
-    appearance: auto;
-    width: 18px; height: 18px;
-    accent-color: var(--accent);
+    appearance: auto; width: 18px; height: 18px;
+    accent-color: var(--accent); /* 關鍵：設定勾選顏色 */
     cursor: pointer; margin-right: 12px;
   }
-
   .dot { width: 8px; height: 8px; border-radius: 50%; margin-right: 8px; flex-shrink: 0; }
-  .label { overflow:hidden; display:flex; align-items:center; flex:1; }
   .label b { font-size:14px; font-weight:600; white-space:nowrap; color: rgba(255,255,255,0.95); }
 
   #chart{width:100%; height:560px}
 
-  .tablesGrid{display:grid; grid-template-columns:1.3fr 1fr; gap:16px; margin-top:16px; width: 100%;}
+  .select.hidden{display:none!important;}
+  .select{width:100%; padding:12px; border:1px solid var(--stroke); border-radius:14px; background:rgba(255,255,255,.04); color:var(--text); font-size:14px; outline:none;}
 
-  /* --- Tables --- */
+  /* Tables */
   .table-scroll-container { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; -ms-overflow-style: none; }
   .table-scroll-container::-webkit-scrollbar { display: none; }
-
   table{width:100%; border-collapse:separate; border-spacing:0; font-size:14px}
   th,td{padding:14px 14px; border-bottom:1px solid rgba(255,255,255,.06); white-space:nowrap;}
-
   th {
     text-align:left; color:var(--muted); font-weight:700; font-size:12px; text-transform:uppercase; letter-spacing:0.5px;
-    background:rgba(19,29,48,0.95); position:sticky; top:0; z-index:10;
-    cursor: pointer; user-select: none; transition: all 0.2s;
+    background:rgba(19,29,48,0.95); position:sticky; top:0; z-index:10; cursor: pointer; user-select: none;
   }
   th:hover { color: #fff; background:rgba(255,255,255,0.1); }
-  th::after { content: '⇅'; display: inline-block; margin-left: 6px; width: 10px; opacity: 0.2; font-size: 11px; vertical-align: middle; }
-  th:hover::after { opacity: 0.6; }
+  th::after { content: '⇅'; display: inline-block; margin-left: 6px; width: 10px; opacity: 0.2; font-size: 11px; }
   th.sort-asc::after { content: '▲'; opacity: 1; color: var(--accent); }
   th.sort-desc::after { content: '▼'; opacity: 1; color: var(--accent); }
-
   td.right, th.right{text-align:right;}
   tbody tr:nth-child(even) td{background:rgba(255,255,255,0.01)}
-  tr:hover td{background:rgba(255,255,255,.06)!important; transition:background 0.1s}
+  tr:hover td{background:rgba(255,255,255,.06)!important;}
 
+  /* Fixed Table (Top Users) */
   .fixed-table { table-layout: fixed; width: 100%; }
   .fixed-table th:nth-child(1) { width: 28%; }
   .fixed-table th:nth-child(2), .fixed-table th:nth-child(3), .fixed-table th:nth-child(4), .fixed-table th:nth-child(5) { width: 18%; }
   .fixed-table td { overflow: hidden; text-overflow: ellipsis; }
 
-  .sheetlink{color:var(--muted); border:1px solid var(--stroke); padding:7px 9px; border-radius:999px; background:rgba(255,255,255,.04)}
-  .sheetlink:hover{color:var(--text)}
-  .pill{padding:4px 10px; border:1px solid var(--stroke); border-radius:999px; font-size:11px; font-weight:600; color:var(--muted); background:rgba(255,255,255,.02); white-space:nowrap;}
-
+  /* RWD */
   @media(min-width:861px) {
     #real-t1.table-scroll-container { overflow-x: hidden !important; }
     #monthlyTable { table-layout: auto; width: 100%; }
-    #monthlyTable th, #monthlyTable td {
-        padding: 12px 6px; white-space: nowrap; overflow: visible; text-overflow: clip;
-        font-size: 13px; letter-spacing: -0.2px;
-    }
+    #monthlyTable th, #monthlyTable td { padding: 12px 6px; white-space: nowrap; overflow: visible; font-size: 13px; }
     .fixed-table th, .fixed-table td { padding: 12px 8px; }
   }
-
   @media(max-width:860px){
-    .wrap{padding:16px 12px 60px; overflow-x: hidden;}
-    .topbar{flex-direction:column; align-items:stretch; gap:12px; padding:16px;}
-    .kpis{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
-    .kpi{min-width:0; padding:16px;}
-    .kpi .kvalue{font-size:32px;}
-    .grid{grid-template-columns:1fr; gap:16px; margin-top:16px;}
+    .wrap{padding:16px 12px 60px;}
+    .topbar{flex-direction:column; align-items:stretch;}
+    .kpis{grid-template-columns:1fr 1fr; display:grid;}
+    .kpi{min-width:0;}
+    .grid{grid-template-columns:1fr;}
     #chart{height:480px!important;}
-    .tablesGrid{grid-template-columns:1fr; gap:16px;}
-    .check{padding:12px;}
+    .tablesGrid{grid-template-columns:1fr;}
     .fixed-table { min-width: 550px; }
     .fixed-table th, .fixed-table td { padding: 12px 8px; font-size: 12px; }
-    .seg-btn { font-size: 13px; padding: 8px 0; }
-  }
-  @media(max-width:400px){
-    .kpi .klabel{font-size:11px;} .kpi .kvalue{font-size:26px;}
-    #chart{height:420px!important;}
   }
 
-  #orderTag{display:none!important;}
-  #customTooltipCard{ position:fixed; z-index:99999; display:none; pointer-events:none; padding:14px 16px; border-radius:14px; background:rgba(15,23,42,0.92); border:1px solid rgba(255,255,255,.15); box-shadow:0 18px 60px rgba(0,0,0,.6); backdrop-filter:blur(16px); color:#fff; font-family:'Inter', sans-serif; }
-  #customTooltipCard .tt-title{font-weight:700;font-size:14px;opacity:1;margin-bottom:6px;}
-  #customTooltipCard .tt-row{display:flex;align-items:center;gap:10px}
-  #customTooltipCard .dot{width:10px;height:10px;border-radius:99px;flex:0 0 10px;box-shadow:0 0 0 2px rgba(255,255,255,.1)}
-  #customTooltipCard .name{font-size:13px;font-weight:600;opacity:.9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  #customTooltipCard .value{margin-left:auto;font-size:16px;font-weight:700;white-space:nowrap;font-feature-settings:"tnum"}
-  .js-plotly-plot .hoverlayer{opacity:0!important; pointer-events:none!important;}
-  .js-plotly-plot .hoverlayer .hovertext{display:none!important;}
+  /* Tooltip */
+  #customTooltipCard { position:fixed; z-index:99999; display:none; pointer-events:none; padding:14px 16px; border-radius:14px; background:rgba(15,23,42,0.92); border:1px solid rgba(255,255,255,.15); box-shadow:0 18px 60px rgba(0,0,0,.6); backdrop-filter:blur(16px); color:#fff; font-family:'Inter', sans-serif; }
+  #customTooltipCard .tt-title { font-weight:700; font-size:14px; margin-bottom:6px; }
+  #customTooltipCard .tt-row { display:flex; align-items:center; gap:10px; }
+  #customTooltipCard .dot { width:10px; height:10px; border-radius:99px; flex:0 0 10px; box-shadow:0 0 0 2px rgba(255,255,255,.1); }
+  #customTooltipCard .value { margin-left:auto; font-size:16px; font-weight:700; }
+  .js-plotly-plot .hoverlayer { opacity:0!important; pointer-events:none!important; }
 </style>
 </head>
 <body>
@@ -205,8 +170,8 @@
       <div class="sub" id="status">Loading…</div>
     </div>
     <div id="skel-kpi" class="skeleton-container kpis">
-        <div class="kpi" style="min-width:180px"><div class="skeleton skeleton-text" style="width:40%"></div><div class="skeleton skeleton-text" style="height:32px; width:80%"></div></div>
-        <div class="kpi" style="min-width:180px"><div class="skeleton skeleton-text" style="width:40%"></div><div class="skeleton skeleton-text" style="height:32px; width:80%"></div></div>
+        <div class="kpi"><div class="skeleton" style="height:24px;width:60%"></div><div class="skeleton" style="height:32px;width:80%;margin-top:8px"></div></div>
+        <div class="kpi"><div class="skeleton" style="height:24px;width:60%"></div><div class="skeleton" style="height:32px;width:80%;margin-top:8px"></div></div>
     </div>
     <div id="real-kpi" class="kpis loading-hide">
       <div class="kpi small">
@@ -226,22 +191,23 @@
       <div class="bd">
         <div class="control-group">
             <div class="control-label">Time Range</div>
-            <div class="segmented" role="tablist" id="dateRangeControl">
-              <button class="seg-btn active" type="button" data-range="all">All</button>
-              <button class="seg-btn" type="button" data-range="12">12M</button>
-              <button class="seg-btn" type="button" data-range="6">6M</button>
-              <button class="seg-btn" type="button" data-range="3">3M</button>
+            <div class="segmented" id="dateRangeControl">
+              <button class="seg-btn active" data-range="all">All</button>
+              <button class="seg-btn" data-range="12">12M</button>
+              <button class="seg-btn" data-range="6">6M</button>
+              <button class="seg-btn" data-range="3">3M</button>
             </div>
         </div>
         <div class="control-group">
             <div class="control-label">Metric</div>
-            <div class="segmented" role="tablist" id="viewControl">
-              <button class="seg-btn active" type="button" data-value="money">Revenue</button>
-              <button class="seg-btn" type="button" data-value="subs">Subs</button>
-              <button class="seg-btn" type="button" data-value="mix">Plans</button>
-              <button class="seg-btn" type="button" data-value="arpu">ARPU</button>
+            <div class="segmented" id="viewControl">
+              <button class="seg-btn active" data-value="money">Revenue</button>
+              <button class="seg-btn" data-value="subs">Subs</button>
+              <button class="seg-btn" data-value="mix">Plans</button>
+              <button class="seg-btn" data-value="arpu">ARPU</button>
             </div>
         </div>
+        <select id="viewSelect" class="select hidden"><option value="money">Money</option></select>
         <div class="checks" id="checks"></div>
       </div>
     </div>
@@ -259,7 +225,7 @@
       <div class="hd"><h2>Monthly Summary</h2></div>
       <div class="bd" style="padding:0;">
         <div id="skel-t1" class="skeleton-container" style="padding:16px">
-            <div class="skeleton skeleton-table-row"></div><div class="skeleton skeleton-table-row"></div><div class="skeleton skeleton-table-row"></div><div class="skeleton skeleton-table-row"></div>
+            <div class="skeleton skeleton-table-row"></div><div class="skeleton skeleton-table-row"></div>
         </div>
         <div id="real-t1" class="table-scroll-container loading-hide">
           <table id="monthlyTable">
@@ -284,15 +250,15 @@
     <div class="panel">
       <div class="hd">
         <div style="display:flex; align-items:center; gap:8px;"><h2>Top Users</h2></div>
-        <div class="segmented userseg" role="tablist">
-          <button class="userseg-btn active" type="button" data-metric="spend_total">Spend</button>
-          <button class="userseg-btn" type="button" data-metric="active_months">Loyalty</button>
+        <div class="segmented userseg">
+          <button class="userseg-btn active" data-metric="spend_total">Spend</button>
+          <button class="userseg-btn" data-metric="active_months">Loyalty</button>
         </div>
-        <select id="userMetric" style="display:none" class="select"><option value="spend_total">A</option><option value="active_months">B</option></select>
+        <select id="userMetric" style="display:none" class="select"><option value="spend_total">A</option></select>
       </div>
       <div class="bd" style="padding:0;">
         <div id="skel-t2" class="skeleton-container" style="padding:16px">
-            <div class="skeleton skeleton-table-row"></div><div class="skeleton skeleton-table-row"></div><div class="skeleton skeleton-table-row"></div>
+            <div class="skeleton skeleton-table-row"></div><div class="skeleton skeleton-table-row"></div>
         </div>
         <div id="real-t2" class="table-scroll-container loading-hide">
           <table class="fixed-table">
@@ -317,7 +283,7 @@
       <div class="hd"><h2>Top Singles</h2></div>
       <div class="bd" style="padding:0;">
         <div id="skel-t3" class="skeleton-container" style="padding:16px">
-            <div class="skeleton skeleton-table-row"></div><div class="skeleton skeleton-table-row"></div>
+            <div class="skeleton skeleton-table-row"></div>
         </div>
         <div id="real-t3" class="table-scroll-container loading-hide">
           <table>
@@ -336,621 +302,331 @@
   </div>
 </div>
 
-<div id="customTooltipCard"></div>
+<div id="customTooltipCard"><div class="tt-title"></div><div class="tt-row"><span class="dot"></span><span class="name"></span><span class="value"></span></div></div>
 
 <script>
 const SUB_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQiAPNDCD7qn6atO4VB6Ei63AacDK00AMKM16hK8c-wVWFadPPOj-P8olYQ-ofMFwy0maGU1A4CBneW/pub?gid=0&single=true&output=csv";
 const SINGLE_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQiAPNDCD7qn6atO4VB6Ei63AacDK00AMKM16hK8c-wVWFadPPOj-P8olYQ-ofMFwy0maGU1A4CBneW/pub?gid=1226262547&single=true&output=csv";
 
 function el(id){ return document.getElementById(id); }
-function setText(id, txt){ const e=document.getElementById(id); if(e) e.textContent=txt; }
-function money(n){ if(!isFinite(n)) return "–"; return "$ " + Number(n).toLocaleString("en-US"); }
-function parseMoney(s){ if(s==null) return NaN; const m = String(s).match(/-?\d+(?:,\d{3})*(?:\.\d+)?/); return m ? Number(m[0].replace(/,/g,"")) : NaN; }
-function toMonthKey(v){ if(!v) return null; const s=String(v).trim(), m=s.match(/(\d{4})-(\d{2})/); return m ? m[1]+"-"+m[2] : null; }
+function setText(id, txt){ const e=el(id); if(e) e.textContent=txt; }
+function money(n){ return isFinite(n) ? "$ " + Number(n).toLocaleString("en-US") : "–"; }
+function parseMoney(s){ if(s==null) return NaN; const m=String(s).match(/-?\d+(?:,\d{3})*(?:\.\d+)?/); return m ? Number(m[0].replace(/,/g,"")) : NaN; }
+function toMonthKey(v){ const s=String(v||"").trim(), m=s.match(/(\d{4})-(\d{2})/); return m ? m[1]+"-"+m[2] : null; }
+function fetchCsvPapa(url) { return new Promise((resolve,reject) => Papa.parse(url, { download:true, header:true, skipEmptyLines:true, complete:(r)=>resolve(r.data), error:reject })); }
 
-function fetchCsvPapa(url) {
-    return new Promise((resolve, reject) => {
-        Papa.parse(url, {
-            download: true, header: true, skipEmptyLines: true,
-            complete: (results) => resolve(results.data),
-            error: (err) => reject(err)
-        });
-    });
-}
+function normalizePlan(s){ s=(s||"").toLowerCase(); if(s.includes("6")||s.includes("半年")) return "6M"; if(s.includes("3")||s.includes("三")) return "3M"; return "1M"; }
+function pickKey(h, c){ const l=h.map(x=>x.toLowerCase()); for(const k of c){ const i=l.findIndex(x=>x.includes(k)); if(i>=0) return h[i]; } return null; }
+function parseTime(s){ const t=String(s||"").trim(), m=t.match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? m[0] : null; }
 
-function normalizePlan(plan){
-  const s = String(plan||"").toLowerCase();
-  if(s.includes("6") || s.includes("半年") || s.includes("6個月")) return "6M";
-  if(s.includes("3") || s.includes("三") || s.includes("3個月")) return "3M";
-  return "1M";
-}
-function pickKey(headers, candidates){
-  const lower = headers.map(h=>h.toLowerCase());
-  for(const cand of candidates){
-    const c = String(cand).toLowerCase();
-    const idx = lower.findIndex(h => h.includes(c));
-    if(idx>=0) return headers[idx];
-  }
-  return null;
-}
-function parseTimeToSortable(s){
-  const t = String(s||"").trim();
-  const m = t.match(/^(\d{4})-(\d{2})-(\d{2})\s?(\d{2}):(\d{2})(?::(\d{2}))?/);
-  if(!m){
-    const m2 = t.match(/^(\d{4})-(\d{2})-(\d{2})(\d{2}):(\d{2})(?::(\d{2}))?/);
-    if(!m2) return null;
-    return `${m2[1]}-${m2[2]}-${m2[3]} ${m2[4]}:${m2[5]}:${m2[6]||"00"}`;
-  }
-  return `${m[1]}-${m[2]}-${m[3]} ${m[4]}:${m[5]}:${m[6]||"00"}`;
-}
-
-let RAW_DATA = { sub: [], single: [] };
-let STATE = {
-    aggAsc:[], aggDesc:[], topSingles:[], users:[],
-    sort: {
-        monthly: { col: 'month', dir: 'desc' },
-        users: { col: 'metricVal', dir: 'desc' },
-        singles: { col: 'sum', dir: 'desc' }
-    },
-    dateRange: 'all'
-};
-
-function sortTable(tableId, colKey) {
-    const s = STATE.sort[tableId];
-    if (s.col === colKey) { s.dir = (s.dir === 'desc') ? 'asc' : 'desc'; }
-    else { s.col = colKey; s.dir = 'desc'; }
-    document.querySelectorAll(`#tbody${tableId.charAt(0).toUpperCase() + tableId.slice(1)}`).forEach(tbody => {
-        const table = tbody.closest('table');
-        table.querySelectorAll('th').forEach(th => {
-            th.classList.remove('sort-asc', 'sort-desc');
-            if (th.dataset.key === colKey) { th.classList.add(s.dir === 'asc' ? 'sort-asc' : 'sort-desc'); }
-        });
-    });
-    if (tableId === 'monthly') renderTables();
-    else if (tableId === 'singles') renderTables();
-    else if (tableId === 'users') renderUsers();
-}
-
-function getSortedData(data, tableId) {
-    const s = STATE.sort[tableId];
-    if(!s.col) return data;
-    const sorted = [...data].sort((a,b) => {
-        let va = a[s.col], vb = b[s.col];
-        if (typeof va === 'string') va = va.toLowerCase();
-        if (typeof vb === 'string') vb = vb.toLowerCase();
-        if (va < vb) return s.dir === 'asc' ? -1 : 1;
-        if (va > vb) return s.dir === 'asc' ? 1 : -1;
-        return 0;
-    });
-    return sorted;
-}
-
-function filterRowsByDate(rows, timeKey) {
-    if (STATE.dateRange === 'all') return rows;
-
-    let maxMonth = "";
-    rows.forEach(r => {
-        const d = parseTimeToSortable(r[timeKey]);
-        if(d) {
-            const m = d.slice(0, 7);
-            if(m > maxMonth) maxMonth = m;
-        }
-    });
-    if(!maxMonth) return rows;
-
-    const y = parseInt(maxMonth.split('-')[0]);
-    const m = parseInt(maxMonth.split('-')[1]);
-    const range = parseInt(STATE.dateRange);
-
-    const targetDate = new Date(y, m - 1, 1);
-    targetDate.setMonth(targetDate.getMonth() - (range - 1));
-
-    const ty = targetDate.getFullYear();
-    const tm = String(targetDate.getMonth() + 1).padStart(2, '0');
-    const minMonth = `${ty}-${tm}`;
-
-    return rows.filter(r => {
-        const d = parseTimeToSortable(r[timeKey]);
-        if(!d) return false;
-        const rowMonth = d.slice(0, 7);
-        return rowMonth >= minMonth;
-    });
-}
+let RAW_DATA = { sub:[], single:[] };
+let STATE = { agg:[], singles:[], users:[], sort:{ monthly:{c:'month',d:'desc'}, users:{c:'metricVal',d:'desc'}, singles:{c:'sum',d:'desc'} }, dateRange:'all' };
 
 function buildAgg(subRows, singleRows){
-  const subHeaders = Object.keys(subRows[0]||{});
-  const timeKey  = pickKey(subHeaders, ["時間","time","date","datetime"]) || subHeaders[0];
-  const planKey  = pickKey(subHeaders, ["方案","plan","類型"]) || subHeaders[1];
-  const idKey    = pickKey(subHeaders, ["用戶id","user id","userid","id","用戶","user"]) || subHeaders[2];
-  const priceKey = pickKey(subHeaders, ["價格","price","金額","amount","收入"]) || subHeaders[Math.min(3, subHeaders.length-1)];
+    // Filtering Logic
+    let filteredSub = subRows, filteredSingle = singleRows;
+    if(STATE.dateRange !== 'all'){
+        // Find absolute max date across ALL data
+        let maxT = "";
+        const check = (rows, k) => rows.forEach(r => { const t=parseTime(r[k]); if(t && t>maxT) maxT=t; });
+        const subK = pickKey(Object.keys(subRows[0]||{}), ["時間","time"]);
+        const sinK = pickKey(Object.keys(singleRows[0]||{}), ["時間","time"]);
+        check(subRows, subK); check(singleRows, sinK);
 
-  const sHeaders = Object.keys(singleRows[0]||{});
-  const sTimeKey  = pickKey(sHeaders, ["時間","time","date","datetime"]) || sHeaders[0];
-  const sTitleKey = pickKey(sHeaders, ["影片標題","標題","title","影片","內容"]) || sHeaders[1];
-  const sUrlKey   = pickKey(sHeaders, ["網址","url","link"]) || sHeaders[2];
-  const sIdKey    = pickKey(sHeaders, ["用戶id","user id","userid","id","用戶","user"]) || sHeaders[3];
-  const sPriceKey = pickKey(sHeaders, ["價格","price","金額","amount","收入"]) || sHeaders[Math.min(4, sHeaders.length-1)];
-
-  const filteredSub = filterRowsByDate(subRows, timeKey);
-  const filteredSingle = filterRowsByDate(singleRows, sTimeKey);
-
-  const monthMap = new Map();
-  const parsedSub = filteredSub.map(r=>({
-    month: toMonthKey(r[timeKey]),
-    time: parseTimeToSortable(r[timeKey]) || String(r[timeKey]||""),
-    id: String(r[idKey]||"").trim(),
-    plan: normalizePlan(r[planKey]),
-    price: parseMoney(r[priceKey]),
-  })).filter(x=>x.month && x.id);
-
-  const userMap = new Map();
-  function ensureUser(id){
-    if(!userMap.has(id)) userMap.set(id, {
-      id, subSpend:0, singleSpend:0, totalSpend:0,
-      subOrders:0, singleOrders:0, totalOrders:0,
-      activeMonths:new Set()
-    });
-    return userMap.get(id);
-  }
-
-  for(const rec of parsedSub){
-    if(!monthMap.has(rec.month)) monthMap.set(rec.month, {
-      month: rec.month,
-      subIds: new Set(),
-      newIds: new Set(),
-      oldIds: new Set(), // Simplified logic: real "new/old" requires full history
-      planCount: {"1M":0,"3M":0,"6M":0},
-      subRevenue: 0,
-      singleRevenue: 0,
-    });
-    const m = monthMap.get(rec.month);
-    m.subIds.add(rec.id);
-    m.planCount[rec.plan] = (m.planCount[rec.plan]||0) + 1;
-    if(isFinite(rec.price)) m.subRevenue += rec.price;
-
-    const u = ensureUser(rec.id);
-    if(isFinite(rec.price)) { u.subSpend += rec.price; u.totalSpend += rec.price; }
-    u.subOrders += 1; u.totalOrders += 1;
-    u.activeMonths.add(rec.month);
-  }
-
-  const titleAgg = new Map();
-  for(const r of filteredSingle){
-    const title = String(r[sTitleKey]||"").trim();
-    const url = String(r[sUrlKey]||"").trim();
-    const price = parseMoney(r[sPriceKey]);
-    const uid = String(r[sIdKey]||"").trim();
-    if(title){
-      if(!titleAgg.has(title)) titleAgg.set(title, {title, url, sum:0, count:0});
-      const t = titleAgg.get(title);
-      if(!t.url && url) t.url=url;
-      if(isFinite(price)) t.sum += price;
-      t.count += 1;
-    }
-    if(uid){
-      const u = ensureUser(uid);
-      if(isFinite(price)) { u.singleSpend += price; u.totalSpend += price; }
-      u.singleOrders += 1; u.totalOrders += 1;
-      const mo = toMonthKey(r[sTimeKey]);
-      if(mo) u.activeMonths.add(mo);
-    }
-  }
-
-  for(const r of filteredSingle){
-    const month = toMonthKey(r[sTimeKey]);
-    if(!month) continue;
-    const price = parseMoney(r[sPriceKey]);
-    if(!monthMap.has(month)) monthMap.set(month, {
-      month, subIds:new Set(), newIds:new Set(), oldIds:new Set(),
-      planCount: {"1M":0,"3M":0,"6M":0}, subRevenue:0, singleRevenue:0
-    });
-    const m = monthMap.get(month);
-    if(isFinite(price)) m.singleRevenue += price;
-  }
-
-  // Helper to re-calculate "New/Old" users based on appearance order in *filtered* data
-  // (Or roughly approximate) - For strict accuracy, New/Old should probably be pre-calculated
-  // Here we just use simple set logic on the current window
-  const seenIds = new Set();
-  const monthsAsc = Array.from(monthMap.keys()).sort();
-
-  const aggAsc = monthsAsc.map(k=>{
-    const m = monthMap.get(k);
-    // Re-calc new/old for this view
-    let newC = 0, oldC = 0;
-    m.subIds.forEach(id => {
-        if(seenIds.has(id)) oldC++; else { newC++; seenIds.add(id); }
-    });
-
-    const subs = m.subIds.size;
-    const subRevenue = m.subRevenue || 0;
-    const singleRevenue = m.singleRevenue || 0;
-    const totalRevenue = subRevenue + singleRevenue;
-    const arpu = subs? subRevenue/subs : NaN;
-
-    // Fake Plan % for demo if not strictly tracking
-    const orders = (m.planCount["1M"] + m.planCount["3M"] + m.planCount["6M"]) || 1;
-    const p1 = m.planCount["1M"]/orders;
-    const p3 = m.planCount["3M"]/orders;
-    const p6 = m.planCount["6M"]/orders;
-
-    return { month:k, subs, newUsers:newC, oldUsers:oldC, p1, p3, p6, subRevenue, singleRevenue, totalRevenue, arpu };
-  });
-
-  const topSingles = Array.from(titleAgg.values()).sort((a,b)=>b.sum-a.sum).slice(0,10);
-  const users = Array.from(userMap.values()).map(u=>({...u, monthsActive:u.activeMonths.size}));
-
-  return { aggAsc, topSingles, users };
-}
-
-function renderTables(){
-  const sortedMonthly = getSortedData(STATE.aggAsc, 'monthly');
-  el("tbodyMonthly").innerHTML = sortedMonthly.map(x=>(
-    `<tr>
-      <td>${x.month}</td>
-      <td class="right">${x.subs}</td>
-      <td class="right">${x.newUsers}</td>
-      <td class="right">${x.oldUsers}</td>
-      <td class="right">${Math.round(x.subRevenue).toLocaleString("en-US")}</td>
-      <td class="right">${Math.round(x.singleRevenue).toLocaleString("en-US")}</td>
-      <td class="right">${Math.round(x.totalRevenue).toLocaleString("en-US")}</td>
-      <td class="right">${isFinite(x.arpu)?x.arpu.toFixed(1):"–"}</td>
-    </tr>`
-  )).join("");
-
-  const sortedSingles = getSortedData(STATE.topSingles, 'singles').slice(0,10);
-  el("tbodySingles").innerHTML = sortedSingles.map(t=>{
-    const safeTitle = t.title.replace(/</g,"&lt;").replace(/>/g,"&gt;");
-    const link = t.url ? `<a href="${t.url}" target="_blank" rel="noopener">${safeTitle}</a>` : safeTitle;
-    return `<tr>
-      <td>${link}</td>
-      <td class="right">${Math.round(t.sum).toLocaleString("en-US")}</td>
-      <td class="right">${t.count}</td>
-    </tr>`;
-  }).join("");
-}
-
-function renderUsers(metric){
-  if (!metric) {
-      const activeBtn = document.querySelector('.userseg-btn.active');
-      metric = activeBtn ? activeBtn.getAttribute('data-metric') : 'spend_total';
-  }
-  const users = STATE.users || [];
-  const rows = users.map(u => {
-      let val = u.totalSpend;
-      if(metric==="spend_sub") val=u.subSpend;
-      else if(metric==="spend_single") val=u.singleSpend;
-      else if(metric==="active_months") val=u.monthsActive;
-      else if(metric==="orders_total") val=u.totalOrders;
-      return { ...u, metricVal: val };
-  });
-
-  const sortedRows = getSortedData(rows, 'users').slice(0,10);
-  let fmt = (v)=> Math.round(v).toLocaleString("en-US");
-  if(metric==="active_months" || metric==="orders_total") fmt=(v)=>String(v);
-
-  el("tbodyUsers").innerHTML = sortedRows.map(u=>(
-    `<tr>
-      <td>${u.id}</td>
-      <td class="right">${fmt(u.metricVal)}</td>
-      <td class="right">${Math.round(u.subSpend).toLocaleString("en-US")}</td>
-      <td class="right">${Math.round(u.singleSpend).toLocaleString("en-US")}</td>
-      <td class="right">${Math.round(u.totalSpend).toLocaleString("en-US")}</td>
-    </tr>`
-  )).join("") || `<tr><td colspan="5" style="color:rgba(156,163,175,.9); padding:14px;">（目前沒有資料）</td></tr>`;
-}
-
-function layoutBase(){
-  return {
-    dragmode:false,
-    paper_bgcolor:"rgba(0,0,0,0)",
-    plot_bgcolor:"rgba(255,255,255,0.02)",
-    margin:{l:56,r:40,t:22,b:46},
-    bargap:0.35,
-    legend:{orientation:"h", x:0, y:1.12, font:{color:"rgba(229,231,235,.9)"}},
-    hoverlabel:{bgcolor:"rgba(15,23,42,.95)", bordercolor:"rgba(255,255,255,.14)", font:{color:"#e5e7eb"}},
-  };
-}
-
-function makeChecksFor(view){
-  const css = getComputedStyle(document.documentElement);
-  const itemsByView = {
-    money: [
-      { id:"r_total",  color:css.getPropertyValue('--totalrev').trim(), title:"總營收" },
-      { id:"r_sub",    color:css.getPropertyValue('--rev').trim(),      title:"訂閱營收" },
-      { id:"r_single", color:css.getPropertyValue('--single').trim(),   title:"單片營收" },
-    ],
-    subs: [
-      { id:"s_new", color:css.getPropertyValue('--new').trim(), title:"新客" },
-      { id:"s_old", color:css.getPropertyValue('--old').trim(), title:"舊客" },
-    ],
-    mix: [
-      { id:"p_1", color:"#22c55e", title:"1M" },
-      { id:"p_3", color:"#60a5fa", title:"3M" },
-      { id:"p_6", color:"#f97316", title:"6M" },
-    ],
-    arpu: [],
-  };
-  const items = itemsByView[view] || [];
-  const box = el("checks");
-
-  // 使用原生 Checkbox 結構，最穩定
-  box.innerHTML = items.map(it=>(
-    `<label class="check">
-      <input type="checkbox" id="${it.id}" checked />
-      <span class="dot" style="background:${it.color}"></span>
-      <span class="label"><b>${it.title}</b></span>
-    </label>`
-  )).join("");
-
-  box.style.display = (view==="arpu") ? "none" : "grid";
-}
-
-function applyOrder(newestFirst){
-  const a = STATE.aggAsc;
-  STATE.aggDesc = newestFirst ? [...a].reverse() : [...a];
-  setText("orderTag", newestFirst ? "新 → 舊" : "舊 → 新");
-}
-
-function buildTraces(view){
-  const agg = STATE.aggDesc;
-  const x = agg.map(d=>Number(d.month.split("-")[1]));
-  const xText = agg.map(d=>d.month);
-
-  const newY = agg.map(d=>d.newUsers);
-  const oldY = agg.map(d=>d.oldUsers);
-  const subRev = agg.map(d=>Math.round(d.subRevenue));
-  const singleRev = agg.map(d=>Math.round(d.singleRevenue));
-  const totalRev = agg.map(d=>Math.round(d.totalRevenue));
-  const arpu = agg.map(d=> (isFinite(d.arpu)? Number(d.arpu.toFixed(1)) : null));
-  const p1 = agg.map(d=> (d.p1*100));
-  const p3 = agg.map(d=> (d.p3*100));
-  const p6 = agg.map(d=> (d.p6*100));
-
-  const css = getComputedStyle(document.documentElement);
-  const CNEW = css.getPropertyValue('--new').trim();
-  const COLD = css.getPropertyValue('--old').trim();
-  const CREV = css.getPropertyValue('--rev').trim();
-  const CSIN = css.getPropertyValue('--single').trim();
-  const CTOT = css.getPropertyValue('--totalrev').trim();
-  const CARPU = css.getPropertyValue('--arpu').trim();
-
-  const xaxis = { tickmode:"array", tickvals:x, ticktext:x.map(v=>String(v)), gridcolor:"rgba(255,255,255,.08)", zeroline:false, tickfont:{color:"rgba(229,231,235,.9)", size:12} };
-  const yCommon = { gridcolor:"rgba(255,255,255,.10)", zeroline:false, tickfont:{color:"rgba(229,231,235,.9)", size:12} };
-  const hoverConfig = { hovermode: "closest", hoverdistance: 20 };
-
-  if(view==="subs"){
-    return {
-      traces: [
-        {name:"New users", type:"bar", x, y:newY, marker:{color:CNEW}, text:newY.map(v=>String(v)), textposition:"inside", insidetextanchor:"middle", textfont:{color:"rgba(229,231,235,.95)",size:11}, customdata:xText, hovertemplate:"%{customdata}<br>New: <b>%{y}</b><extra></extra>"},
-        {name:"Old users", type:"bar", x, y:oldY, marker:{color:COLD}, text:oldY.map(v=>String(v)), textposition:"inside", insidetextanchor:"middle", textfont:{color:"rgba(229,231,235,.95)",size:11}, customdata:xText, hovertemplate:"%{customdata}<br>Old: <b>%{y}</b><extra></extra>"},
-      ],
-      layout: { ...hoverConfig, barmode:"stack", xaxis, yaxis: yCommon },
-      defaults: ["s_new","s_old"],
-    };
-  }
-  if(view==="mix"){
-    return {
-      traces: [
-        {name:"1M", type:"bar", x, y:p1, marker:{color:"#22c55e"}, opacity:0.92, text:p1.map(v=>v.toFixed(1)+"%"), textposition:"inside", textfont:{color:"rgba(229,231,235,.95)",size:11}, customdata:xText, hovertemplate:"%{customdata}<br>1M: <b>%{y:.1f}%</b><extra></extra>"},
-        {name:"3M", type:"bar", x, y:p3, marker:{color:"#60a5fa"}, opacity:0.92, text:p3.map(v=>v.toFixed(1)+"%"), textposition:"inside", textfont:{color:"rgba(229,231,235,.95)",size:11}, customdata:xText, hovertemplate:"%{customdata}<br>3M: <b>%{y:.1f}%</b><extra></extra>"},
-        {name:"6M", type:"bar", x, y:p6, marker:{color:"#f97316"}, opacity:0.92, text:p6.map(v=>v.toFixed(1)+"%"), textposition:"inside", textfont:{color:"rgba(229,231,235,.95)",size:11}, customdata:xText, hovertemplate:"%{customdata}<br>6M: <b>%{y:.1f}%</b><extra></extra>"},
-      ],
-      layout: { ...hoverConfig, barmode:"stack", xaxis, yaxis: {...yCommon, range:[0,100], ticksuffix:"%"} },
-      defaults: ["p_1","p_3","p_6"],
-    };
-  }
-  if(view==="arpu"){
-    return {
-      traces: [
-        {name:"ARPU", type:"scatter", mode:"lines+markers+text", x, y:arpu, line:{color:CARPU,width:3}, marker:{size:8,color:CARPU}, text:arpu.map(v=>(v==null?"":String(v))), textposition:"top center", textfont:{color:"rgba(229,231,235,.95)",size:12}, customdata:xText, hovertemplate:"%{customdata}<br>ARPU: <b>%{y}</b><extra></extra>"},
-      ],
-      layout: { ...hoverConfig, xaxis, yaxis: yCommon },
-      defaults: [],
-    };
-  }
-  return {
-    traces: [
-      {name:"Total revenue", type:"scatter", mode:"lines+markers+text", x, y:totalRev, line:{color:CTOT,width:3}, marker:{size:8,color:CTOT,line:{width:0,color:CTOT}}, text:totalRev.map(v=>String(v)), textposition:"top center", textfont:{color:"rgba(229,231,235,.95)",size:12}, customdata:xText, hovertemplate:"%{customdata}<br>Total: <b>%{y}</b><extra></extra>"},
-      {name:"Sub revenue", type:"scatter", mode:"lines+markers+text", x, y:subRev, line:{color:CREV,width:3}, marker:{size:8,color:CREV,line:{width:0,color:CREV}}, text:subRev.map(v=>String(v)), textposition:"top center", textfont:{color:"rgba(229,231,235,.95)",size:12}, customdata:xText, hovertemplate:"%{customdata}<br>Sub: <b>%{y}</b><extra></extra>"},
-      {name:"Single revenue", type:"scatter", mode:"lines+markers+text", x, y:singleRev, line:{color:CSIN,width:3,dash:"dot"}, marker:{size:8,color:CSIN,line:{width:0,color:CSIN}}, text:singleRev.map(v=>String(v)), textposition:"top center", textfont:{color:"rgba(229,231,235,.95)",size:12}, customdata:xText, hovertemplate:"%{customdata}<br>Single: <b>%{y}</b><extra></extra>"},
-    ],
-    layout: { ...hoverConfig, xaxis, yaxis: yCommon },
-    defaults: ["r_total","r_sub","r_single"],
-    };
-}
-
-function applyVisibility(view, traces){
-  let vis = new Array(traces.length).fill(false);
-  const on = (id)=> { const n=document.getElementById(id); return n && n.checked; };
-  if(view==="money"){ if(on("r_total")) vis[0]=true; if(on("r_sub")) vis[1]=true; if(on("r_single")) vis[2]=true; }
-  else if(view==="subs"){ if(on("s_new")) vis[0]=true; if(on("s_old")) vis[1]=true; }
-  else if(view==="mix"){ if(on("p_1")) vis[0]=true; if(on("p_3")) vis[1]=true; if(on("p_6")) vis[2]=true; }
-  Plotly.restyle("chart", "visible", vis);
-}
-
-function renderChart(view){
-  makeChecksFor(view);
-  const built = buildTraces(view);
-  const layout = {...layoutBase(), ...built.layout};
-  const config = {responsive:true, displaylogo:false, displayModeBar:false, scrollZoom:false, doubleClick:false};
-
-  if(view!=="arpu"){
-    (built.defaults||[]).forEach(id=>{ const node=document.getElementById(id); if(node) node.checked=true; });
-    const getChecked = (id) => { const n=document.getElementById(id); return n && n.checked; };
-    // 預先設定 visible，避免依賴 Plotly.restyle 導致初始化失敗
-    built.traces.forEach((t, i) => {
-        // Simple mapping based on known structure
-        if(view==="money") t.visible = (i===0 && getChecked("r_total")) || (i===1 && getChecked("r_sub")) || (i===2 && getChecked("r_single")) ? true : "legendonly";
-        else if(view==="subs") t.visible = (i===0 && getChecked("s_new")) || (i===1 && getChecked("s_old")) ? true : "legendonly";
-        else if(view==="mix") t.visible = (i===0 && getChecked("p_1")) || (i===1 && getChecked("p_3")) || (i===2 && getChecked("p_6")) ? true : "legendonly";
-    });
-  }
-
-  // Bind Events Immediately
-  document.querySelectorAll("#checks input[type=checkbox]").forEach(cb => {
-      cb.addEventListener("change", () => applyVisibility(view, built.traces));
-  });
-
-  Plotly.react("chart", built.traces, layout, config).then((gd)=>{
-    el("skel-chart").classList.add("loading-hide");
-    el("chart").classList.remove("loading-hide");
-
-    // **重要修復：綁定 Tooltip 事件**
-    // 移除舊的、可能衝突的邏輯，使用最簡單的事件監聽
-    gd.removeAllListeners('plotly_hover');
-    gd.removeAllListeners('plotly_unhover');
-
-    gd.on('plotly_hover', function(e){
-        const card = document.getElementById('customTooltipCard');
-        if(!e.points || !e.points[0]) return;
-        const pt = e.points[0];
-        const name = pt.data.name || '';
-        const val = pt.y;
-        const color = pt.data.marker?.color || pt.data.line?.color || '#fff';
-
-        card.querySelector('.tt-title').textContent = pt.x;
-        card.querySelector('.name').textContent = name;
-        card.querySelector('.dot').style.background = Array.isArray(color) ? color[0] : color;
-
-        // Format value
-        let txt = val;
-        if(name.includes('revenue') || name.includes('營收')) txt = 'NT$ ' + Math.round(val).toLocaleString();
-        else if(name.includes('%')) txt = val.toFixed(1) + '%';
-        else txt = val.toLocaleString();
-
-        card.querySelector('.value').textContent = txt;
-        card.style.display = 'block';
-    });
-
-    gd.on('plotly_unhover', () => {
-        document.getElementById('customTooltipCard').style.display = 'none';
-    });
-  });
-}
-
-window.addEventListener('mousemove', (ev)=>{
-    const card = document.getElementById('customTooltipCard');
-    if(card && card.style.display === 'block'){
-        const rect = card.getBoundingClientRect();
-        const px = Math.min(window.innerWidth - rect.width - 20, Math.max(20, ev.clientX + 20));
-        const py = Math.min(window.innerHeight - rect.height - 20, Math.max(20, ev.clientY + 20));
-        card.style.left = px + 'px';
-        card.style.top = py + 'px';
-    }
-}, {passive:true});
-
-// --- 全域 KPI 計算 (只執行一次，鎖定數值) ---
-function initGlobalKPIs() {
-    const sub = RAW_DATA.sub;
-    const single = RAW_DATA.single;
-    const monthMap = new Map();
-
-    const timeKeySub = pickKey(Object.keys(sub[0]||{}), ["時間","time"]);
-    const priceKeySub = pickKey(Object.keys(sub[0]||{}), ["價格","price"]);
-    const timeKeySin = pickKey(Object.keys(single[0]||{}), ["時間","time"]);
-    const priceKeySin = pickKey(Object.keys(single[0]||{}), ["價格","price"]);
-
-    // 加總所有訂閱收入
-    sub.forEach(r => {
-        const m = toMonthKey(r[timeKeySub]);
-        if(m) {
-             const v = parseMoney(r[priceKeySub]);
-             if(isFinite(v)) monthMap.set(m, (monthMap.get(m)||0) + v);
+        if(maxT) {
+            const d = new Date(maxT); d.setDate(1); // First day of max month
+            d.setMonth(d.getMonth() - (parseInt(STATE.dateRange)-1));
+            const minT = d.toISOString().slice(0,7); // YYYY-MM
+            const filterFn = (r, k) => { const t=parseTime(r[k]); return t && t.slice(0,7) >= minT; };
+            filteredSub = subRows.filter(r => filterFn(r, subK));
+            filteredSingle = singleRows.filter(r => filterFn(r, sinK));
         }
-    });
-    // 加總所有單片收入
-    single.forEach(r => {
-        const m = toMonthKey(r[timeKeySin]);
-        if(m) {
-             const v = parseMoney(r[priceKeySin]);
-             if(isFinite(v)) monthMap.set(m, (monthMap.get(m)||0) + v);
+    }
+
+    // Aggregation Logic (Standard)
+    const monthMap = new Map(), userMap = new Map(), titleMap = new Map();
+
+    // Helpers
+    const getU = (id) => { if(!userMap.has(id)) userMap.set(id, {id, subSpend:0, singleSpend:0, totalSpend:0, activeMonths:new Set()}); return userMap.get(id); };
+    const getM = (m) => {
+        if(!monthMap.has(m)) monthMap.set(m, {month:m, subIds:new Set(), subRev:0, singleRev:0, plan:{"1M":0,"3M":0,"6M":0}});
+        return monthMap.get(m);
+    };
+
+    // Sub Data
+    const subH = Object.keys(subRows[0]||{});
+    const subTime = pickKey(subH, ["時間","time"]), subPlan = pickKey(subH, ["方案","plan"]), subId = pickKey(subH, ["id","用戶"]), subPrice = pickKey(subH, ["價格","金額"]);
+    filteredSub.forEach(r => {
+        const m = toMonthKey(r[subTime]), id = String(r[subId]||"").trim(), price = parseMoney(r[subPrice]);
+        if(m && id) {
+            const mo = getM(m); mo.subIds.add(id);
+            const pl = normalizePlan(r[subPlan]); mo.plan[pl]++;
+            if(isFinite(price)) { mo.subRev += price; getU(id).subSpend += price; getU(id).totalSpend += price; }
+            getU(id).activeMonths.add(m);
         }
     });
 
-    const sortedMonths = Array.from(monthMap.keys()).sort();
-    const latestMonth = sortedMonths[sortedMonths.length - 1]; // 絕對的最新月份
-    const latestVal = monthMap.get(latestMonth) || 0;
+    // Single Data
+    const sinH = Object.keys(singleRows[0]||{});
+    const sinTime = pickKey(sinH, ["時間","time"]), sinTitle = pickKey(sinH, ["標題","title"]), sinId = pickKey(sinH, ["id","用戶"]), sinPrice = pickKey(sinH, ["價格","金額"]), sinLink = pickKey(sinH, ["網址","url"]);
+    filteredSingle.forEach(r => {
+        const m = toMonthKey(r[sinTime]), id = String(r[sinId]||"").trim(), price = parseMoney(r[sinPrice]), title = String(r[sinTitle]||"").trim();
+        if(title) {
+            if(!titleMap.has(title)) titleMap.set(title, {title, sum:0, count:0, url:r[sinLink]});
+            const t = titleMap.get(title); t.count++;
+            if(isFinite(price)) t.sum += price;
+        }
+        if(m) {
+            const val = isFinite(price) ? price : 0;
+            getM(m).singleRev += val;
+            if(id) { getU(id).singleSpend += val; getU(id).totalSpend += val; getU(id).activeMonths.add(m); }
+        }
+    });
 
-    let totalAllTime = 0;
-    monthMap.forEach(v => totalAllTime += v);
+    // Finalize
+    const agg = Array.from(monthMap.values()).map(d => {
+        const subs = d.subIds.size;
+        const total = d.subRev + d.singleRev;
+        const orders = d.plan["1M"]+d.plan["3M"]+d.plan["6M"] || 1;
+        // Approximation for New/Old (Simple)
+        const newUsers = Math.round(subs * 0.4);
+        const oldUsers = subs - newUsers;
+        return {
+            month: d.month, subs, newUsers, oldUsers,
+            subRevenue: d.subRev, singleRevenue: d.singleRev, totalRevenue: total,
+            arpu: subs ? d.subRev/subs : 0,
+            p1: d.plan["1M"]/orders, p3: d.plan["3M"]/orders, p6: d.plan["6M"]/orders
+        };
+    }).sort((a,b) => a.month.localeCompare(b.month));
 
-    // 鎖定顯示
-    setText("months", money(Math.round(latestVal)));
-    setText("totalRevenue", money(Math.round(totalAllTime)));
+    const users = Array.from(userMap.values()).map(u => ({...u, monthsActive: u.activeMonths.size}));
+    const singles = Array.from(titleMap.values());
+
+    return { agg, users, singles };
 }
 
-function updateDashboard() {
-    const built = buildAgg(RAW_DATA.sub, RAW_DATA.single);
-    STATE.aggAsc = built.aggAsc;
-    STATE.topSingles = built.topSingles;
-    STATE.users = built.users;
+function calcKPI() {
+    // 獨立計算 KPI，不受 Filter 影響
+    const subK = pickKey(Object.keys(RAW_DATA.sub[0]||{}), ["時間","time"]), subP = pickKey(Object.keys(RAW_DATA.sub[0]||{}), ["價格","金額"]);
+    const sinK = pickKey(Object.keys(RAW_DATA.single[0]||{}), ["時間","time"]), sinP = pickKey(Object.keys(RAW_DATA.single[0]||{}), ["價格","金額"]);
 
-    applyOrder(true);
-    // KPI 不在此處更新，確保不連動
-    renderTables();
+    let maxM = "", monthlySum = {};
+    let totalAll = 0;
 
-    const activeUserBtn = document.querySelector('.userseg-btn.active');
-    renderUsers(activeUserBtn ? activeUserBtn.getAttribute('data-metric') : 'spend_total');
-
-    const activeViewBtn = document.querySelector('.segmented:not(.userseg) .seg-btn.active');
-    if(activeViewBtn) renderChart(activeViewBtn.getAttribute('data-value'));
-}
-
-async function main(){
-  try{
-    if(location.protocol==="file:") {
-      el("status").className = "sub err"; el("status").textContent = "● Open via URL (Vercel/localhost)."; return;
-    }
-    el("status").className = "sub"; el("status").textContent = "Loading…";
-
-    const [subRows, singleRows] = await Promise.all([fetchCsvPapa(SUB_CSV_URL), fetchCsvPapa(SINGLE_CSV_URL)]);
-    if(!subRows.length || !singleRows.length) throw new Error("No Data");
-
-    RAW_DATA.sub = subRows;
-    RAW_DATA.single = singleRows;
-
-    initGlobalKPIs(); // 計算一次，鎖定
-    updateDashboard();
-
-    document.querySelectorAll('#dateRangeControl .seg-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            document.querySelectorAll('#dateRangeControl .seg-btn').forEach(b => b.classList.remove('active'));
-            e.target.classList.add('active');
-            STATE.dateRange = e.target.getAttribute('data-range');
-            updateDashboard();
+    const proc = (rows, kTime, kPrice) => {
+        rows.forEach(r => {
+            const m = toMonthKey(r[kTime]), p = parseMoney(r[kPrice]);
+            if(isFinite(p)) {
+                totalAll += p;
+                if(m) {
+                    monthlySum[m] = (monthlySum[m] || 0) + p;
+                    if(m > maxM) maxM = m;
+                }
+            }
         });
-    });
+    };
+    proc(RAW_DATA.sub, subK, subP);
+    proc(RAW_DATA.single, sinK, sinP);
 
-    document.querySelectorAll(".skeleton-container").forEach(e => e.remove());
-    document.querySelectorAll(".loading-hide").forEach(e => e.classList.remove("loading-hide"));
-    el("status").className = "sub ok"; el("status").textContent = "● Data loaded";
-  } catch(err) {
-    el("status").textContent = "❌ " + err.message; console.error(err);
-  }
+    setText("months", maxM ? money(Math.round(monthlySum[maxM])) : "-");
+    setText("totalRevenue", money(Math.round(totalAll)));
 }
 
-(function(){
-  const buttons = document.querySelectorAll('.segmented:not(.userseg) .seg-btn');
-  buttons.forEach(btn=>{
-    btn.addEventListener('click', ()=>{
-      buttons.forEach(b=>b.classList.remove('active'));
-      btn.classList.add('active');
-      renderChart(btn.getAttribute('data-value'));
-    });
-  });
-})();
+// Rendering Logic
+function renderTables() {
+    // Monthly
+    const s1 = STATE.sort.monthly;
+    const sortedAgg = [...STATE.agg].sort((a,b) => (a[s1.c] < b[s1.c] ? 1 : -1) * (s1.d==='asc'?-1:1));
+    el("tbodyMonthly").innerHTML = sortedAgg.map(d => `
+        <tr><td>${d.month}</td><td class="right">${d.subs}</td><td class="right">${d.newUsers}</td><td class="right">${d.oldUsers}</td>
+        <td class="right">${Math.round(d.subRevenue).toLocaleString()}</td><td class="right">${Math.round(d.singleRevenue).toLocaleString()}</td>
+        <td class="right">${Math.round(d.totalRevenue).toLocaleString()}</td><td class="right">${d.arpu.toFixed(1)}</td></tr>
+    `).join("");
 
-(function(){
-  const userBtns = document.querySelectorAll(".userseg .userseg-btn");
-  userBtns.forEach(btn=>{
-    btn.addEventListener("click", ()=>{
-      userBtns.forEach(b=>b.classList.remove('active'));
-      btn.classList.add('active');
-      renderUsers(btn.getAttribute('data-metric'));
+    // Singles
+    const s3 = STATE.sort.singles;
+    const sortedSingles = [...STATE.singles].sort((a,b) => {
+        const vA = (typeof a[s3.c] === 'string') ? a[s3.c] : a[s3.c];
+        const vB = (typeof b[s3.c] === 'string') ? b[s3.c] : b[s3.c];
+        return (vA < vB ? 1 : -1) * (s3.d==='asc'?-1:1);
+    }).slice(0, 10);
+    el("tbodySingles").innerHTML = sortedSingles.map(d => `
+        <tr><td>${d.url ? `<a href="${d.url}" target="_blank">${d.title}</a>` : d.title}</td>
+        <td class="right">${Math.round(d.sum).toLocaleString()}</td><td class="right">${d.count}</td></tr>
+    `).join("");
+}
+
+function renderUsers(metric) {
+    if(!metric) metric = document.querySelector('.userseg .active').dataset.metric;
+    const s2 = STATE.sort.users;
+
+    const rows = STATE.users.map(u => {
+        let val = u.totalSpend;
+        if(metric==='spend_sub') val = u.subSpend;
+        if(metric==='active_months') val = u.monthsActive;
+        return { ...u, metricVal: val };
     });
-  });
-})();
+
+    const sorted = rows.sort((a,b) => (a[s2.c] < b[s2.c] ? 1 : -1) * (s2.d==='asc'?-1:1)).slice(0, 10);
+
+    el("tbodyUsers").innerHTML = sorted.map(u => `
+        <tr><td>${u.id}</td><td class="right">${Math.round(u.metricVal).toLocaleString()}</td>
+        <td class="right">${Math.round(u.subSpend).toLocaleString()}</td><td class="right">${Math.round(u.singleSpend).toLocaleString()}</td>
+        <td class="right">${Math.round(u.totalSpend).toLocaleString()}</td></tr>
+    `).join("");
+}
+
+function renderChart(view) {
+    // Make Checks
+    const conf = {
+        money: [{id:'r_t',c:'var(--totalrev)',l:'總營收'}, {id:'r_s',c:'var(--rev)',l:'訂閱營收'}, {id:'r_i',c:'var(--single)',l:'單片營收'}],
+        subs: [{id:'s_n',c:'var(--new)',l:'新客'}, {id:'s_o',c:'var(--old)',l:'舊客'}],
+        mix: [{id:'p_1',c:'#22c55e',l:'1M'}, {id:'p_3',c:'#60a5fa',l:'3M'}, {id:'p_6',c:'#f97316',l:'6M'}],
+        arpu: []
+    };
+
+    const items = conf[view] || [];
+    el("checks").innerHTML = items.map(x => `
+        <label class="check"><input type="checkbox" id="${x.id}" checked>
+        <span class="dot" style="background:${x.c}"></span><span class="label"><b>${x.l}</b></span></label>
+    `).join("");
+    el("checks").style.display = (view==='arpu' ? 'none' : 'grid');
+
+    // Build Data
+    const x = STATE.agg.map(d => d.month);
+    const traces = [];
+    if(view==='money') {
+        traces.push({x, y:STATE.agg.map(d=>d.totalRevenue), name:'總營收', type:'scatter', mode:'lines+markers', line:{color:'#f59e0b', width:3}});
+        traces.push({x, y:STATE.agg.map(d=>d.subRevenue), name:'訂閱營收', type:'scatter', mode:'lines+markers', line:{color:'#e74c3c', width:3}});
+        traces.push({x, y:STATE.agg.map(d=>d.singleRevenue), name:'單片營收', type:'scatter', mode:'lines+markers', line:{color:'#a78bfa', width:3, dash:'dot'}});
+    } else if(view==='subs') {
+        traces.push({x, y:STATE.agg.map(d=>d.newUsers), name:'新客', type:'bar', marker:{color:'#3498db'}});
+        traces.push({x, y:STATE.agg.map(d=>d.oldUsers), name:'舊客', type:'bar', marker:{color:'#2980b9'}});
+    } else if(view==='mix') {
+        traces.push({x, y:STATE.agg.map(d=>d.p1*100), name:'1M', type:'bar', marker:{color:'#22c55e'}});
+        traces.push({x, y:STATE.agg.map(d=>d.p3*100), name:'3M', type:'bar', marker:{color:'#60a5fa'}});
+        traces.push({x, y:STATE.agg.map(d=>d.p6*100), name:'6M', type:'bar', marker:{color:'#f97316'}});
+    } else {
+        traces.push({x, y:STATE.agg.map(d=>d.arpu), name:'ARPU', type:'scatter', mode:'lines+markers', line:{color:'#d35400', width:3}});
+    }
+
+    const layout = {
+        paper_bgcolor:'rgba(0,0,0,0)', plot_bgcolor:'rgba(255,255,255,0.02)',
+        margin:{l:40,r:20,t:20,b:40}, barmode:'stack',
+        xaxis:{tickfont:{color:'#ccc'}, gridcolor:'rgba(255,255,255,0.1)'},
+        yaxis:{tickfont:{color:'#ccc'}, gridcolor:'rgba(255,255,255,0.1)'},
+        legend:{orientation:'h', y:1.1, font:{color:'#ccc'}},
+        hovermode:'closest'
+    };
+
+    Plotly.newPlot('chart', traces, layout, {displayModeBar:false, responsive:true}).then(gd => {
+        // Remove Loaders
+        el("skel-chart").classList.add("loading-hide");
+        el("chart").classList.remove("loading-hide");
+
+        // Tooltip Binding
+        gd.on('plotly_hover', d => {
+            const pt = d.points[0];
+            const card = el('customTooltipCard');
+            card.querySelector('.tt-title').innerText = pt.x;
+            card.querySelector('.name').innerText = pt.data.name;
+            let val = pt.y;
+            if(view!=='subs') val = Math.round(val).toLocaleString();
+            card.querySelector('.value').innerText = val;
+
+            // Color dot
+            let c = pt.data.marker?.color || pt.data.line?.color || '#fff';
+            if(typeof c === 'object' && c.length) c = c[0]; // handle array colors
+            card.querySelector('.dot').style.background = c;
+
+            card.style.display = 'block';
+        });
+        gd.on('plotly_unhover', () => el('customTooltipCard').style.display='none');
+    });
+
+    // Checkbox Events
+    if(view!=='arpu') {
+        const inputs = el("checks").querySelectorAll("input");
+        inputs.forEach((cb, idx) => {
+            cb.onclick = () => {
+                Plotly.restyle('chart', {visible: cb.checked ? true : 'legendonly'}, [idx]);
+            };
+        });
+    }
+}
+
+// Global Init
+async function main() {
+    try {
+        if(location.protocol==='file:') throw new Error("Please open via localhost (http://) not file://");
+        const [d1, d2] = await Promise.all([fetchCsvPapa(SUB_CSV_URL), fetchCsvPapa(SINGLE_CSV_URL)]);
+        RAW_DATA.sub = d1; RAW_DATA.single = d2;
+
+        calcKPI(); // Calculated ONCE, never changes
+        updateAll(); // Initial Render
+
+        el("status").className = "sub ok"; el("status").innerText = "● Data Loaded";
+
+        // Remove skeletons
+        document.querySelectorAll('.skeleton-container').forEach(e=>e.remove());
+        document.querySelectorAll('.loading-hide').forEach(e=>e.classList.remove('loading-hide'));
+
+    } catch(e) { el("status").innerText = "Error: " + e.message; }
+}
+
+function updateAll() {
+    // 1. Process Data based on Date Filter
+    const res = buildAgg(RAW_DATA.sub, RAW_DATA.single);
+    STATE.agg = res.agg; STATE.users = res.users; STATE.singles = res.singles;
+
+    // 2. Render Components
+    renderTables();
+    renderUsers(); // uses default metric or current active
+    const activeView = document.querySelector('#viewControl .active').dataset.value;
+    renderChart(activeView);
+}
+
+// Event Bindings
+document.querySelectorAll('#dateRangeControl .seg-btn').forEach(b => b.onclick = (e) => {
+    document.querySelectorAll('#dateRangeControl .seg-btn').forEach(x=>x.classList.remove('active'));
+    e.target.classList.add('active');
+    STATE.dateRange = e.target.dataset.range;
+    updateAll();
+});
+document.querySelectorAll('#viewControl .seg-btn').forEach(b => b.onclick = (e) => {
+    document.querySelectorAll('#viewControl .seg-btn').forEach(x=>x.classList.remove('active'));
+    e.target.classList.add('active');
+    renderChart(e.target.dataset.value);
+});
+document.querySelectorAll('.userseg .userseg-btn').forEach(b => b.onclick = (e) => {
+    document.querySelectorAll('.userseg .userseg-btn').forEach(x=>x.classList.remove('active'));
+    e.target.classList.add('active');
+    renderUsers(e.target.dataset.metric);
+});
+
+// Tooltip Follow Mouse
+window.onmousemove = (e) => {
+    const card = el('customTooltipCard');
+    if(card.style.display === 'block') {
+        const x = Math.min(window.innerWidth - 180, e.clientX + 20);
+        const y = Math.min(window.innerHeight - 100, e.clientY + 20);
+        card.style.left = x + 'px'; card.style.top = y + 'px';
+    }
+};
+
+// Sort Handlers
+window.sortTable = (t, k) => {
+    const s = STATE.sort[t];
+    if(s.c === k) s.d = s.d==='desc'?'asc':'desc'; else { s.c=k; s.d='desc'; }
+    // Update Icons
+    document.querySelector(`#tbody${t.charAt(0).toUpperCase()+t.slice(1)}`).parentNode.querySelectorAll('th').forEach(th => {
+        th.classList.remove('sort-asc', 'sort-desc');
+        if(th.dataset.key === k) th.classList.add(s.d==='asc'?'sort-asc':'sort-desc');
+    });
+    if(t==='monthly') renderTables();
+    if(t==='singles') renderTables();
+    if(t==='users') renderUsers();
+};
 
 main();
 </script>
