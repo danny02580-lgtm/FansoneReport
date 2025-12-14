@@ -62,6 +62,7 @@
     border:1px solid var(--stroke); border-radius:20px; background:var(--panel); backdrop-filter:blur(12px);
     overflow:hidden; box-shadow:0 4px 20px rgba(0,0,0,0.1);
     max-width: 100%; display: flex; flex-direction: column;
+    height: 100%; /* [UI優化] 強制面板高度填滿，讓左右區塊等高 */
   }
   .hd{padding:14px 16px; border-bottom:1px solid rgba(255,255,255,.08); display:flex; align-items:center; justify-content:space-between; gap:10px}
   .hd h2{margin:0; font-size:15px; font-weight:700; color:#fff; white-space:nowrap;}
@@ -84,6 +85,9 @@
   .skeleton-container { width: 100%; }
 
   /* --- Chart Controls --- */
+  .control-group { margin-bottom: 12px; }
+  .control-label { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px; }
+
   .segmented { background: rgba(0,0,0,.2); border: 1px solid rgba(255,255,255,.1); border-radius: 14px; padding: 4px; overflow: hidden; }
   .segmented:not(.userseg) { display: flex; width: 100%; margin: 0 0 12px 0; }
   .seg-btn {
@@ -92,7 +96,7 @@
     color: rgba(255,255,255,.6); font-weight: 600; font-size: 14px;
     cursor: pointer; font-family: inherit; white-space: nowrap; text-align: center;
     transition: all 0.2s cubic-bezier(0.4,0,0.2,1); text-overflow: clip;
-    outline: none; /* A11y: replace outline with box-shadow on focus-visible */
+    outline: none;
   }
   /* [A11y] Keyboard Focus State */
   .seg-btn:focus-visible {
@@ -127,7 +131,7 @@
 
   .tablesGrid{display:grid; grid-template-columns:1.3fr 1fr; gap:16px; margin-top:16px; width: 100%;}
 
-  /* --- 表格與排序樣式 (UI & A11y Optimized) --- */
+  /* --- 表格與排序樣式 --- */
   .table-scroll-container { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; -ms-overflow-style: none; }
   .table-scroll-container::-webkit-scrollbar { display: none; }
 
@@ -138,7 +142,7 @@
     text-align:left; color:var(--muted); font-weight:700; font-size:12px; text-transform:uppercase; letter-spacing:0.5px;
     background:rgba(19,29,48,0.95); position:sticky; top:0; z-index:10;
     cursor: pointer; user-select: none;
-    transition: background 0.2s, color 0.2s; /* 平滑過渡 */
+    transition: background 0.2s, color 0.2s;
     outline: none;
   }
 
@@ -147,16 +151,15 @@
   /* [A11y] Focus 視覺回饋 */
   th:focus-visible { background:rgba(59,130,246,0.2); color:#fff; }
 
-  /* [UI] 預設排序箭頭 (未排序狀態) */
+  /* [UI] 預設排序箭頭 */
   th::after {
     content: '⇅';
     display: inline-block; margin-left: 6px; width: 10px;
     opacity: 0.2; font-size: 11px; vertical-align: middle;
     transition: opacity 0.2s;
   }
-  th:hover::after { opacity: 0.6; } /* Hover 時箭頭變明顯 */
+  th:hover::after { opacity: 0.6; }
 
-  /* 排序啟用狀態 */
   th.sort-asc::after { content: '▲'; opacity: 1; color: var(--accent); }
   th.sort-desc::after { content: '▼'; opacity: 1; color: var(--accent); }
 
@@ -166,7 +169,6 @@
 
   /* --- Top Users 表格 --- */
   .fixed-table { table-layout: fixed; width: 100%; }
-  /* 微調寬度比例，確保三角形不被切到 */
   .fixed-table th:nth-child(1) { width: 28%; }
   .fixed-table th:nth-child(2), .fixed-table th:nth-child(3), .fixed-table th:nth-child(4), .fixed-table th:nth-child(5) { width: 18%; }
   .fixed-table td { overflow: hidden; text-overflow: ellipsis; }
@@ -178,9 +180,12 @@
   /* --- RWD --- */
   @media(min-width:861px) {
     #real-t1.table-scroll-container { overflow-x: hidden !important; }
+
     #monthlyTable { table-layout: auto; width: 100%; }
     #monthlyTable th, #monthlyTable td {
-        padding: 12px 6px;
+        /* [UI優化] 增加電腦版表格內距，讓視覺更寬敞 */
+        padding: 12px 14px;
+
         white-space: nowrap; overflow: visible; text-overflow: clip;
         font-size: 13px; letter-spacing: -0.2px;
     }
@@ -245,12 +250,26 @@
     <div class="panel">
       <div class="hd"><h2>Chart Controls</h2><span class="pill" id="orderTag">新 → 舊</span></div>
       <div class="bd">
-        <div class="segmented" role="tablist">
-          <button class="seg-btn active" type="button" data-value="money" aria-label="View Revenue">Revenue</button>
-          <button class="seg-btn" type="button" data-value="subs" aria-label="View Subscribers">Subs</button>
-          <button class="seg-btn" type="button" data-value="mix" aria-label="View Plans">Plans</button>
-          <button class="seg-btn" type="button" data-value="arpu" aria-label="View ARPU">ARPU</button>
+        <div class="control-group">
+            <div class="control-label">Time Range</div>
+            <div class="segmented" role="tablist" id="dateRangeControl">
+              <button class="seg-btn active" type="button" data-range="all" aria-label="Show All Time">All</button>
+              <button class="seg-btn" type="button" data-range="12" aria-label="Show Last 12 Months">12M</button>
+              <button class="seg-btn" type="button" data-range="6" aria-label="Show Last 6 Months">6M</button>
+              <button class="seg-btn" type="button" data-range="3" aria-label="Show Last 3 Months">3M</button>
+            </div>
         </div>
+
+        <div class="control-group">
+            <div class="control-label">Metric</div>
+            <div class="segmented" role="tablist" id="viewControl">
+              <button class="seg-btn active" type="button" data-value="money" aria-label="View Revenue">Revenue</button>
+              <button class="seg-btn" type="button" data-value="subs" aria-label="View Subscribers">Subs</button>
+              <button class="seg-btn" type="button" data-value="mix" aria-label="View Plans">Plans</button>
+              <button class="seg-btn" type="button" data-value="arpu" aria-label="View ARPU">ARPU</button>
+            </div>
+        </div>
+
         <select id="viewSelect" class="select hidden">
           <option value="money">金額</option><option value="subs">人數</option><option value="mix">方案</option><option value="arpu">ARPU</option>
         </select>
@@ -400,20 +419,21 @@ function parseTimeToSortable(s){
   return `${m[1]}-${m[2]}-${m[3]} ${m[4]}:${m[5]}:${m[6]||"00"}`;
 }
 
+let RAW_DATA = { sub: [], single: [] };
 let STATE = {
     aggAsc:[], aggDesc:[], topSingles:[], users:[],
     sort: {
         monthly: { col: 'month', dir: 'desc' },
         users: { col: 'metricVal', dir: 'desc' },
         singles: { col: 'sum', dir: 'desc' }
-    }
+    },
+    dateRange: 'all'
 };
 
 function sortTable(tableId, colKey) {
     const s = STATE.sort[tableId];
     if (s.col === colKey) { s.dir = (s.dir === 'desc') ? 'asc' : 'desc'; }
     else { s.col = colKey; s.dir = 'desc'; }
-
     document.querySelectorAll(`#tbody${tableId.charAt(0).toUpperCase() + tableId.slice(1)}`).forEach(tbody => {
         const table = tbody.closest('table');
         table.querySelectorAll('th').forEach(th => {
@@ -421,7 +441,6 @@ function sortTable(tableId, colKey) {
             if (th.dataset.key === colKey) { th.classList.add(s.dir === 'asc' ? 'sort-asc' : 'sort-desc'); }
         });
     });
-
     if (tableId === 'monthly') renderTables();
     else if (tableId === 'singles') renderTables();
     else if (tableId === 'users') renderUsers();
@@ -441,6 +460,38 @@ function getSortedData(data, tableId) {
     return sorted;
 }
 
+function filterRowsByDate(rows, timeKey) {
+    if (STATE.dateRange === 'all') return rows;
+
+    let maxMonth = "";
+    rows.forEach(r => {
+        const d = parseTimeToSortable(r[timeKey]);
+        if(d) {
+            const m = d.slice(0, 7);
+            if(m > maxMonth) maxMonth = m;
+        }
+    });
+    if(!maxMonth) return rows;
+
+    const y = parseInt(maxMonth.split('-')[0]);
+    const m = parseInt(maxMonth.split('-')[1]);
+    const range = parseInt(STATE.dateRange);
+
+    const targetDate = new Date(y, m - 1, 1);
+    targetDate.setMonth(targetDate.getMonth() - (range - 1));
+
+    const ty = targetDate.getFullYear();
+    const tm = String(targetDate.getMonth() + 1).padStart(2, '0');
+    const minMonth = `${ty}-${tm}`;
+
+    return rows.filter(r => {
+        const d = parseTimeToSortable(r[timeKey]);
+        if(!d) return false;
+        const rowMonth = d.slice(0, 7);
+        return rowMonth >= minMonth;
+    });
+}
+
 function buildAgg(subRows, singleRows){
   const subHeaders = Object.keys(subRows[0]||{});
   const timeKey  = pickKey(subHeaders, ["時間","time","date","datetime"]) || subHeaders[0];
@@ -448,10 +499,20 @@ function buildAgg(subRows, singleRows){
   const idKey    = pickKey(subHeaders, ["用戶id","user id","userid","id","用戶","user"]) || subHeaders[2];
   const priceKey = pickKey(subHeaders, ["價格","price","金額","amount","收入"]) || subHeaders[Math.min(3, subHeaders.length-1)];
 
+  const sHeaders = Object.keys(singleRows[0]||{});
+  const sTimeKey  = pickKey(sHeaders, ["時間","time","date","datetime"]) || sHeaders[0];
+  const sTitleKey = pickKey(sHeaders, ["影片標題","標題","title","影片","內容"]) || sHeaders[1];
+  const sUrlKey   = pickKey(sHeaders, ["網址","url","link"]) || sHeaders[2];
+  const sIdKey    = pickKey(sHeaders, ["用戶id","user id","userid","id","用戶","user"]) || sHeaders[3];
+  const sPriceKey = pickKey(sHeaders, ["價格","price","金額","amount","收入"]) || sHeaders[Math.min(4, sHeaders.length-1)];
+
+  const filteredSub = filterRowsByDate(subRows, timeKey);
+  const filteredSingle = filterRowsByDate(singleRows, sTimeKey);
+
   const monthMap = new Map();
   const seenBefore = new Set();
 
-  const parsedSub = subRows.map(r=>({
+  const parsedSub = filteredSub.map(r=>({
     month: toMonthKey(r[timeKey]),
     time: parseTimeToSortable(r[timeKey]) || String(r[timeKey]||""),
     id: String(r[idKey]||"").trim(),
@@ -502,15 +563,8 @@ function buildAgg(subRows, singleRows){
     updateTime(u, rec.time);
   }
 
-  const sHeaders = Object.keys(singleRows[0]||{});
-  const sTimeKey  = pickKey(sHeaders, ["時間","time","date","datetime"]) || sHeaders[0];
-  const sTitleKey = pickKey(sHeaders, ["影片標題","標題","title","影片","內容"]) || sHeaders[1];
-  const sUrlKey   = pickKey(sHeaders, ["網址","url","link"]) || sHeaders[2];
-  const sIdKey    = pickKey(sHeaders, ["用戶id","user id","userid","id","用戶","user"]) || sHeaders[3];
-  const sPriceKey = pickKey(sHeaders, ["價格","price","金額","amount","收入"]) || sHeaders[Math.min(4, sHeaders.length-1)];
-
   const titleAgg = new Map();
-  for(const r of singleRows){
+  for(const r of filteredSingle){
     const title = String(r[sTitleKey]||"").trim();
     const url = String(r[sUrlKey]||"").trim();
     const price = parseMoney(r[sPriceKey]);
@@ -533,7 +587,7 @@ function buildAgg(subRows, singleRows){
     }
   }
 
-  for(const r of singleRows){
+  for(const r of filteredSingle){
     const month = toMonthKey(r[sTimeKey]);
     if(!month) continue;
     const price = parseMoney(r[sPriceKey]);
@@ -562,7 +616,7 @@ function buildAgg(subRows, singleRows){
     return { month:k, subs, newUsers, oldUsers, p1, p3, p6, subRevenue, singleRevenue, totalRevenue, arpu };
   });
 
-  const topSingles = Array.from(titleAgg.values()).sort((a,b)=>b.sum-a.sum).slice(0,10); // Initial sort
+  const topSingles = Array.from(titleAgg.values()).sort((a,b)=>b.sum-a.sum).slice(0,10);
 
   const users = Array.from(userMap.values()).map(u=>{
     const monthsActive = u.activeMonths.size;
@@ -671,8 +725,8 @@ function makeChecksFor(view){
   const items = itemsByView[view] || [];
   const box = el("checks");
   box.innerHTML = items.map(it=>(
-    `<label class="check">
-      <input type="checkbox" id="${it.id}" />
+    `<label class="check" tabindex="0" role="checkbox" aria-checked="true" aria-label="Toggle ${it.title}">
+      <input type="checkbox" id="${it.id}" tabindex="-1" checked />
       <span class="dot" style="background:${it.color}"></span>
       <span class="label"><b>${it.title}</b></span>
     </label>`
@@ -784,36 +838,212 @@ function applyVisibility(view, traces){
   Plotly.restyle("chart", "visible", vis);
 }
 
+function attachPlotlyEnhancers(gd) {
+    if(!gd || !gd.on) return;
+    const ghostOverlay = document.getElementById('ghost-overlay');
+    let lastEl = null;
+    let saved = {};
+    const reset = (el) => { if(el) { el.style.stroke = saved.stroke || ''; el.style.strokeWidth = saved.strokeWidth || ''; el.style.opacity = saved.opacity || ''; } };
+
+    gd.on('plotly_hover', function(e){
+        try{
+            if(!e || !e.points || !e.points.length) return;
+            const pt = e.points[0];
+            const curveIdx = pt.curveNumber;
+            const pointIdx = pt.pointNumber;
+            const isBar = (e.points[0].data.type === 'bar');
+            let target = null;
+
+            try {
+                const traceEls = gd.querySelectorAll(`g.trace:nth-of-type(${curveIdx + 1}) .point`);
+                if (traceEls && traceEls[pointIdx]) target = traceEls[pointIdx];
+            } catch(e) {}
+
+            if(target && ghostOverlay) {
+                const rect = target.getBoundingClientRect();
+                if (isBar) {
+                    ghostOverlay.style.top = rect.top + 'px';
+                    ghostOverlay.style.left = rect.left + 'px';
+                    ghostOverlay.style.width = rect.width + 'px';
+                    ghostOverlay.style.height = rect.height + 'px';
+                    ghostOverlay.style.borderRadius = "2px";
+                } else {
+                    const size = 20;
+                    const cx = rect.left + rect.width/2;
+                    const cy = rect.top + rect.height/2;
+                    ghostOverlay.style.width = size + 'px';
+                    ghostOverlay.style.height = size + 'px';
+                    ghostOverlay.style.top = (cy - size/2) + 'px';
+                    ghostOverlay.style.left = (cx - size/2) + 'px';
+                    ghostOverlay.style.borderRadius = "50%";
+                }
+                ghostOverlay.style.display = 'block';
+            }
+
+            const card = document.getElementById('customTooltipCard');
+            if(card) {
+                const tEl = card.querySelector('.tt-title');
+                const dotEl = card.querySelector('.dot');
+                const nameEl = card.querySelector('.name');
+                const valueEl = card.querySelector('.value');
+                const xlab = pt.x;
+                const name = pt.data.name || 'Value';
+                const yval = pt.y;
+                let color = pt.data.marker?.color || pt.data.line?.color || '#fff';
+                if(Array.isArray(color)) color = color[0] || '#fff';
+
+                if(tEl) tEl.textContent = String(xlab);
+                if(dotEl) dotEl.style.background = color;
+                if(nameEl) nameEl.textContent = name;
+
+                const kindFor = (n) => {
+                    const s = (n||'').toLowerCase();
+                    if(s.includes('revenue')||s.includes('營收')||s.includes('total')||s.includes('arpu')) return 'money';
+                    if(s.includes('%')||s.includes('rate')||s.includes('ratio')) return 'pct';
+                    return 'num';
+                };
+                const fmtVal = (v, k) => {
+                    if(v==null||isNaN(v)) return '-';
+                    const n = Number(v);
+                    if(k==='money') return 'NT$ '+n.toLocaleString(undefined,{maximumFractionDigits:0});
+                    if(k==='pct') return n.toFixed(1)+'%';
+                    return n.toLocaleString(undefined,{maximumFractionDigits:0});
+                };
+                if(valueEl) valueEl.textContent = fmtVal(yval, kindFor(name));
+                card.style.display = 'block';
+            }
+        } catch(err){ console.error(err); }
+    });
+
+    gd.on('plotly_unhover', function(){
+        if(ghostOverlay) ghostOverlay.style.display = 'none';
+        const card = document.getElementById('customTooltipCard');
+        if(card) card.style.display = 'none';
+        if(lastEl) { reset(lastEl); lastEl = null; }
+    });
+}
+
 function renderChart(view){
   makeChecksFor(view);
   const built = buildTraces(view);
   const layout = {...layoutBase(), ...built.layout};
   const config = {responsive:true, displaylogo:false, displayModeBar:false, scrollZoom:false, doubleClick:false};
 
-  // 1. Set default checks
+  // 1. 初始化 DOM 狀態：預設全部勾選 (修正勾選框消失或未勾選問題)
   if(view!=="arpu"){
-    (built.defaults||[]).forEach(id=>{ const node=document.getElementById(id); if(node) node.checked=true; });
+    // 設定這三個預設 ID
+    (built.defaults||[]).forEach(id=>{
+        const node=document.getElementById(id);
+        if(node) node.checked=true;
+    });
+
+    // 初始化 Trace 可見性 (根據 DOM 狀態)
+    const getChecked = (id) => { const n=document.getElementById(id); return n && n.checked; };
+    if(view === "money"){
+        built.traces[0].visible = getChecked("r_total") ? true : 'legendonly';
+        built.traces[1].visible = getChecked("r_sub") ? true : 'legendonly';
+        built.traces[2].visible = getChecked("r_single") ? true : 'legendonly';
+    } else if(view === "subs"){
+        built.traces[0].visible = getChecked("s_new") ? true : 'legendonly';
+        built.traces[1].visible = getChecked("s_old") ? true : 'legendonly';
+    } else if(view === "mix"){
+        built.traces[0].visible = getChecked("p_1") ? true : 'legendonly';
+        built.traces[1].visible = getChecked("p_3") ? true : 'legendonly';
+        built.traces[2].visible = getChecked("p_6") ? true : 'legendonly';
+    }
   }
 
-  // 2. Bind Checkbox Events BEFORE chart init (so they are ready)
-  document.querySelectorAll("#checks input[type=checkbox]").forEach(cb => {
+  // 2. 綁定 Checkbox 事件 (修正點擊無效問題)
+  const checkboxes = document.querySelectorAll("#checks input[type=checkbox]");
+  checkboxes.forEach(cb => {
       cb.addEventListener("change", () => {
           applyVisibility(view, built.traces);
       });
   });
 
-  Plotly.react("chart", built.traces, layout, config).then(()=>{
-    // Hide skeleton chart, show real chart
+  // 3. 繪製圖表
+  Plotly.react("chart", built.traces, layout, config).then((gd)=>{
     el("skel-chart").classList.add("loading-hide");
     el("chart").classList.remove("loading-hide");
-
-    if(view!=="arpu"){
-      // Apply visibility based on defaults
-      applyVisibility(view, built.traces);
-    } else {
-      Plotly.restyle("chart", "visible", built.traces.map(()=>true));
-    }
+    attachPlotlyEnhancers(gd);
   });
+}
+
+window.addEventListener('mousemove', (ev)=>{
+    window.lastMouseX = ev.clientX;
+    window.lastMouseY = ev.clientY;
+    const card = document.getElementById('customTooltipCard');
+    if(card && card.style.display === 'block'){
+        const rect = card.getBoundingClientRect();
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+        const pad = 16;
+        let px = ev.clientX + 20, py = ev.clientY + 20;
+        if(px + rect.width + pad > vw) px = ev.clientX - rect.width - 20;
+        if(py + rect.height + pad > vh) py = ev.clientY - rect.height - 20;
+        card.style.left = Math.max(4, px) + 'px';
+        card.style.top = Math.max(4, py) + 'px';
+    }
+}, {passive:true});
+
+// --- 一次性計算全域 KPI 的函式 ---
+function initGlobalKPIs() {
+    const sub = RAW_DATA.sub;
+    const single = RAW_DATA.single;
+
+    const monthMap = new Map();
+    const timeKeySub = pickKey(Object.keys(sub[0]||{}), ["時間","time"]);
+    const priceKeySub = pickKey(Object.keys(sub[0]||{}), ["價格","price"]);
+    const timeKeySin = pickKey(Object.keys(single[0]||{}), ["時間","time"]);
+    const priceKeySin = pickKey(Object.keys(single[0]||{}), ["價格","price"]);
+
+    // 處理訂閱
+    sub.forEach(r => {
+        const m = toMonthKey(r[timeKeySub]);
+        if(m) {
+            const val = parseMoney(r[priceKeySub]);
+            if(isFinite(val)) monthMap.set(m, (monthMap.get(m)||0) + val);
+        }
+    });
+    // 處理單片
+    single.forEach(r => {
+        const m = toMonthKey(r[timeKeySin]);
+        if(m) {
+            const val = parseMoney(r[priceKeySin]);
+            if(isFinite(val)) monthMap.set(m, (monthMap.get(m)||0) + val);
+        }
+    });
+
+    // 1. 最新月份金額
+    const sortedMonths = Array.from(monthMap.keys()).sort();
+    const latestMonth = sortedMonths[sortedMonths.length - 1];
+    const latestVal = monthMap.get(latestMonth) || 0;
+
+    // 2. 歷史總金額
+    let totalAllTime = 0;
+    monthMap.forEach(v => totalAllTime += v);
+
+    // 更新 UI (只執行這一次，之後切換 filter 都不會動)
+    setText("months", money(Math.round(latestVal)));
+    setText("totalRevenue", money(Math.round(totalAllTime)));
+}
+
+function updateDashboard() {
+    const built = buildAgg(RAW_DATA.sub, RAW_DATA.single);
+    STATE.aggAsc = built.aggAsc;
+    STATE.topSingles = built.topSingles;
+    STATE.users = built.users;
+
+    applyOrder(true);
+
+    // 注意：這裡不再更新上方的 KPI，確保它們被「鎖定」
+
+    renderTables();
+    const activeUserBtn = document.querySelector('.userseg-btn.active');
+    renderUsers(activeUserBtn ? activeUserBtn.getAttribute('data-metric') : 'spend_total');
+
+    const activeViewBtn = document.querySelector('.segmented:not(.userseg) .seg-btn.active');
+    if(activeViewBtn) renderChart(activeViewBtn.getAttribute('data-value'));
 }
 
 async function main(){
@@ -824,36 +1054,31 @@ async function main(){
     }
     el("status").className = "sub"; el("status").textContent = "Loading… Fetching data";
 
-    // 使用 PapaParse 解析 CSV
     const [subRows, singleRows] = await Promise.all([fetchCsvPapa(SUB_CSV_URL), fetchCsvPapa(SINGLE_CSV_URL)]);
 
-    if(!subRows.length) throw new Error("訂閱CSV 沒抓到資料（可能還沒 publish 或 gid 錯）");
-    if(!singleRows.length) throw new Error("單片CSV 沒抓到資料（可能還沒 publish 或 gid 錯）");
+    if(!subRows.length) throw new Error("訂閱CSV 沒抓到資料");
+    if(!singleRows.length) throw new Error("單片CSV 沒抓到資料");
 
-    const built = buildAgg(subRows, singleRows);
-    STATE.aggAsc = built.aggAsc;
-    STATE.topSingles = built.topSingles;
-    STATE.users = built.users;
+    RAW_DATA.sub = subRows;
+    RAW_DATA.single = singleRows;
 
-    applyOrder(true);
+    // 1. 先計算並鎖定 KPI
+    initGlobalKPIs();
 
-    setText("months", String(STATE.aggAsc.length));
-    setText("totalRevenue", money(Math.round(STATE.aggAsc.reduce((a,b)=>a+(b.totalRevenue||0),0))));
+    // 2. 再渲染 Dashboard 內容 (這部分會隨 filter 變動)
+    updateDashboard();
 
-    // 移除骨架屏
-    document.querySelectorAll(".skeleton-container").forEach(e => e.remove());
-    document.querySelectorAll(".loading-hide").forEach(e => e.classList.remove("loading-hide"));
-
-    renderTables();
-    renderUsers(el("userMetric").value);
-    el("userMetric").addEventListener("change", (e)=> {
-        STATE.sort.users.col = 'metricVal';
-        STATE.sort.users.dir = 'desc';
-        renderUsers(e.target.value);
+    document.querySelectorAll('#dateRangeControl .seg-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            document.querySelectorAll('#dateRangeControl .seg-btn').forEach(b => b.classList.remove('active'));
+            e.target.classList.add('active');
+            STATE.dateRange = e.target.getAttribute('data-range');
+            updateDashboard();
+        });
     });
 
-    renderChart("money");
-    el("viewSelect").addEventListener("change", (e)=> renderChart(e.target.value));
+    document.querySelectorAll(".skeleton-container").forEach(e => e.remove());
+    document.querySelectorAll(".loading-hide").forEach(e => e.classList.remove("loading-hide"));
 
     el("status").className = "sub ok"; el("status").textContent = "● Data loaded • Last updated: " + new Date().toLocaleString();
   } catch(err) {
@@ -861,377 +1086,34 @@ async function main(){
     console.error(err);
   }
 }
-main();
-</script>
 
-<script>
 (function(){
   const sel = document.getElementById('viewSelect');
-  const buttons = Array.from(document.querySelectorAll('.seg-btn'));
-  if(!sel || buttons.length===0) return;
-  function setActive(val){ buttons.forEach(b=>b.classList.toggle('active', b.dataset.value===val)); }
-  setActive(sel.value || 'money');
+  const buttons = document.querySelectorAll('.segmented:not(.userseg) .seg-btn');
   buttons.forEach(btn=>{
     btn.addEventListener('click', ()=>{
-      const val = btn.dataset.value; sel.value = val; setActive(val);
-      sel.dispatchEvent(new Event('change', {bubbles:true}));
+      buttons.forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      const val = btn.getAttribute('data-value');
+      if(sel) sel.value = val;
+      renderChart(val);
     });
   });
 })();
-</script>
 
-<script>
 (function(){
-  const userSel = document.getElementById("userMetric");
   const userBtns = document.querySelectorAll(".userseg .userseg-btn");
-  if(userSel && userBtns.length){
-    userBtns.forEach(btn=>{
-      btn.addEventListener("click", ()=>{
-        userBtns.forEach(b=>b.classList.remove("active"));
-        btn.classList.add("active");
-        const v = btn.getAttribute("data-metric");
-        if(v){ userSel.value = v; userSel.dispatchEvent(new Event("change", {bubbles:true})); }
-      });
+  userBtns.forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      userBtns.forEach(b=>b.classList.remove("active"));
+      btn.classList.add('active');
+      const v = btn.getAttribute("data-metric");
+      renderUsers(v);
     });
-  }
+  });
 })();
-</script>
 
-<script>
-(function(){
-  function moneyFmt(n){
-    if(typeof window.money==="function") return window.money(n);
-    return "NT$ " + n.toLocaleString("en-US");
-  }
-  function parseMonth(s){
-    s = (s||"").trim();
-    let m = s.match(/(\d{4})\D(\d{1,2})/);
-    if(m) return {y:+m[1], mo:+m[2]};
-    m = s.match(/^\s*(\d{1,2})\s*$/);
-    if(m) return {y:0, mo:+m[1]};
-    const nums = s.match(/(\d{1,2})/g);
-    if(nums && nums.length) return {y:0, mo:+nums[nums.length-1]};
-    return null;
-  }
-  function findTotalColIndex(){
-    const table = document.querySelector("#tbodyMonthly")?.closest("table");
-    if(!table) return null;
-    const ths = Array.from(table.querySelectorAll("thead th"));
-    const labels = ths.map(th=>th.textContent.trim().toLowerCase());
-    const candidates = ["total","total revenue","總營收","總收入","營收","revenue"];
-    for(const c of candidates){
-      const idx = labels.findIndex(t=>t.includes(c));
-      if(idx>=0) return idx;
-    }
-    return null;
-  }
-  function setLatest(){
-    const monthsEl = document.getElementById("months");
-    const tbody = document.getElementById("tbodyMonthly");
-    if(!tbody) return;
-    const rows = Array.from(tbody.querySelectorAll("tr"));
-    if(!rows.length) return;
-    const totalIdx = findTotalColIndex();
-    let best = null;
-    for(const r of rows){
-      const tds = Array.from(r.querySelectorAll("td"));
-      if(!tds.length) continue;
-      const mi = parseMonth(tds[0].textContent);
-      if(!mi) continue;
-      let cell = null;
-      if(totalIdx != null && tds[totalIdx]) cell = tds[totalIdx];
-      else cell = tds[Math.max(0, tds.length-2)];
-      const val = parseInt((cell.textContent||"").replace(/[^0-9]/g,""),10);
-      if(isNaN(val)) continue;
-      const key = mi.y*100 + mi.mo;
-      if(!best || key > best.key) best = {key, val};
-    }
-    if(!best) return;
-    if(monthsEl) monthsEl.textContent = moneyFmt(best.val);
-  }
-  setLatest();
-  setTimeout(setLatest, 400);
-  setTimeout(setLatest, 1200);
-  const tbody = document.getElementById("tbodyMonthly");
-  if(tbody && window.MutationObserver){
-    const obs = new MutationObserver(()=>setLatest());
-    obs.observe(tbody, {childList:true, subtree:true});
-  }
-})();
-</script>
-
-<script>
-(function(){
-  function syncKpiStyles(){
-    const totalCard = document.querySelector('.kpi-card[data-kpi="total"], #kpiTotal, #totalKpi, [data-kpi="totalRevenue"]');
-    const latestCard = document.querySelector('.kpi-card[data-kpi="latest"], #kpiLatest, #latestKpi, [data-kpi="latestRevenue"]');
-    if(totalCard && latestCard){
-      ["kpi-primary","kpi-big","primary","big"].forEach(cls=>{
-        if(totalCard.classList.contains(cls)) latestCard.classList.add(cls);
-      });
-    }
-  }
-  setTimeout(syncKpiStyles, 0);
-  setTimeout(syncKpiStyles, 300);
-})();
-</script>
-
-<script id="safeHoverEnhancer">
-(function(){
-  let lastEl = null;
-  let saved = { stroke:'', strokeWidth:'', paintOrder:'', opacity:'', cursor:'', transform:'', transition:'', transformBox:'', transformOrigin:'' };
-  let ghostOverlay = document.getElementById('ghost-overlay');
-
-  if(!ghostOverlay) {
-    ghostOverlay = document.createElement('div');
-    ghostOverlay.id = 'ghost-overlay';
-    document.body.appendChild(ghostOverlay);
-  }
-
-  function enhance(gd){
-    if(!gd || gd.__enhancerBound || !gd.on) return;
-    gd.__enhancerBound = true;
-
-    gd.on('plotly_hover', function(e){
-      try{
-        if(!e || !e.points || !e.points.length) return;
-        const pt = e.points[0];
-        const curveIdx = pt.curveNumber;
-        const pointIdx = pt.pointNumber;
-        const traceType = gd.data[curveIdx].type || 'scatter';
-
-        let target = null;
-        let isBar = (traceType === 'bar');
-
-        if(isBar){
-            let barTraceCount = 0;
-            for(let i=0; i<curveIdx; i++){
-               const t = gd.data[i];
-               if(t.type === 'bar' && t.visible !== false && t.visible !== 'legendonly') barTraceCount++;
-            }
-            const traces = gd.querySelectorAll('.barlayer .trace');
-            const traceEl = traces[barTraceCount];
-            if(traceEl) {
-               const points = traceEl.querySelectorAll('.point');
-               target = points[pointIdx];
-            }
-        } else {
-            let scatterTraceCount = 0;
-             for(let i=0; i<curveIdx; i++){
-               const t = gd.data[i];
-               const tType = t.type || 'scatter';
-               if((tType === 'scatter' || tType === 'scattergl') && t.visible !== false && t.visible !== 'legendonly') scatterTraceCount++;
-            }
-            const traces = gd.querySelectorAll('.scatterlayer .trace');
-            const traceEl = traces[scatterTraceCount];
-            if(traceEl) {
-               const points = traceEl.querySelectorAll('.point');
-               target = points[pointIdx];
-            }
-        }
-
-        if(!target) return;
-
-        if(isBar) {
-          if(lastEl) { reset(lastEl); lastEl = null; }
-          const rect = target.getBoundingClientRect();
-          if(rect.width > 0 && rect.height > 0) {
-             ghostOverlay.style.top = rect.top + 'px';
-             ghostOverlay.style.left = rect.left + 'px';
-             ghostOverlay.style.width = rect.width + 'px';
-             ghostOverlay.style.height = rect.height + 'px';
-             ghostOverlay.style.borderRadius = "2px";
-             ghostOverlay.style.boxShadow = "0 0 6px rgba(255,255,255,0.5)";
-             ghostOverlay.style.display = 'block';
-          }
-        } else {
-          // UNIFIED GHOST OVERLAY for SCATTER
-          if(lastEl) { reset(lastEl); lastEl = null; }
-
-          const rect = target.getBoundingClientRect();
-          if(rect.width > 0 && rect.height > 0) {
-             const size = 20;
-             const cx = rect.left + rect.width/2;
-             const cy = rect.top + rect.height/2;
-
-             ghostOverlay.style.width = size + 'px';
-             ghostOverlay.style.height = size + 'px';
-             ghostOverlay.style.top = (cy - size/2) + 'px';
-             ghostOverlay.style.left = (cx - size/2) + 'px';
-             ghostOverlay.style.borderRadius = "50%";
-             ghostOverlay.style.boxShadow = "0 0 0 6px rgba(255,255,255,0.6)";
-             ghostOverlay.style.display = 'block';
-          }
-        }
-      }catch(err){ console.error(err); }
-    });
-
-    gd.on('plotly_unhover', function(){
-      ghostOverlay.style.display = 'none';
-      if(lastEl) { reset(lastEl); lastEl = null; }
-    });
-  }
-
-  function reset(el){
-    if(!el) return;
-    el.style.stroke = saved.stroke;
-    el.style.strokeWidth = saved.strokeWidth;
-    el.style.paintOrder = saved.paintOrder;
-    el.style.opacity = saved.opacity;
-  }
-
-  function scan(){
-    document.querySelectorAll('.js-plotly-plot, .plotly-graph-div').forEach(enhance);
-  }
-
-  const obs = new MutationObserver(()=>scan());
-  obs.observe(document.documentElement, {childList:true, subtree:true});
-  window.addEventListener('load', ()=>{ setTimeout(scan,500); setTimeout(scan,1500); });
-})();
-</script>
-
-<script id="customTooltipCardScriptV2">
-(function(){
-  let lastMouse = {x: 0, y: 0};
-
-  function ensureCard(){
-    let el=document.getElementById('customTooltipCard');
-    if(!el){
-      el=document.createElement('div');
-      el.id='customTooltipCard';
-      el.innerHTML='<div class="tt-title"></div><div class="tt-row"><span class="dot"></span><span class="name"></span><span class="value"></span></div>';
-      document.body.appendChild(el);
-    }
-    return el;
-  }
-  let card = ensureCard();
-  const titleEl=card.querySelector('.tt-title') || card.appendChild(document.createElement('div'));
-  if(!titleEl.className) titleEl.className='tt-title';
-
-  if(!card.querySelector('.tt-row')){
-     card.innerHTML='<div class="tt-title"></div><div class="tt-row"><span class="dot"></span><span class="name"></span><span class="value"></span></div>';
-  }
-  const dotEl=card.querySelector('.dot');
-  const nameEl=card.querySelector('.name');
-  const valueEl=card.querySelector('.value');
-  const tEl=card.querySelector('.tt-title');
-
-  function colorOf(pt){
-    try{
-      const tr=pt.fullData||pt.data||{};
-      let c=(tr.line&&tr.line.color)||(tr.marker&&tr.marker.color)||'#fff';
-      if(Array.isArray(c)) c=c[0]||'#fff';
-      return c;
-    }catch(e){return '#fff';}
-  }
-  function kindFor(name){
-    const s=(name||'').toLowerCase();
-    if(s.includes('revenue')||s.includes('營收')||s.includes('total')||s.includes('arpu')) return 'money';
-    if(s.includes('%')||s.includes('rate')||s.includes('ratio')||s.includes('比例')||s.includes('成長')) return 'pct';
-    if(s.includes('user')||s.includes('subscriber')||s.includes('客')||s.includes('人數')) return 'int';
-    return 'num';
-  }
-  function fmt(v, kind){
-    if(v==null||isNaN(v)) return '-';
-    const n=Number(v);
-    if(kind==='money') return 'NT$ '+n.toLocaleString(undefined,{maximumFractionDigits:0});
-    if(kind==='pct') return n.toFixed(1)+'%';
-    if(kind==='int') return n.toLocaleString(undefined,{maximumFractionDigits:0});
-    return n.toLocaleString(undefined,{maximumFractionDigits:1});
-  }
-  function place(x,y){
-    if(typeof x!=='number'||typeof y!=='number') return;
-    card.style.display='block';
-    const rect=card.getBoundingClientRect();
-    const vw=window.innerWidth;
-    const vh=window.innerHeight;
-    const pad=16;
-
-    let px=x+20, py=y+20;
-    if(px+rect.width+pad>vw) px=x-rect.width-20;
-    if(py+rect.height+pad>vh) py=y-rect.height-20;
-
-    card.style.left=Math.max(4,px)+'px';
-    card.style.top =Math.max(4,py)+'px';
-  }
-
-  function bind(gd){
-    if(!gd||gd.__cardBound||!gd.on) return;
-    gd.__cardBound=true;
-
-    gd.addEventListener('mousemove', (ev)=>{
-      lastMouse.x=ev.clientX;
-      lastMouse.y=ev.clientY;
-    }, {passive:true});
-
-    let hideTimer = null;
-    gd.on('plotly_unhover', function(){
-        hideTimer = setTimeout(() => { card.style.display='none'; }, 50);
-    });
-
-    gd.on('plotly_hover', function(e){
-      try{
-        if(hideTimer) clearTimeout(hideTimer);
-        if(!e || !e.points || !e.points.length) return;
-
-        let pt = e.points[0];
-
-        const xlab = pt.x;
-        const name = (pt.fullData && pt.fullData.name) || (pt.data && pt.data.name) || 'Value';
-        const yval = pt.y;
-
-        if(tEl) tEl.textContent = String(xlab);
-        if(dotEl) dotEl.style.background = colorOf(pt);
-        if(nameEl) nameEl.textContent = name;
-        if(valueEl) valueEl.textContent = fmt(yval, kindFor(name));
-
-        place(lastMouse.x, lastMouse.y);
-
-      }catch(err){ console.error(err); }
-    });
-  }
-
-  function scan(){
-    document.querySelectorAll('.js-plotly-plot, .plotly-graph-div').forEach(bind);
-  }
-
-  const obs=new MutationObserver(()=>scan());
-  obs.observe(document.documentElement,{childList:true,subtree:true});
-  window.addEventListener('load', ()=>{ setTimeout(scan,500); setTimeout(scan,1500); });
-})();
-</script>
-
-<script id="plotlyHoverEnforcer">
-(function(){
-  function fixLayout(gd){
-    if(!gd || !gd.classList || (!gd.classList.contains('js-plotly-plot') && !gd.classList.contains('plotly-graph-div'))) return;
-    if(!window.Plotly || !gd._fullLayout) return;
-
-    const update = {
-      hovermode: 'closest',
-      hoverdistance: 20,
-      spikedistance: -1
-    };
-
-    try{
-      const axKeys = Object.keys(gd._fullLayout).filter(k=>/^xaxis\d*$|^yaxis\d*$/.test(k));
-      axKeys.forEach(k=>{
-        update[`${k}.showspikes`] = false;
-        update[`${k}.spikesnap`] = 'cursor';
-      });
-    }catch(e){}
-
-    window.Plotly.relayout(gd, update).catch(()=>{});
-  }
-
-  function scan(){
-    document.querySelectorAll('.js-plotly-plot, .plotly-graph-div').forEach(fixLayout);
-  }
-
-  const obs = new MutationObserver(()=>scan());
-  obs.observe(document.documentElement,{childList:true,subtree:true});
-  window.addEventListener('load', ()=>{ setTimeout(scan,300); setTimeout(scan,1000); setTimeout(scan,2000); });
-})();
+main();
 </script>
 </body>
 </html>
