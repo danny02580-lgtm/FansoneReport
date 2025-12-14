@@ -144,6 +144,7 @@
   tbody tr:nth-child(even) td{background:rgba(255,255,255,0.01)}
   tr:hover td{background:rgba(255,255,255,.06)!important; transition:background 0.1s}
 
+  /* --- Top Users 表格 --- */
   .fixed-table { table-layout: fixed; width: 100%; }
   .fixed-table th:nth-child(1) { width: 28%; }
   .fixed-table th:nth-child(2), .fixed-table th:nth-child(3), .fixed-table th:nth-child(4), .fixed-table th:nth-child(5) { width: 18%; }
@@ -296,7 +297,7 @@
       </div>
       <div class="bd" style="padding:0;">
         <div id="skel-t2" class="skeleton-container" style="padding:16px">
-            <div class="skeleton skeleton-table-row"></div><div class="skeleton skeleton-table-row"></div>
+            <div class="skeleton skeleton-table-row"></div><div class="skeleton skeleton-table-row"></div><div class="skeleton skeleton-table-row"></div>
         </div>
 
         <div id="real-t2" class="table-scroll-container loading-hide">
@@ -432,7 +433,7 @@ function getSortedData(data, tableId) {
     return sorted;
 }
 
-// --- 修正日期篩選邏輯: 以月份為單位，而非日期 ---
+// --- 日期篩選邏輯修正：以月份為基準 ---
 function filterRowsByDate(rows, timeKey) {
     if (STATE.dateRange === 'all') return rows;
 
@@ -447,17 +448,14 @@ function filterRowsByDate(rows, timeKey) {
     });
     if(!maxMonth) return rows;
 
-    // 計算起始月份 (Start Month)
-    // 例子: 最新 2025-12, Range 3M -> 2025-10, 2025-11, 2025-12
     const y = parseInt(maxMonth.split('-')[0]);
     const m = parseInt(maxMonth.split('-')[1]);
     const range = parseInt(STATE.dateRange);
 
-    // 計算往前推的日期
-    const targetDate = new Date(y, m - 1, 1); // JS Month is 0-indexed
+    // 計算往前推的日期 (包含本月)
+    const targetDate = new Date(y, m - 1, 1);
     targetDate.setMonth(targetDate.getMonth() - (range - 1));
 
-    // 轉回 YYYY-MM 格式
     const ty = targetDate.getFullYear();
     const tm = String(targetDate.getMonth() + 1).padStart(2, '0');
     const minMonth = `${ty}-${tm}`;
@@ -704,7 +702,7 @@ function makeChecksFor(view){
   const box = el("checks");
   box.innerHTML = items.map(it=>(
     `<label class="check" tabindex="0" role="checkbox" aria-checked="true" aria-label="Toggle ${it.title}">
-      <input type="checkbox" id="${it.id}" tabindex="-1" />
+      <input type="checkbox" id="${it.id}" tabindex="-1" checked />
       <span class="dot" style="background:${it.color}"></span>
       <span class="label"><b>${it.title}</b></span>
     </label>`
@@ -797,25 +795,7 @@ function buildTraces(view){
     };
 }
 
-function applyVisibility(view, traces){
-  let vis = new Array(traces.length).fill(false);
-  const on = (id)=> { const n=document.getElementById(id); return n && n.checked; };
-
-  if(view==="money"){
-    if(on("r_total")) vis[0]=true;
-    if(on("r_sub")) vis[1]=true;
-    if(on("r_single")) vis[2]=true;
-  } else if(view==="subs"){
-    if(on("s_new")) vis[0]=true;
-    if(on("s_old")) vis[1]=true;
-  } else if(view==="mix"){
-    if(on("p_1")) vis[0]=true;
-    if(on("p_3")) vis[1]=true;
-    if(on("p_6")) vis[2]=true;
-  }
-  Plotly.restyle("chart", "visible", vis);
-}
-
+// 綁定 Plotly 互動效果 (Tooltips + Ghost Overlay)
 function attachPlotlyEnhancers(gd) {
     if(!gd || !gd.on) return;
     const ghostOverlay = document.getElementById('ghost-overlay');
@@ -831,8 +811,12 @@ function attachPlotlyEnhancers(gd) {
             const pointIdx = pt.pointNumber;
             const isBar = (e.points[0].data.type === 'bar');
             let target = null;
-            const traceEls = gd.querySelectorAll(`g.trace:nth-of-type(${curveIdx + 1}) .point`);
-            if (traceEls && traceEls[pointIdx]) target = traceEls[pointIdx];
+
+            // 嘗試抓取 DOM 元素以顯示光暈，如果失敗不影響 Tooltip
+            try {
+                const traceEls = gd.querySelectorAll(`g.trace:nth-of-type(${curveIdx + 1}) .point`);
+                if (traceEls && traceEls[pointIdx]) target = traceEls[pointIdx];
+            } catch(e) {}
 
             if(target && ghostOverlay) {
                 const rect = target.getBoundingClientRect();
@@ -904,11 +888,15 @@ function renderChart(view){
   const layout = {...layoutBase(), ...built.layout};
   const config = {responsive:true, displaylogo:false, displayModeBar:false, scrollZoom:false, doubleClick:false};
 
-  // 1. 初始化 Checkboxes DOM 並設定預設勾選
+  // 1. 初始化 DOM 狀態：預設全部勾選 (修正勾選框消失或未勾選問題)
   if(view!=="arpu"){
-    (built.defaults||[]).forEach(id=>{ const node=document.getElementById(id); if(node) node.checked=true; });
+    // 設定這三個預設 ID
+    (built.defaults||[]).forEach(id=>{
+        const node=document.getElementById(id);
+        if(node) node.checked=true;
+    });
 
-    // 2. 根據 DOM 狀態設定 Plotly Trace 的初始 Visible 屬性
+    // 初始化 Trace 可見性 (根據 DOM 狀態)
     const getChecked = (id) => { const n=document.getElementById(id); return n && n.checked; };
     if(view === "money"){
         built.traces[0].visible = getChecked("r_total") ? true : 'legendonly';
@@ -924,14 +912,15 @@ function renderChart(view){
     }
   }
 
-  // 3. 綁定 Checkbox 事件 (現在 DOM 已經存在)
-  document.querySelectorAll("#checks input[type=checkbox]").forEach(cb => {
+  // 2. 綁定 Checkbox 事件 (修正點擊無效問題)
+  const checkboxes = document.querySelectorAll("#checks input[type=checkbox]");
+  checkboxes.forEach(cb => {
       cb.addEventListener("change", () => {
           applyVisibility(view, built.traces);
       });
   });
 
-  // 4. 繪製圖表 (使用已經正確設定 visible 的 traces)
+  // 3. 繪製圖表
   Plotly.react("chart", built.traces, layout, config).then((gd)=>{
     el("skel-chart").classList.add("loading-hide");
     el("chart").classList.remove("loading-hide");
@@ -964,7 +953,17 @@ function updateDashboard() {
 
     applyOrder(true);
 
-    setText("months", String(STATE.aggAsc.length));
+    // --- KPI 修正 ---
+    // 1. 最新月份金額 (取代原本的月份數)
+    const sortedByDate = [...STATE.aggAsc].sort((a,b) => a.month > b.month ? -1 : 1);
+    const latestMonthData = sortedByDate[0];
+    if(latestMonthData) {
+        setText("months", money(Math.round(latestMonthData.totalRevenue)));
+    } else {
+        setText("months", "–");
+    }
+
+    // 2. 總金額 (目前篩選範圍的加總)
     const totalRev = Math.round(STATE.aggAsc.reduce((a,b)=>a+(b.totalRevenue||0),0));
     setText("totalRevenue", money(totalRev));
 
