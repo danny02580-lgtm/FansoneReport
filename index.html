@@ -114,7 +114,7 @@
   .check:hover { background: rgba(255,255,255,0.05); }
   .check:focus-within { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
 
-  .check input{width:20px; height:20px; accent-color:var(--accent)}
+  .check input{width:20px; height:20px; accent-color:var(--accent); cursor:pointer;}
   .dot{width:10px; height:10px; border-radius:999px; background:#fff; flex-shrink:0;}
   .label{overflow:hidden; display:flex; align-items:center; flex:1;}
   .label b{font-size:14px; font-weight:600; white-space:nowrap; color: rgba(255,255,255,0.95);}
@@ -433,16 +433,14 @@ function getSortedData(data, tableId) {
     return sorted;
 }
 
-// --- 日期篩選邏輯修正：以月份為基準 ---
 function filterRowsByDate(rows, timeKey) {
     if (STATE.dateRange === 'all') return rows;
 
-    // 找出資料中最新的月份 (YYYY-MM)
     let maxMonth = "";
     rows.forEach(r => {
         const d = parseTimeToSortable(r[timeKey]);
         if(d) {
-            const m = d.slice(0, 7); // YYYY-MM
+            const m = d.slice(0, 7);
             if(m > maxMonth) maxMonth = m;
         }
     });
@@ -452,7 +450,6 @@ function filterRowsByDate(rows, timeKey) {
     const m = parseInt(maxMonth.split('-')[1]);
     const range = parseInt(STATE.dateRange);
 
-    // 計算往前推的日期 (包含本月)
     const targetDate = new Date(y, m - 1, 1);
     targetDate.setMonth(targetDate.getMonth() - (range - 1));
 
@@ -795,7 +792,25 @@ function buildTraces(view){
     };
 }
 
-// 綁定 Plotly 互動效果 (Tooltips + Ghost Overlay)
+function applyVisibility(view, traces){
+  let vis = new Array(traces.length).fill(false);
+  const on = (id)=> { const n=document.getElementById(id); return n && n.checked; };
+
+  if(view==="money"){
+    if(on("r_total")) vis[0]=true;
+    if(on("r_sub")) vis[1]=true;
+    if(on("r_single")) vis[2]=true;
+  } else if(view==="subs"){
+    if(on("s_new")) vis[0]=true;
+    if(on("s_old")) vis[1]=true;
+  } else if(view==="mix"){
+    if(on("p_1")) vis[0]=true;
+    if(on("p_3")) vis[1]=true;
+    if(on("p_6")) vis[2]=true;
+  }
+  Plotly.restyle("chart", "visible", vis);
+}
+
 function attachPlotlyEnhancers(gd) {
     if(!gd || !gd.on) return;
     const ghostOverlay = document.getElementById('ghost-overlay');
@@ -812,7 +827,6 @@ function attachPlotlyEnhancers(gd) {
             const isBar = (e.points[0].data.type === 'bar');
             let target = null;
 
-            // 嘗試抓取 DOM 元素以顯示光暈，如果失敗不影響 Tooltip
             try {
                 const traceEls = gd.querySelectorAll(`g.trace:nth-of-type(${curveIdx + 1}) .point`);
                 if (traceEls && traceEls[pointIdx]) target = traceEls[pointIdx];
@@ -945,6 +959,51 @@ window.addEventListener('mousemove', (ev)=>{
     }
 }, {passive:true});
 
+// --- 新增：一次性計算全域 KPI 的函式 ---
+function initGlobalKPIs() {
+    // 這裡使用 RAW_DATA (未經過濾的原始資料)
+    const sub = RAW_DATA.sub;
+    const single = RAW_DATA.single;
+
+    // 計算邏輯與 buildAgg 類似，但只為了取最新月份和總額
+    // 先合併計算每個月總額
+    const monthMap = new Map();
+    const timeKeySub = pickKey(Object.keys(sub[0]||{}), ["時間","time"]);
+    const priceKeySub = pickKey(Object.keys(sub[0]||{}), ["價格","price"]);
+    const timeKeySin = pickKey(Object.keys(single[0]||{}), ["時間","time"]);
+    const priceKeySin = pickKey(Object.keys(single[0]||{}), ["價格","price"]);
+
+    // 處理訂閱
+    sub.forEach(r => {
+        const m = toMonthKey(r[timeKeySub]);
+        if(m) {
+            const val = parseMoney(r[priceKeySub]);
+            if(isFinite(val)) monthMap.set(m, (monthMap.get(m)||0) + val);
+        }
+    });
+    // 處理單片
+    single.forEach(r => {
+        const m = toMonthKey(r[timeKeySin]);
+        if(m) {
+            const val = parseMoney(r[priceKeySin]);
+            if(isFinite(val)) monthMap.set(m, (monthMap.get(m)||0) + val);
+        }
+    });
+
+    // 1. 最新月份金額
+    const sortedMonths = Array.from(monthMap.keys()).sort();
+    const latestMonth = sortedMonths[sortedMonths.length - 1];
+    const latestVal = monthMap.get(latestMonth) || 0;
+
+    // 2. 歷史總金額
+    let totalAllTime = 0;
+    monthMap.forEach(v => totalAllTime += v);
+
+    // 更新 UI (只執行這一次，之後切換 filter 都不會動)
+    setText("months", money(Math.round(latestVal)));
+    setText("totalRevenue", money(Math.round(totalAllTime)));
+}
+
 function updateDashboard() {
     const built = buildAgg(RAW_DATA.sub, RAW_DATA.single);
     STATE.aggAsc = built.aggAsc;
@@ -953,19 +1012,7 @@ function updateDashboard() {
 
     applyOrder(true);
 
-    // --- KPI 修正 ---
-    // 1. 最新月份金額 (取代原本的月份數)
-    const sortedByDate = [...STATE.aggAsc].sort((a,b) => a.month > b.month ? -1 : 1);
-    const latestMonthData = sortedByDate[0];
-    if(latestMonthData) {
-        setText("months", money(Math.round(latestMonthData.totalRevenue)));
-    } else {
-        setText("months", "–");
-    }
-
-    // 2. 總金額 (目前篩選範圍的加總)
-    const totalRev = Math.round(STATE.aggAsc.reduce((a,b)=>a+(b.totalRevenue||0),0));
-    setText("totalRevenue", money(totalRev));
+    // 注意：這裡不再更新上方的 KPI，確保它們被「鎖定」
 
     renderTables();
     const activeUserBtn = document.querySelector('.userseg-btn.active');
@@ -991,6 +1038,10 @@ async function main(){
     RAW_DATA.sub = subRows;
     RAW_DATA.single = singleRows;
 
+    // 1. 先計算並鎖定 KPI
+    initGlobalKPIs();
+
+    // 2. 再渲染 Dashboard 內容 (這部分會隨 filter 變動)
     updateDashboard();
 
     document.querySelectorAll('#dateRangeControl .seg-btn').forEach(btn => {
