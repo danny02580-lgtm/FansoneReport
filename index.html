@@ -95,11 +95,9 @@
     color: rgba(255,255,255,.6); font-weight: 600; font-size: 14px;
     cursor: pointer; font-family: inherit; white-space: nowrap; text-align: center;
     transition: all 0.2s cubic-bezier(0.4,0,0.2,1); text-overflow: clip;
-    outline: none; /* Remove default focus */
+    outline: none;
   }
-  /* [A11y] Focus visible state */
   .seg-btn:focus-visible { box-shadow: 0 0 0 2px var(--bg0), 0 0 0 4px var(--accent); z-index: 10; }
-
   .seg-btn.active { background: var(--accent); color: #fff; box-shadow: 0 4px 12px var(--accent-glow); text-shadow: 0 1px 2px rgba(0,0,0,0.2); }
   .seg-btn:hover:not(.active) { color: #e5e7eb; background: rgba(255,255,255,0.05); }
 
@@ -114,7 +112,6 @@
   .checks{display:grid; grid-template-columns:1fr; gap:8px; margin-top:4px}
   .check{ display:flex; gap:12px; align-items:center; padding:12px 14px; border:1px solid var(--stroke); border-radius:12px; background:rgba(255,255,255,.02); cursor:pointer; transition:background 0.2s; }
   .check:hover { background: rgba(255,255,255,0.05); }
-  /* [A11y] Focus for checks */
   .check:focus-within { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
 
   .check input{width:20px; height:20px; accent-color:var(--accent)}
@@ -126,7 +123,6 @@
 
   .tablesGrid{display:grid; grid-template-columns:1.3fr 1fr; gap:16px; margin-top:16px; width: 100%;}
 
-  /* --- 表格與排序樣式 (Sorting UI Enhanced) --- */
   .table-scroll-container { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; -ms-overflow-style: none; }
   .table-scroll-container::-webkit-scrollbar { display: none; }
 
@@ -138,14 +134,8 @@
     background:rgba(19,29,48,0.95); position:sticky; top:0; z-index:10;
     cursor: pointer; user-select: none; transition: all 0.2s;
   }
-  th:hover { color: #fff; background:rgba(255,255,255,0.1); } /* 明顯的 Hover 背景 */
-
-  /* 排序圖示優化 */
-  th::after {
-    content: '⇅'; /* 預設顯示雙向箭頭 */
-    display: inline-block; margin-left: 6px; width: 10px;
-    opacity: 0.2; font-size: 11px; vertical-align: middle;
-  }
+  th:hover { color: #fff; background:rgba(255,255,255,0.1); }
+  th::after { content: '⇅'; display: inline-block; margin-left: 6px; width: 10px; opacity: 0.2; font-size: 11px; vertical-align: middle; }
   th:hover::after { opacity: 0.6; }
   th.sort-asc::after { content: '▲'; opacity: 1; color: var(--accent); }
   th.sort-desc::after { content: '▼'; opacity: 1; color: var(--accent); }
@@ -154,7 +144,6 @@
   tbody tr:nth-child(even) td{background:rgba(255,255,255,0.01)}
   tr:hover td{background:rgba(255,255,255,.06)!important; transition:background 0.1s}
 
-  /* --- Top Users 表格 --- */
   .fixed-table { table-layout: fixed; width: 100%; }
   .fixed-table th:nth-child(1) { width: 28%; }
   .fixed-table th:nth-child(2), .fixed-table th:nth-child(3), .fixed-table th:nth-child(4), .fixed-table th:nth-child(5) { width: 18%; }
@@ -164,13 +153,12 @@
   .sheetlink:hover{color:var(--text)}
   .pill{padding:4px 10px; border:1px solid var(--stroke); border-radius:999px; font-size:11px; font-weight:600; color:var(--muted); background:rgba(255,255,255,.02); white-space:nowrap;}
 
-  /* --- RWD 設定 --- */
+  /* --- RWD --- */
   @media(min-width:861px) {
     #real-t1.table-scroll-container { overflow-x: hidden !important; }
     #monthlyTable { table-layout: auto; width: 100%; }
     #monthlyTable th, #monthlyTable td {
-        padding: 12px 6px;
-        white-space: nowrap; overflow: visible; text-overflow: clip;
+        padding: 12px 6px; white-space: nowrap; overflow: visible; text-overflow: clip;
         font-size: 13px; letter-spacing: -0.2px;
     }
     .fixed-table th, .fixed-table td { padding: 12px 8px; }
@@ -274,7 +262,7 @@
       <div class="hd"><h2>Monthly Summary</h2></div>
       <div class="bd" style="padding:0;">
         <div id="skel-t1" class="skeleton-container" style="padding:16px">
-            <div class="skeleton skeleton-table-row"></div><div class="skeleton skeleton-table-row"></div><div class="skeleton skeleton-table-row"></div>
+            <div class="skeleton skeleton-table-row"></div><div class="skeleton skeleton-table-row"></div><div class="skeleton skeleton-table-row"></div><div class="skeleton skeleton-table-row"></div>
         </div>
 
         <div id="real-t1" class="table-scroll-container loading-hide">
@@ -403,8 +391,6 @@ function parseTimeToSortable(s){
   return `${m[1]}-${m[2]}-${m[3]} ${m[4]}:${m[5]}:${m[6]||"00"}`;
 }
 
-// --- STATE ---
-// Store raw data to support re-aggregation (Date Filtering)
 let RAW_DATA = { sub: [], single: [] };
 let STATE = {
     aggAsc:[], aggDesc:[], topSingles:[], users:[],
@@ -413,15 +399,13 @@ let STATE = {
         users: { col: 'metricVal', dir: 'desc' },
         singles: { col: 'sum', dir: 'desc' }
     },
-    dateRange: 'all' // all, 12, 6, 3
+    dateRange: 'all'
 };
 
-// --- Sorting Logic ---
 function sortTable(tableId, colKey) {
     const s = STATE.sort[tableId];
     if (s.col === colKey) { s.dir = (s.dir === 'desc') ? 'asc' : 'desc'; }
     else { s.col = colKey; s.dir = 'desc'; }
-
     document.querySelectorAll(`#tbody${tableId.charAt(0).toUpperCase() + tableId.slice(1)}`).forEach(tbody => {
         const table = tbody.closest('table');
         table.querySelectorAll('th').forEach(th => {
@@ -429,7 +413,6 @@ function sortTable(tableId, colKey) {
             if (th.dataset.key === colKey) { th.classList.add(s.dir === 'asc' ? 'sort-asc' : 'sort-desc'); }
         });
     });
-
     if (tableId === 'monthly') renderTables();
     else if (tableId === 'singles') renderTables();
     else if (tableId === 'users') renderUsers();
@@ -449,27 +432,41 @@ function getSortedData(data, tableId) {
     return sorted;
 }
 
-// --- Filtering Helper ---
+// --- 修正日期篩選邏輯: 以月份為單位，而非日期 ---
 function filterRowsByDate(rows, timeKey) {
     if (STATE.dateRange === 'all') return rows;
 
-    // Find latest date in dataset to act as "Now"
-    // (This ensures report works for old datasets)
-    let maxDate = "";
+    // 找出資料中最新的月份 (YYYY-MM)
+    let maxMonth = "";
     rows.forEach(r => {
         const d = parseTimeToSortable(r[timeKey]);
-        if(d && d > maxDate) maxDate = d;
+        if(d) {
+            const m = d.slice(0, 7); // YYYY-MM
+            if(m > maxMonth) maxMonth = m;
+        }
     });
-    if(!maxDate) return rows;
+    if(!maxMonth) return rows;
 
-    const targetDate = new Date(maxDate);
-    const monthsToSubtract = parseInt(STATE.dateRange);
-    targetDate.setMonth(targetDate.getMonth() - monthsToSubtract);
-    const limitStr = targetDate.toISOString().slice(0,10);
+    // 計算起始月份 (Start Month)
+    // 例子: 最新 2025-12, Range 3M -> 2025-10, 2025-11, 2025-12
+    const y = parseInt(maxMonth.split('-')[0]);
+    const m = parseInt(maxMonth.split('-')[1]);
+    const range = parseInt(STATE.dateRange);
+
+    // 計算往前推的日期
+    const targetDate = new Date(y, m - 1, 1); // JS Month is 0-indexed
+    targetDate.setMonth(targetDate.getMonth() - (range - 1));
+
+    // 轉回 YYYY-MM 格式
+    const ty = targetDate.getFullYear();
+    const tm = String(targetDate.getMonth() + 1).padStart(2, '0');
+    const minMonth = `${ty}-${tm}`;
 
     return rows.filter(r => {
         const d = parseTimeToSortable(r[timeKey]);
-        return d && d >= limitStr;
+        if(!d) return false;
+        const rowMonth = d.slice(0, 7);
+        return rowMonth >= minMonth;
     });
 }
 
@@ -487,7 +484,6 @@ function buildAgg(subRows, singleRows){
   const sIdKey    = pickKey(sHeaders, ["用戶id","user id","userid","id","用戶","user"]) || sHeaders[3];
   const sPriceKey = pickKey(sHeaders, ["價格","price","金額","amount","收入"]) || sHeaders[Math.min(4, sHeaders.length-1)];
 
-  // --- Apply Filtering ---
   const filteredSub = filterRowsByDate(subRows, timeKey);
   const filteredSingle = filterRowsByDate(singleRows, sTimeKey);
 
@@ -820,16 +816,11 @@ function applyVisibility(view, traces){
   Plotly.restyle("chart", "visible", vis);
 }
 
-// 綁定 Plotly 互動效果的函式，不再使用 MutationObserver
 function attachPlotlyEnhancers(gd) {
     if(!gd || !gd.on) return;
-
-    // 1. Hover Ghost Overlay
     const ghostOverlay = document.getElementById('ghost-overlay');
     let lastEl = null;
-    let saved = {}; // Simplified save structure
-
-    // reset helper
+    let saved = {};
     const reset = (el) => { if(el) { el.style.stroke = saved.stroke || ''; el.style.strokeWidth = saved.strokeWidth || ''; el.style.opacity = saved.opacity || ''; } };
 
     gd.on('plotly_hover', function(e){
@@ -838,13 +829,8 @@ function attachPlotlyEnhancers(gd) {
             const pt = e.points[0];
             const curveIdx = pt.curveNumber;
             const pointIdx = pt.pointNumber;
-
-            // Find target (DOM element) for effect
-            // Simplified selector logic
             const isBar = (e.points[0].data.type === 'bar');
             let target = null;
-
-            // Try to find specific point element
             const traceEls = gd.querySelectorAll(`g.trace:nth-of-type(${curveIdx + 1}) .point`);
             if (traceEls && traceEls[pointIdx]) target = traceEls[pointIdx];
 
@@ -869,14 +855,12 @@ function attachPlotlyEnhancers(gd) {
                 ghostOverlay.style.display = 'block';
             }
 
-            // 2. Custom Tooltip
             const card = document.getElementById('customTooltipCard');
             if(card) {
                 const tEl = card.querySelector('.tt-title');
                 const dotEl = card.querySelector('.dot');
                 const nameEl = card.querySelector('.name');
                 const valueEl = card.querySelector('.value');
-
                 const xlab = pt.x;
                 const name = pt.data.name || 'Value';
                 const yval = pt.y;
@@ -887,7 +871,6 @@ function attachPlotlyEnhancers(gd) {
                 if(dotEl) dotEl.style.background = color;
                 if(nameEl) nameEl.textContent = name;
 
-                // Format helper
                 const kindFor = (n) => {
                     const s = (n||'').toLowerCase();
                     if(s.includes('revenue')||s.includes('營收')||s.includes('total')||s.includes('arpu')) return 'money';
@@ -901,17 +884,9 @@ function attachPlotlyEnhancers(gd) {
                     if(k==='pct') return n.toFixed(1)+'%';
                     return n.toLocaleString(undefined,{maximumFractionDigits:0});
                 };
-
                 if(valueEl) valueEl.textContent = fmtVal(yval, kindFor(name));
-
-                // Position logic
-                const lastMouseX = window.lastMouseX || 0;
-                const lastMouseY = window.lastMouseY || 0;
-                // Use stored mouse pos if available, else approximate
                 card.style.display = 'block';
-                // Positioning happens in mousemove listener globally
             }
-
         } catch(err){ console.error(err); }
     });
 
@@ -929,18 +904,12 @@ function renderChart(view){
   const layout = {...layoutBase(), ...built.layout};
   const config = {responsive:true, displaylogo:false, displayModeBar:false, scrollZoom:false, doubleClick:false};
 
-  // 1. Set visibility BEFORE drawing (Fix for checkbox issue)
+  // 1. 初始化 Checkboxes DOM 並設定預設勾選
   if(view!=="arpu"){
-    // Default checks in DOM
-    const defaultIds = built.defaults || [];
-    defaultIds.forEach(id => {
-      const node = document.getElementById(id);
-      if(node) node.checked = true;
-    });
+    (built.defaults||[]).forEach(id=>{ const node=document.getElementById(id); if(node) node.checked=true; });
 
-    // Apply visibility to trace data objects directly
+    // 2. 根據 DOM 狀態設定 Plotly Trace 的初始 Visible 屬性
     const getChecked = (id) => { const n=document.getElementById(id); return n && n.checked; };
-
     if(view === "money"){
         built.traces[0].visible = getChecked("r_total") ? true : 'legendonly';
         built.traces[1].visible = getChecked("r_sub") ? true : 'legendonly';
@@ -955,30 +924,24 @@ function renderChart(view){
     }
   }
 
-  // 2. Bind Events
-  const checkboxes = document.querySelectorAll("#checks input[type=checkbox]");
-  checkboxes.forEach(cb => {
+  // 3. 綁定 Checkbox 事件 (現在 DOM 已經存在)
+  document.querySelectorAll("#checks input[type=checkbox]").forEach(cb => {
       cb.addEventListener("change", () => {
           applyVisibility(view, built.traces);
       });
   });
 
-  // 3. Draw Chart
+  // 4. 繪製圖表 (使用已經正確設定 visible 的 traces)
   Plotly.react("chart", built.traces, layout, config).then((gd)=>{
-    // Remove loading state
     el("skel-chart").classList.add("loading-hide");
     el("chart").classList.remove("loading-hide");
-
-    // Attach Enhancers (Replacing MutationObserver logic)
     attachPlotlyEnhancers(gd);
   });
 }
 
-// Global mouse tracker for tooltip
 window.addEventListener('mousemove', (ev)=>{
     window.lastMouseX = ev.clientX;
     window.lastMouseY = ev.clientY;
-
     const card = document.getElementById('customTooltipCard');
     if(card && card.style.display === 'block'){
         const rect = card.getBoundingClientRect();
@@ -993,9 +956,7 @@ window.addEventListener('mousemove', (ev)=>{
     }
 }, {passive:true});
 
-// --- Date Filter Logic Update ---
 function updateDashboard() {
-    // 1. Filter Data
     const built = buildAgg(RAW_DATA.sub, RAW_DATA.single);
     STATE.aggAsc = built.aggAsc;
     STATE.topSingles = built.topSingles;
@@ -1003,19 +964,14 @@ function updateDashboard() {
 
     applyOrder(true);
 
-    // 2. Update KPIs
     setText("months", String(STATE.aggAsc.length));
     const totalRev = Math.round(STATE.aggAsc.reduce((a,b)=>a+(b.totalRevenue||0),0));
     setText("totalRevenue", money(totalRev));
 
-    // 3. Update Components
     renderTables();
-
-    // Trigger user table update
     const activeUserBtn = document.querySelector('.userseg-btn.active');
     renderUsers(activeUserBtn ? activeUserBtn.getAttribute('data-metric') : 'spend_total');
 
-    // Trigger chart update
     const activeViewBtn = document.querySelector('.segmented:not(.userseg) .seg-btn.active');
     if(activeViewBtn) renderChart(activeViewBtn.getAttribute('data-value'));
 }
@@ -1033,27 +989,20 @@ async function main(){
     if(!subRows.length) throw new Error("訂閱CSV 沒抓到資料");
     if(!singleRows.length) throw new Error("單片CSV 沒抓到資料");
 
-    // Store Raw Data
     RAW_DATA.sub = subRows;
     RAW_DATA.single = singleRows;
 
-    // Initial Dashboard Render
     updateDashboard();
 
-    // Bind Date Range Events
     document.querySelectorAll('#dateRangeControl .seg-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
-            // Update active state
             document.querySelectorAll('#dateRangeControl .seg-btn').forEach(b => b.classList.remove('active'));
             e.target.classList.add('active');
-
-            // Update State & Redraw
             STATE.dateRange = e.target.getAttribute('data-range');
             updateDashboard();
         });
     });
 
-    // Remove skeletons
     document.querySelectorAll(".skeleton-container").forEach(e => e.remove());
     document.querySelectorAll(".loading-hide").forEach(e => e.classList.remove("loading-hide"));
 
@@ -1064,7 +1013,6 @@ async function main(){
   }
 }
 
-// Init Control Events (View Selection)
 (function(){
   const sel = document.getElementById('viewSelect');
   const buttons = document.querySelectorAll('.segmented:not(.userseg) .seg-btn');
@@ -1079,13 +1027,12 @@ async function main(){
   });
 })();
 
-// Init User Metric Events
 (function(){
   const userBtns = document.querySelectorAll(".userseg .userseg-btn");
   userBtns.forEach(btn=>{
     btn.addEventListener("click", ()=>{
       userBtns.forEach(b=>b.classList.remove("active"));
-      btn.classList.add("active");
+      btn.classList.add('active');
       const v = btn.getAttribute("data-metric");
       renderUsers(v);
     });
