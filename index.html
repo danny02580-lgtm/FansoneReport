@@ -63,7 +63,7 @@
     overflow:hidden; box-shadow:0 4px 20px rgba(0,0,0,0.1);
     max-width: 100%; display: flex; flex-direction: column;
   }
-  .hd{padding:18px 16px; border-bottom:1px solid rgba(255,255,255,.08); display:flex; align-items:center; justify-content:space-between; gap:10px}
+  .hd{padding:14px 16px; border-bottom:1px solid rgba(255,255,255,.08); display:flex; align-items:center; justify-content:space-between; gap:10px}
   .hd h2{margin:0; font-size:15px; font-weight:700; color:#fff; white-space:nowrap;}
   .bd{padding:16px}
 
@@ -92,33 +92,20 @@
     color: rgba(255,255,255,.6); font-weight: 600; font-size: 14px;
     cursor: pointer; font-family: inherit; white-space: nowrap; text-align: center;
     transition: all 0.2s cubic-bezier(0.4,0,0.2,1); text-overflow: clip;
-    outline: none; /* Removed default outline */
   }
-  /* [A11y] Focus Styles */
-  .seg-btn:focus-visible {
-    box-shadow: 0 0 0 2px var(--bg0), 0 0 0 4px var(--accent);
-    z-index: 10;
-  }
-
   .seg-btn.active { background: var(--accent); color: #fff; box-shadow: 0 4px 12px var(--accent-glow); text-shadow: 0 1px 2px rgba(0,0,0,0.2); }
   .seg-btn:hover:not(.active) { color: #e5e7eb; background: rgba(255,255,255,0.05); }
 
   .segmented.userseg { display: inline-flex; width: auto; margin: 0; }
-  .userseg .userseg-btn { all: unset; cursor: pointer; padding: 6px 12px; border-radius: 99px; font-weight: 600; font-size: 11px; color: var(--muted); transition: all 0.2s; outline: none; }
+  .userseg .userseg-btn { all: unset; cursor: pointer; padding: 6px 12px; border-radius: 99px; font-weight: 600; font-size: 11px; color: var(--muted); transition: all 0.2s; }
   .userseg .userseg-btn.active { background: rgba(255,255,255,.12); color: #fff; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); }
-  /* [A11y] User Seg Focus */
-  .userseg .userseg-btn:focus-visible { box-shadow: 0 0 0 2px var(--bg0), 0 0 0 4px var(--accent); }
 
   .select.hidden{display:none!important;}
   .select{width:100%; padding:12px; border:1px solid var(--stroke); border-radius:14px; background:rgba(255,255,255,.04); color:var(--text); font-size:14px; outline:none;}
 
   .checks{display:grid; grid-template-columns:1fr; gap:8px; margin-top:12px}
-  .check{ display:flex; gap:12px; align-items:center; padding:12px 14px; border:1px solid var(--stroke); border-radius:12px; background:rgba(255,255,255,.02); cursor:pointer; transition: background 0.2s; }
-  .check:hover { background: rgba(255,255,255,0.05); }
-  /* [A11y] Checkbox Focus */
-  .check:focus-within { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
-
-  .check input{width:20px; height:20px; accent-color:var(--accent); cursor: pointer;}
+  .check{ display:flex; gap:12px; align-items:center; padding:12px 14px; border:1px solid var(--stroke); border-radius:12px; background:rgba(255,255,255,.02); cursor:pointer; }
+  .check input{width:20px; height:20px; accent-color:var(--accent)}
   .dot{width:10px; height:10px; border-radius:999px; background:#fff; flex-shrink:0;}
   .label{overflow:hidden; display:flex; align-items:center; flex:1;}
   .label b{font-size:14px; font-weight:600; white-space:nowrap; color: rgba(255,255,255,0.95);}
@@ -127,7 +114,7 @@
 
   .tablesGrid{display:grid; grid-template-columns:1.3fr 1fr; gap:16px; margin-top:16px; width: 100%;}
 
-  /* --- 表格與排序樣式 (UI & A11y Optimized) --- */
+  /* --- 表格與排序樣式 --- */
   .table-scroll-container { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; -ms-overflow-style: none; }
   .table-scroll-container::-webkit-scrollbar { display: none; }
 
@@ -137,27 +124,11 @@
   th {
     text-align:left; color:var(--muted); font-weight:700; font-size:12px; text-transform:uppercase; letter-spacing:0.5px;
     background:rgba(19,29,48,0.95); position:sticky; top:0; z-index:10;
-    cursor: pointer; user-select: none;
-    transition: background 0.2s, color 0.2s; /* 平滑過渡 */
-    outline: none;
+    cursor: pointer; user-select: none; transition: color 0.2s;
   }
+  th:hover { color: #fff; background:rgba(30,41,59,0.95); }
 
-  /* [UI] Hover 視覺優化 - 讓整欄背景變亮 */
-  th:hover { color: #fff; background:rgba(255,255,255,0.1); }
-
-  /* [A11y] Focus 視覺回饋 - 鍵盤選取時的亮框 */
-  th:focus-visible { background:rgba(59,130,246,0.2); color:#fff; box-shadow: inset 0 0 0 2px var(--accent); }
-
-  /* [UI] 預設排序箭頭 (未排序狀態顯示淡色雙箭頭) */
-  th::after {
-    content: '⇅';
-    display: inline-block; margin-left: 6px; width: 10px;
-    opacity: 0.2; font-size: 11px; vertical-align: middle;
-    transition: opacity 0.2s;
-  }
-  th:hover::after { opacity: 0.6; } /* Hover 時箭頭變明顯 */
-
-  /* 排序啟用狀態 */
+  th::after { content: ''; display: inline-block; margin-left: 6px; width: 8px; opacity: 0.3; }
   th.sort-asc::after { content: '▲'; opacity: 1; color: var(--accent); }
   th.sort-desc::after { content: '▼'; opacity: 1; color: var(--accent); }
 
@@ -165,9 +136,8 @@
   tbody tr:nth-child(even) td{background:rgba(255,255,255,0.01)}
   tr:hover td{background:rgba(255,255,255,.06)!important; transition:background 0.1s}
 
-  /* --- Top Users 表格 --- */
+  /* --- Top Users 表格 (固定寬度) --- */
   .fixed-table { table-layout: fixed; width: 100%; }
-  /* 微調寬度比例，確保三角形不被切到 */
   .fixed-table th:nth-child(1) { width: 28%; }
   .fixed-table th:nth-child(2), .fixed-table th:nth-child(3), .fixed-table th:nth-child(4), .fixed-table th:nth-child(5) { width: 18%; }
   .fixed-table td { overflow: hidden; text-overflow: ellipsis; }
@@ -176,18 +146,31 @@
   .sheetlink:hover{color:var(--text)}
   .pill{padding:4px 10px; border:1px solid var(--stroke); border-radius:999px; font-size:11px; font-weight:600; color:var(--muted); background:rgba(255,255,255,.02); white-space:nowrap;}
 
-  /* --- RWD --- */
+  /* --- RWD 設定 --- */
+
+  /* 電腦端 (大於 860px) */
   @media(min-width:861px) {
+    /* 強制隱藏捲軸 */
     #real-t1.table-scroll-container { overflow-x: hidden !important; }
-    #monthlyTable { table-layout: auto; width: 100%; }
-    #monthlyTable th, #monthlyTable td {
-        padding: 12px 6px;
-        white-space: nowrap; overflow: visible; text-overflow: clip;
-        font-size: 13px; letter-spacing: -0.2px;
+
+    #monthlyTable {
+        table-layout: auto;
+        width: 100%;
     }
+    #monthlyTable th, #monthlyTable td {
+        padding: 12px 6px; /* 緊湊內距 */
+        white-space: nowrap;
+        overflow: visible;
+        text-overflow: clip;
+        font-size: 13px;
+        letter-spacing: -0.2px;
+    }
+
+    /* Top Users 表格調整 */
     .fixed-table th, .fixed-table td { padding: 12px 8px; }
   }
 
+  /* 手機端 (小於 860px) */
   @media(max-width:860px){
     .wrap{padding:16px 12px 60px; overflow-x: hidden;}
     .topbar{flex-direction:column; align-items:stretch; gap:12px; padding:16px;}
@@ -198,6 +181,7 @@
     #chart{height:480px!important;}
     .tablesGrid{grid-template-columns:1fr; gap:16px;}
     .check{padding:12px;}
+
     .fixed-table { min-width: 550px; }
     .fixed-table th, .fixed-table td { padding: 12px 8px; font-size: 12px; }
     .seg-btn { font-size: 13px; padding: 8px 0; }
@@ -247,10 +231,10 @@
       <div class="hd"><h2>Chart Controls</h2><span class="pill" id="orderTag">新 → 舊</span></div>
       <div class="bd">
         <div class="segmented" role="tablist">
-          <button class="seg-btn active" type="button" data-value="money" aria-label="View Revenue">Revenue</button>
-          <button class="seg-btn" type="button" data-value="subs" aria-label="View Subscribers">Subs</button>
-          <button class="seg-btn" type="button" data-value="mix" aria-label="View Plans">Plans</button>
-          <button class="seg-btn" type="button" data-value="arpu" aria-label="View ARPU">ARPU</button>
+          <button class="seg-btn active" type="button" data-value="money">Revenue</button>
+          <button class="seg-btn" type="button" data-value="subs">Subs</button>
+          <button class="seg-btn" type="button" data-value="mix">Plans</button>
+          <button class="seg-btn" type="button" data-value="arpu">ARPU</button>
         </div>
         <select id="viewSelect" class="select hidden">
           <option value="money">金額</option><option value="subs">人數</option><option value="mix">方案</option><option value="arpu">ARPU</option>
@@ -279,14 +263,14 @@
           <table id="monthlyTable">
             <thead>
               <tr>
-                <th onclick="sortTable('monthly', 'month')" data-key="month" role="button" tabindex="0" aria-label="Sort by Month">Month</th>
-                <th class="right" onclick="sortTable('monthly', 'subs')" data-key="subs" role="button" tabindex="0" aria-label="Sort by Subscribers">Subs</th>
-                <th class="right" onclick="sortTable('monthly', 'newUsers')" data-key="newUsers" role="button" tabindex="0" aria-label="Sort by New Users">New</th>
-                <th class="right" onclick="sortTable('monthly', 'oldUsers')" data-key="oldUsers" role="button" tabindex="0" aria-label="Sort by Old Users">Old</th>
-                <th class="right" onclick="sortTable('monthly', 'subRevenue')" data-key="subRevenue" role="button" tabindex="0" aria-label="Sort by Subscription Revenue">Sub $</th>
-                <th class="right" onclick="sortTable('monthly', 'singleRevenue')" data-key="singleRevenue" role="button" tabindex="0" aria-label="Sort by Single Revenue">Single $</th>
-                <th class="right" onclick="sortTable('monthly', 'totalRevenue')" data-key="totalRevenue" role="button" tabindex="0" aria-label="Sort by Total Revenue">Total $</th>
-                <th class="right" onclick="sortTable('monthly', 'arpu')" data-key="arpu" role="button" tabindex="0" aria-label="Sort by ARPU">ARPU</th>
+                <th onclick="sortTable('monthly', 'month')" data-key="month">Month</th>
+                <th class="right" onclick="sortTable('monthly', 'subs')" data-key="subs">Subs</th>
+                <th class="right" onclick="sortTable('monthly', 'newUsers')" data-key="newUsers">New</th>
+                <th class="right" onclick="sortTable('monthly', 'oldUsers')" data-key="oldUsers">Old</th>
+                <th class="right" onclick="sortTable('monthly', 'subRevenue')" data-key="subRevenue">Sub $</th>
+                <th class="right" onclick="sortTable('monthly', 'singleRevenue')" data-key="singleRevenue">Single $</th>
+                <th class="right" onclick="sortTable('monthly', 'totalRevenue')" data-key="totalRevenue">Total $</th>
+                <th class="right" onclick="sortTable('monthly', 'arpu')" data-key="arpu">ARPU</th>
               </tr>
             </thead>
             <tbody id="tbodyMonthly"></tbody>
@@ -299,8 +283,8 @@
       <div class="hd">
         <div style="display:flex; align-items:center; gap:8px;"><h2>Top Users</h2></div>
         <div class="segmented userseg" role="tablist">
-          <button class="userseg-btn active" type="button" data-metric="spend_total" aria-label="Sort by Total Spend">Spend</button>
-          <button class="userseg-btn" type="button" data-metric="active_months" aria-label="Sort by Loyalty">Loyalty</button>
+          <button class="userseg-btn active" type="button" data-metric="spend_total">Spend</button>
+          <button class="userseg-btn" type="button" data-metric="active_months">Loyalty</button>
         </div>
         <select id="userMetric" style="display:none" class="select"><option value="spend_total">A</option><option value="active_months">B</option></select>
       </div>
@@ -313,11 +297,11 @@
           <table class="fixed-table">
             <thead>
               <tr>
-                <th onclick="sortTable('users', 'id')" data-key="id" role="button" tabindex="0" aria-label="Sort by User ID">User ID</th>
-                <th class="right" onclick="sortTable('users', 'metricVal')" data-key="metricVal" role="button" tabindex="0" aria-label="Sort by Metric">Metric</th>
-                <th class="right" onclick="sortTable('users', 'subSpend')" data-key="subSpend" role="button" tabindex="0" aria-label="Sort by Sub Spend">Sub $</th>
-                <th class="right" onclick="sortTable('users', 'singleSpend')" data-key="singleSpend" role="button" tabindex="0" aria-label="Sort by Single Spend">Single $</th>
-                <th class="right" onclick="sortTable('users', 'totalSpend')" data-key="totalSpend" role="button" tabindex="0" aria-label="Sort by Total Spend">Total $</th>
+                <th onclick="sortTable('users', 'id')" data-key="id">User ID</th>
+                <th class="right" onclick="sortTable('users', 'metricVal')" data-key="metricVal">Metric</th>
+                <th class="right" onclick="sortTable('users', 'subSpend')" data-key="subSpend">Sub $</th>
+                <th class="right" onclick="sortTable('users', 'singleSpend')" data-key="singleSpend">Single $</th>
+                <th class="right" onclick="sortTable('users', 'totalSpend')" data-key="totalSpend">Total $</th>
               </tr>
             </thead>
             <tbody id="tbodyUsers"></tbody>
@@ -339,9 +323,9 @@
           <table>
             <thead>
               <tr>
-                <th onclick="sortTable('singles', 'title')" data-key="title" role="button" tabindex="0" aria-label="Sort by Title">Title</th>
-                <th class="right" onclick="sortTable('singles', 'sum')" data-key="sum" role="button" tabindex="0" aria-label="Sort by Revenue">Revenue</th>
-                <th class="right" onclick="sortTable('singles', 'count')" data-key="count" role="button" tabindex="0" aria-label="Sort by Orders">Orders</th>
+                <th onclick="sortTable('singles', 'title')" data-key="title">Title</th>
+                <th class="right" onclick="sortTable('singles', 'sum')" data-key="sum">Revenue</th>
+                <th class="right" onclick="sortTable('singles', 'count')" data-key="count">Orders</th>
               </tr>
             </thead>
             <tbody id="tbodySingles"></tbody>
@@ -688,9 +672,19 @@ function applyOrder(newestFirst){
 }
 
 function buildTraces(view){
-  const agg = STATE.aggDesc;
-  const x = agg.map(d=>Number(d.month.split("-")[1]));
-  const xText = agg.map(d=>d.month);
+  // 1. 強制圖表使用「由舊到新 (左到右)」的陣列順序，時間折線圖才好閱讀
+  const agg = STATE.aggAsc;
+
+  // 2. 關鍵修正：將完整月份字串當作 X 軸，避免換年導致的數字順序錯位
+  const x = agg.map(d => d.month); // 取得 ["2023-12", "2024-01", "2024-02"] 作為定位
+  const xText = agg.map(d => d.month); // Hover 顯示用
+
+  // 3. 格式化 X 軸顯示文字，例如 "23/12", "24/01" 較為美觀且不佔空間
+  const tickTextArr = agg.map(d => {
+    const parts = d.month.split("-");
+    if(parts.length === 2) return parts[0].slice(2) + "/" + parts[1];
+    return d.month;
+  });
 
   const newY = agg.map(d=>d.newUsers);
   const oldY = agg.map(d=>d.oldUsers);
@@ -710,14 +704,16 @@ function buildTraces(view){
   const CTOT = css.getPropertyValue('--totalrev').trim();
   const CARPU = css.getPropertyValue('--arpu').trim();
 
+  // 將新設定的 ticktext 與 tickvals 給入 layout
   const xaxis = {
     tickmode:"array",
     tickvals:x,
-    ticktext:x.map(v=>String(v)),
+    ticktext:tickTextArr,
     gridcolor:"rgba(255,255,255,.08)",
     zeroline:false,
     tickfont:{color:"rgba(229,231,235,.9)", size:12},
   };
+
   const yCommon = {
     gridcolor:"rgba(255,255,255,.10)",
     zeroline:false,
@@ -763,7 +759,7 @@ function buildTraces(view){
     ],
     layout: { ...hoverConfig, xaxis, yaxis: yCommon },
     defaults: ["r_total","r_sub","r_single"],
-    };
+  };
 }
 
 function applyVisibility(view, traces){
@@ -791,29 +787,48 @@ function renderChart(view){
   const layout = {...layoutBase(), ...built.layout};
   const config = {responsive:true, displaylogo:false, displayModeBar:false, scrollZoom:false, doubleClick:false};
 
-  // 1. Set default checks
+  // --- 修正：確保事件綁定邏輯正確 ---
+  // 1. 設定預設勾選
   if(view!=="arpu"){
-    (built.defaults||[]).forEach(id=>{ const node=document.getElementById(id); if(node) node.checked=true; });
+    const defaultIds = built.defaults || [];
+    defaultIds.forEach(id => {
+      const node = document.getElementById(id);
+      if(node) node.checked = true;
+    });
+
+    // 2. 關鍵修正：在初始化圖表前，先修改 traces 的 visible 屬性
+    // 這樣第一張圖畫出來的時候就是正確的，不需要依賴 Plotly.restyle
+    // 因為此時 chart 還沒畫出來，restyle 會失敗
+
+    // 取得當前所有 checkbox 的狀態
+    const getChecked = (id) => { const n=document.getElementById(id); return n && n.checked; };
+
+    if(view === "money"){
+        built.traces[0].visible = getChecked("r_total");
+        built.traces[1].visible = getChecked("r_sub");
+        built.traces[2].visible = getChecked("r_single");
+    } else if(view === "subs"){
+        built.traces[0].visible = getChecked("s_new");
+        built.traces[1].visible = getChecked("s_old");
+    } else if(view === "mix"){
+        built.traces[0].visible = getChecked("p_1");
+        built.traces[1].visible = getChecked("p_3");
+        built.traces[2].visible = getChecked("p_6");
+    }
   }
 
-  // 2. Bind Checkbox Events BEFORE chart init (so they are ready)
-  document.querySelectorAll("#checks input[type=checkbox]").forEach(cb => {
+  // 3. 綁定事件 (讓之後的點擊觸發 restyle)
+  const checkboxes = document.querySelectorAll("#checks input[type=checkbox]");
+  checkboxes.forEach(cb => {
       cb.addEventListener("change", () => {
           applyVisibility(view, built.traces);
       });
   });
 
+  // 4. 畫圖 (使用已經設定好 visible 的 traces)
   Plotly.react("chart", built.traces, layout, config).then(()=>{
-    // Hide skeleton chart, show real chart
     el("skel-chart").classList.add("loading-hide");
     el("chart").classList.remove("loading-hide");
-
-    if(view!=="arpu"){
-      // Apply visibility based on defaults
-      applyVisibility(view, built.traces);
-    } else {
-      Plotly.restyle("chart", "visible", built.traces.map(()=>true));
-    }
   });
 }
 
@@ -825,7 +840,6 @@ async function main(){
     }
     el("status").className = "sub"; el("status").textContent = "Loading… Fetching data";
 
-    // 使用 PapaParse 解析 CSV
     const [subRows, singleRows] = await Promise.all([fetchCsvPapa(SUB_CSV_URL), fetchCsvPapa(SINGLE_CSV_URL)]);
 
     if(!subRows.length) throw new Error("訂閱CSV 沒抓到資料（可能還沒 publish 或 gid 錯）");
@@ -836,7 +850,7 @@ async function main(){
     STATE.topSingles = built.topSingles;
     STATE.users = built.users;
 
-    applyOrder(true);
+    applyOrder(false);
 
     setText("months", String(STATE.aggAsc.length));
     setText("totalRevenue", money(Math.round(STATE.aggAsc.reduce((a,b)=>a+(b.totalRevenue||0),0))));
